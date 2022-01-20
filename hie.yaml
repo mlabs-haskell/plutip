@@ -1,0 +1,6 @@
+cradle:
+  cabal:
+    - path: "./src"
+      component: "lib:plutip"
+    - path: "./test"
+      component: "test-suite:plutip-tests"

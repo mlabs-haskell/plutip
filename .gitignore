@@ -1,0 +1,11 @@
+dist-newstyle/
+.stack-work/
+
+# nix-build results
+result*
+
+.direnv/
+.envrc
+
+#vscode
+.vscode/

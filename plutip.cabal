@@ -9,7 +9,33 @@ extra-source-files: CHANGELOG.md
 
 common common-imports
   build-depends:
+    , aeson
+    , async
     , base
+    , cardano-addresses
+    , cardano-api
+    , cardano-wallet
+    , cardano-wallet-cli
+    , cardano-wallet-core
+    , cardano-wallet-core-integration
+    , cardano-wallet-launcher
+    , contra-tracer
+    , data-default
+    , directory
+    , filepath
+    , http-client
+    , iohk-monitoring
+    , lens
+    , lobemo-backend-ekg
+    , openapi3
+    , plutus-chain-index
+    , plutus-chain-index-core
+    , plutus-pab
+    , prettyprinter
+    , servant-client
+    , servant-server
+    , text
+    , text-class
 
 common common-language
   default-extensions:
@@ -61,13 +87,13 @@ library
   import:          common-ghc-options
   ghc-options:
     -Wall -Wcompat -Wincomplete-uni-patterns -Wredundant-constraints
-    -Wmissing-export-lists -Wmissing-deriving-strategies -Werror
+    -Wmissing-export-lists -Wmissing-deriving-strategies 
+    -Werror
 
   hs-source-dirs:  src/
   exposed-modules:
     Plutip
-
-
+    LocalCluster.Run
 
 test-suite plutip-tests
   import:             common-imports

@@ -7,6 +7,7 @@ import Prelude
 
 run :: IO ()
 run = do
+  -- todo: maybe some better configuring procedure required
   setEnv "SHELLEY_TEST_DATA" "cluster-data/cardano-node-shelley"
   setEnv "NO_POOLS" "1"
   LC.runUsingCluster $ \runningNode -> do

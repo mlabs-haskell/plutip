@@ -19,6 +19,8 @@ common common-imports
     , cardano-wallet-core
     , cardano-wallet-core-integration
     , cardano-wallet-launcher
+    , ouroboros-network
+    , cardano-slotting
     , contra-tracer
     , data-default
     , directory
@@ -88,12 +90,13 @@ library
   ghc-options:
     -Wall -Wcompat -Wincomplete-uni-patterns -Wredundant-constraints
     -Wmissing-export-lists -Wmissing-deriving-strategies 
-    -Werror
+    -- -Werror
 
   hs-source-dirs:  src/
   exposed-modules:
     Plutip
-    LocalCluster.Run
+    LocalCluster.Cluster
+    LocalCluster.CardanoApi
 
 test-suite plutip-tests
   import:             common-imports

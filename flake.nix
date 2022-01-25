@@ -37,7 +37,7 @@
     cardano-node = {
       url =
         "github:input-output-hk/cardano-node/b6ca519f97a0e795611a63174687e6bb70c9f752";
-      flake = false;
+      # flake = false; -- we need it to be awaliable in shell
     };
     cardano-prelude = {
       url =

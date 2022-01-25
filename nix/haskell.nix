@@ -3,6 +3,7 @@
 , pkgs
 , doCoverage ? false
 , deferPluginErrors ? true
+, system
 , ...
 }:
 
@@ -90,6 +91,10 @@ pkgs.haskell-nix.cabalProject {
         graphviz
         pkg-config
         libsodium-vrf
+
+        # Cardano tools
+        inputs.cardano-node.packages.${system}.cardano-node
+        inputs.cardano-node.packages.${system}.cardano-cli
       ] ++ (
         lib.optionals (!stdenv.isDarwin) [
           rPackages.plotly

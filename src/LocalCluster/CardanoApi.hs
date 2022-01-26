@@ -5,10 +5,11 @@ import Cardano.Launcher.Node (nodeSocketFile)
 import Cardano.Slotting.Slot (WithOrigin)
 import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (..))
 import Ouroboros.Network.Protocol.LocalStateQuery.Type (AcquireFailure)
+import LocalCluster.Types
 import Prelude
 
-currentBlock :: RunningNode -> IO (Either AcquireFailure (WithOrigin C.BlockNo))
-currentBlock rn = do
+currentBlock :: ClusterEnv -> IO (Either AcquireFailure (WithOrigin C.BlockNo))
+currentBlock (ClusterEnv rn _ _) = do
   let query = C.QueryChainBlockNo
       info = debugConnectionInfo rn
   C.queryNodeLocalState info Nothing query

@@ -38,6 +38,10 @@ common common-imports
     , servant-server
     , text
     , text-class
+    , memory
+    , typed-process
+    , bytestring
+    , mtl
 
 common common-language
   default-extensions:
@@ -94,9 +98,19 @@ library
 
   hs-source-dirs:  src/
   exposed-modules:
-    Plutip
     LocalCluster.Cluster
     LocalCluster.CardanoApi
+    LocalCluster.Wallet
+    LocalCluster.DebugCli
+    LocalCluster.Types
+
+executable plutip-example
+  import:        common-language
+  main-is:       example/Main.hs
+  build-depends:
+      base
+    , text  
+    , plutip
 
 test-suite plutip-tests
   import:             common-imports

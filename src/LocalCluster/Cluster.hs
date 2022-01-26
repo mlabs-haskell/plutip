@@ -1,6 +1,5 @@
 module LocalCluster.Cluster (runUsingCluster) where
 
-import Cardano.BM.Backend.EKGView qualified as EKG
 import Cardano.BM.Data.Severity
   ( Severity (..),
   )
@@ -8,15 +7,8 @@ import Cardano.BM.Data.Tracer
   ( HasPrivacyAnnotation (..),
     HasSeverityAnnotation (..),
   )
-import Cardano.BM.Plugin
-  ( loadPlugin,
-  )
 import Cardano.CLI
   ( LogOutput (..),
-    Port,
-    ekgEnabled,
-    getEKGURL,
-    getPrometheusURL,
     withLoggingNamed,
   )
 import Cardano.Startup
@@ -33,9 +25,6 @@ import Cardano.Wallet.Logging
   )
 import Cardano.Wallet.Primitive.AddressDerivation
   ( NetworkDiscriminant (..),
-  )
-import Cardano.Wallet.Primitive.SyncProgress
-  ( SyncTolerance (..),
   )
 import Cardano.Wallet.Primitive.Types.Coin
   ( Coin (..),
@@ -104,8 +93,11 @@ import Test.Integration.Faucet
 import Prelude
 import Cardano.Launcher.Node (nodeSocketFile)
 import Control.Concurrent (threadDelay)
+import LocalCluster.Types
 
-runUsingCluster :: (RunningNode -> IO ()) -> IO ()
+
+
+runUsingCluster :: (ClusterEnv -> IO ()) -> IO ()
 runUsingCluster action =
   withLocalClusterSetup $ \dir clusterLogs walletLogs ->
     withLoggingNamed "cluster" clusterLogs $ \(_, (_, trCluster)) -> do
@@ -117,22 +109,27 @@ runUsingCluster action =
         dir
         clusterCfg
         (const (putStrLn  "setupFaucet was here")) -- (setupFaucet dir (trMessageText trCluster))
-        (\rn -> awaitSocketCreated (trMessageText trCluster) rn >> action rn)
+        (\rn -> do
+            putStrLn "@@ SOCKET WAIT"
+            awaitSocketCreated (trMessageText trCluster) rn 
+            action (ClusterEnv rn dir trCluster)
+            -- setupFaucet dir (trMessageText trCluster) rn
+        )
         -- ^ (whenReady dir (trMessageText trCluster) walletLogs) was here ^
   where
-    -- setupFaucet dir trCluster (RunningNode socketPath _ _) = do
-    --   traceWith trCluster MsgSettingUpFaucet
-    --   let trCluster' = contramap MsgCluster trCluster
-    --   let encodeAddresses = map (first (T.unpack . encodeAddress @'Mainnet))
-    --   let accts = KeyCredential <$> concatMap genRewardAccounts mirMnemonics
-    --   let rewards = (,Coin $ fromIntegral oneMillionAda) <$> accts
+    setupFaucet dir trCluster (RunningNode socketPath _ _) = do
+      traceWith trCluster MsgSettingUpFaucet
+      let trCluster' = contramap MsgCluster trCluster
+      let encodeAddresses = map (first (T.unpack . encodeAddress @'Mainnet))
+      let accts = KeyCredential <$> concatMap genRewardAccounts mirMnemonics
+      let rewards = (,Coin $ fromIntegral oneMillionAda) <$> accts
 
-    --   sendFaucetFundsTo trCluster' socketPath dir $
-    --     encodeAddresses shelleyIntegrationTestFunds
-    --   sendFaucetAssetsTo trCluster' socketPath dir 20 $
-    --     encodeAddresses $
-    --       maryIntegrationTestAssets (Coin 1_000_000_000)
-    --   moveInstantaneousRewardsTo trCluster' socketPath dir rewards
+      sendFaucetFundsTo trCluster' socketPath dir $
+        encodeAddresses shelleyIntegrationTestFunds
+      sendFaucetAssetsTo trCluster' socketPath dir 20 $
+        encodeAddresses $
+          maryIntegrationTestAssets (Coin 1_000_000_000)
+      moveInstantaneousRewardsTo trCluster' socketPath dir rewards
 
     -- whenReady dir trCluster logs (RunningNode socketPath block0 (gp, vData)) =
     --   withLoggingNamed "cardano-wallet" logs $ \(sb, (cfg, tr)) -> do

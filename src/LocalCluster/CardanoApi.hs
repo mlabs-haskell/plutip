@@ -4,10 +4,10 @@ import Cardano.Api qualified as C
 import Cardano.Launcher.Node (nodeSocketFile)
 import Cardano.Slotting.Slot (WithOrigin)
 import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (..))
-import Ouroboros.Network.Protocol.LocalStateQuery.Type (AcquireFailure)
 import LocalCluster.Types
-import Prelude
+import Ouroboros.Network.Protocol.LocalStateQuery.Type (AcquireFailure)
 
+-- | Get current block using `Cardano.Api` library
 currentBlock :: ClusterEnv -> IO (Either AcquireFailure (WithOrigin C.BlockNo))
 currentBlock (ClusterEnv rn _ _) = do
   let query = C.QueryChainBlockNo

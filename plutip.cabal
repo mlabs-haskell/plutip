@@ -45,7 +45,6 @@ common common-imports
 
 common common-language
   default-extensions:
-    NoImplicitPrelude
     BangPatterns
     DataKinds
     DeriveAnyClass
@@ -98,6 +97,7 @@ library
 
   hs-source-dirs:  src/
   exposed-modules:
+    Utils
     LocalCluster.Cluster
     LocalCluster.CardanoApi
     LocalCluster.Wallet

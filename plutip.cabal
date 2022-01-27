@@ -12,24 +12,29 @@ common common-imports
     , aeson
     , async
     , base
+    , bytestring
     , cardano-addresses
     , cardano-api
+    , cardano-slotting
     , cardano-wallet
     , cardano-wallet-cli
     , cardano-wallet-core
     , cardano-wallet-core-integration
     , cardano-wallet-launcher
-    , ouroboros-network
-    , cardano-slotting
+    , containers
     , contra-tracer
     , data-default
     , directory
+    , exceptions
     , filepath
     , http-client
     , iohk-monitoring
     , lens
     , lobemo-backend-ekg
+    , memory
+    , mtl
     , openapi3
+    , ouroboros-network
     , plutus-chain-index
     , plutus-chain-index-core
     , plutus-pab
@@ -38,10 +43,7 @@ common common-imports
     , servant-server
     , text
     , text-class
-    , memory
     , typed-process
-    , bytestring
-    , mtl
 
 common common-language
   default-extensions:
@@ -133,6 +135,7 @@ test-suite plutip-tests
     , text
 
   other-modules:
+    Test.Integration
     
   default-extensions:
     OverloadedStrings

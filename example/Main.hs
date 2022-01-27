@@ -34,7 +34,7 @@ main = do
       putStrLn "\nDebug address check:"
       waitSeconds 2
       mapM_
-        (CLI.utxoAtAddress cEnv . stringAddress)
+        (CLI.utxoAtAddress cEnv . mainnetStringAddress)
         ws
 
 testMnemonic :: [Text]

@@ -4,7 +4,8 @@ module LocalCluster.Wallet (
   cwAddress,
   someWallet,
   mnemonicWallet,
-  stringAddress,
+  mainnetTextAddress,
+  mainnetStringAddress,
   encodeAddressHex,
 ) where
 
@@ -61,7 +62,7 @@ mnemonicWallet mnem amt = do
   (ClusterEnv (RunningNode socketPath _ _) dir _) <- ask
   let mnem' = unsafeMkMnemonic mnem
       wallet = mkWallet mnem'
-      fundAddress = stringAddress wallet
+      fundAddress = mainnetStringAddress wallet
       amt' = toEnum . fromEnum $ amt
   liftIO $ sendFaucetFundsTo nullTracer socketPath dir [(fundAddress, Coin amt')]
   return wallet
@@ -95,8 +96,8 @@ mkWallet mn =
 toAddresses :: Mnemonic 15 -> [Address]
 toAddresses = genShelleyAddresses . SomeMnemonic
 
-textAddress :: ClusterWallet -> Text
-textAddress = encodeAddress @ 'Mainnet . cwAddress
+mainnetTextAddress :: ClusterWallet -> Text
+mainnetTextAddress = encodeAddress @ 'Mainnet . cwAddress
 
-stringAddress :: ClusterWallet -> String
-stringAddress = T.unpack . textAddress
+mainnetStringAddress :: ClusterWallet -> String
+mainnetStringAddress = T.unpack . mainnetTextAddress

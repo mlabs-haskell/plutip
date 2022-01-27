@@ -105,7 +105,6 @@ runUsingCluster :: (ClusterEnv -> IO ()) -> IO ()
 runUsingCluster action = do
   checkProcessesAvailable ["cardano-node", "cardano-cli"]
   withLocalClusterSetup $ \dir clusterLogs walletLogs -> do
-    nodeMinSeverityFromEnv >>= print
     withLoggingNamed "cluster" clusterLogs $ \(_, (_, trCluster)) -> do
       let tr' = contramap MsgCluster $ trMessageText trCluster
       clusterCfg <- localClusterConfigFromEnv

@@ -21,17 +21,16 @@ main = do
     wallets <- -- adding several wallets
       addWallets
         cEnv
-        [ mnemonicWallet testMnemonic (ada 11),
-          someWallet (ada 700),
-          someWallet (ada 42)
+        [ mnemonicWallet testMnemonic (ada 11)
+        , someWallet (ada 700)
+        , someWallet (ada 42)
         ]
     singleWallet <- addWallet cEnv $ someWallet (ada 707) -- adding single wallet
-    
     debugCheck cEnv (singleWallet : wallets)
 
     putStrLn "Done. Debug awaiting - interrupt to exit" >> forever (waitSeconds 60)
   where
-    debugCheck cEnv ws = do 
+    debugCheck cEnv ws = do
       putStrLn "\nDebug address check:"
       waitSeconds 2
       mapM_
@@ -40,19 +39,19 @@ main = do
 
 testMnemonic :: [Text]
 testMnemonic =
-  [ "radar",
-    "scare",
-    "sense",
-    "winner",
-    "little",
-    "jeans",
-    "blue",
-    "spell",
-    "mystery",
-    "sketch",
-    "omit",
-    "time",
-    "tiger",
-    "leave",
-    "load"
+  [ "radar"
+  , "scare"
+  , "sense"
+  , "winner"
+  , "little"
+  , "jeans"
+  , "blue"
+  , "spell"
+  , "mystery"
+  , "sketch"
+  , "omit"
+  , "time"
+  , "tiger"
+  , "leave"
+  , "load"
   ]

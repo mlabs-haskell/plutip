@@ -80,12 +80,14 @@ import Data.Text.Class (
 import Cardano.Launcher.Node (nodeSocketFile)
 import Control.Concurrent (threadDelay)
 import Control.Monad (unless)
+import Data.Maybe (catMaybes, isJust)
 import LocalCluster.Types
 import System.Directory (
   createDirectory,
   doesFileExist,
+  findExecutable,
  )
-import System.Environment (setEnv)
+import System.Exit (die)
 import System.FilePath (
   (</>),
  )
@@ -100,7 +102,8 @@ import Test.Integration.Faucet (
  under development (mostly borrowed from `cardano-wallet`)
 -}
 runUsingCluster :: (ClusterEnv -> IO ()) -> IO ()
-runUsingCluster action =
+runUsingCluster action = do
+  checkProcessesAvailable ["cardano-node", "cardano-cli"]
   withLocalClusterSetup $ \dir clusterLogs walletLogs -> do
     nodeMinSeverityFromEnv >>= print
     withLoggingNamed "cluster" clusterLogs $ \(_, (_, trCluster)) -> do
@@ -117,8 +120,8 @@ runUsingCluster action =
             -- it's possible to setup faucet here as well
             -- setupFaucet dir (trMessageText trCluster) rn
         )
-    -- (whenReady dir (trMessageText trCluster) walletLogs) was here ^
   where
+    -- (whenReady dir (trMessageText trCluster) walletLogs) was here ^
 
     setupFaucet dir trCluster (RunningNode socketPath _ _) = do
       traceWith trCluster MsgSettingUpFaucet
@@ -207,6 +210,16 @@ withLocalClusterSetup action = do
       walletLogs <- logOutputs "wallet.log" <$> walletMinSeverityFromEnv
 
       action dir clusterLogs walletLogs
+
+checkProcessesAvailable :: [String] -> IO ()
+checkProcessesAvailable requiredProcesses = do
+  results <- mapM findExecutable requiredProcesses
+  unless (isJust `all` results) $
+    -- todo: maybe some better way throwing needed?
+    die $
+      "This processes should be available in the environment:\n " <> show requiredProcesses
+        <> "\n but only these were found:\n "
+        <> show (catMaybes results)
 
 -- Logging
 

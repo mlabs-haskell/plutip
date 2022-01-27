@@ -1,12 +1,14 @@
 module Utils (
   ada,
-  waitSeconds
+  waitSeconds,
 ) where
-import Numeric.Natural ( Natural )
-import Control.Concurrent (threadDelay)
 
--- | Library functions works with amounts in `Lovelace`. 
--- This function helps to specify amounts in `Ada` easier. 
+import Control.Concurrent (threadDelay)
+import Numeric.Natural (Natural)
+
+{- | Library functions works with amounts in `Lovelace`.
+ This function helps to specify amounts in `Ada` easier.
+-}
 ada :: Natural -> Natural
 ada = (* 1_000_000)
 

@@ -5,6 +5,7 @@ module LocalCluster.Wallet (
   someWallet,
   mnemonicWallet,
   stringAddress,
+  encodeAddressHex,
 ) where
 
 import Cardano.Mnemonic (Mnemonic, SomeMnemonic (SomeMnemonic), mnemonicToText)

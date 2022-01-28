@@ -28,7 +28,11 @@ main = do
         , someWallet (ada 42)
         ]
     singleWallet <- addWallet cEnv $ someWallet (ada 707) -- adding single wallet
+    waitSeconds 2 
+      >> LCAPI.utxosAtAddress cEnv (cwPaymentAddress singleWallet)
+      >>= print
     debugCheck cEnv (singleWallet : wallets)
+
 
     putStrLn "Done. Debug awaiting - interrupt to exit" >> forever (waitSeconds 60)
   where

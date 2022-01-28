@@ -102,6 +102,7 @@ library
 
   hs-source-dirs:  src/
   exposed-modules:
+    LocalCluster.Action
     Address
     LocalCluster.CardanoApi
     LocalCluster.Cluster

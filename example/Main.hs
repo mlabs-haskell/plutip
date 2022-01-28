@@ -38,9 +38,13 @@ main = do
       mapM_
         (CLI.utxoAtAddress cEnv . mainnetStringAddress)
         ws
-
+      putStrLn "Wallet's Addresses: "
       mapM_
-        (print . Addr.walletToLedger . cwAddress)
+        (print . Addr.walletToLedger . cwPaymentAddress)
+        ws
+      putStrLn "Wallet's PubKey hashes: "
+      mapM_
+        (print . paymentPubKeyHash)
         ws
 
 testMnemonic :: [Text]

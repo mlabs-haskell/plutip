@@ -1,21 +1,30 @@
 module LocalCluster.Wallet (
   addWallet,
   addWallets,
-  cwAddress,
-  someWallet,
-  mnemonicWallet,
-  mainnetTextAddress,
-  mainnetStringAddress,
   encodeAddressHex,
+  getRootXPrv,
+  mainnetStringAddress,
+  mainnetTextAddress,
+  mnemonicWallet,
+  cwPaymentAddress,
+  paymentPubKey,
+  paymentPubKeyHash,
+  someWallet,
 ) where
 
+import Cardano.Address.Derivation (XPrv, XPub)
 import Cardano.Mnemonic (Mnemonic, SomeMnemonic (SomeMnemonic), mnemonicToText)
 import Cardano.Wallet.Api.Types (
   EncodeAddress (..),
  )
 import Cardano.Wallet.Primitive.AddressDerivation (
+  HardDerivation (deriveAccountPrivateKey, deriveAddressPrivateKey),
   NetworkDiscriminant (..),
+  PaymentAddress (paymentAddress),
+  Role (UtxoExternal),
+  WalletKey (publicKey),
  )
+import Cardano.Wallet.Primitive.AddressDerivation.Shelley qualified as Shelley
 import Cardano.Wallet.Primitive.Types.Address (
   Address (..),
  )
@@ -38,6 +47,7 @@ import Data.Text (
  )
 import Data.Text qualified as T
 import Data.Text.Encoding as T
+import Ledger qualified as LC
 import LocalCluster.Types
 import Numeric.Natural (Natural)
 import Test.Integration.Faucet (genMnemonics, genShelleyAddresses)
@@ -83,7 +93,7 @@ encodeAddressHex = T.decodeUtf8 . convertToBase Base16 . unAddress
 -}
 data ClusterWallet = CWallet
   { cwMnemonic :: Mnemonic 15
-  , cwAddress :: Address
+  , cwPaymentAddress :: Address
   }
   deriving stock (Show)
 
@@ -91,13 +101,42 @@ mkWallet :: Mnemonic 15 -> ClusterWallet
 mkWallet mn =
   CWallet
     mn
-    (head $ toAddresses mn) -- TODO: not sure how many addresses we'll need
+    -- (head $ toAddresses mn) -- TODO: not sure how many addresses we'll need
+    (paymentAddress @ 'Mainnet pk)
+  where
+    pk = Shelley.ShelleyKey $ toPaymentXPub $ fromMnemonic mn
+
+-- toPaymentAddr = cwPaymentAddress @'Mainnet
 
 toAddresses :: Mnemonic 15 -> [Address]
 toAddresses = genShelleyAddresses . SomeMnemonic
 
 mainnetTextAddress :: ClusterWallet -> Text
-mainnetTextAddress = encodeAddress @ 'Mainnet . cwAddress
+mainnetTextAddress = encodeAddress @ 'Mainnet . cwPaymentAddress
 
 mainnetStringAddress :: ClusterWallet -> String
 mainnetStringAddress = T.unpack . mainnetTextAddress
+
+-- TODO: maybe better include rootXPrv to wallet during creation
+
+getRootXPrv :: ClusterWallet -> XPrv
+getRootXPrv (CWallet mnem _) = fromMnemonic mnem
+
+fromMnemonic :: Mnemonic 15 -> XPrv
+fromMnemonic mnem =
+  Shelley.getKey $
+    Shelley.generateKeyFromSeed -- ! atm uses "unsafeGenerateKeyFromSeed" version
+      (SomeMnemonic mnem, Nothing)
+      mempty
+
+toPaymentXPub :: XPrv -> XPub
+toPaymentXPub rootXPrv =
+  let accXPrv = deriveAccountPrivateKey mempty (Shelley.ShelleyKey rootXPrv) minBound
+      addrXPrv = deriveAddressPrivateKey mempty accXPrv UtxoExternal
+   in Shelley.getKey $ publicKey $ addrXPrv minBound
+
+paymentPubKey :: ClusterWallet -> LC.PubKey
+paymentPubKey = LC.xPubToPublicKey . toPaymentXPub . getRootXPrv
+
+paymentPubKeyHash :: ClusterWallet -> LC.PubKeyHash
+paymentPubKeyHash = LC.pubKeyHash . paymentPubKey

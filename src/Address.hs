@@ -1,10 +1,9 @@
 -- | Cardano-Api/Ledger/Cardano-Wallet address conversions
-module Address
-  ( walletToCardano,
-    walletToCardanoAny,
-    walletToLedger,
-  )
-where
+module Address (
+  walletToCardano,
+  walletToCardanoAny,
+  walletToLedger,
+) where
 
 import Cardano.Api qualified as CAPI
 import Cardano.Wallet.Primitive.Types.Address qualified as Wallet
@@ -38,5 +37,4 @@ walletToLedger wAddr =
   where
     convert =
       Ledger.fromCardanoAddress
-      . CAPI.shelleyAddressInEra @CAPI.AlonzoEra
-      
+        . CAPI.shelleyAddressInEra @CAPI.AlonzoEra

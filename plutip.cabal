@@ -15,6 +15,7 @@ common common-imports
     , bytestring
     , cardano-addresses
     , cardano-api
+    , cardano-crypto
     , cardano-slotting
     , cardano-wallet
     , cardano-wallet-cli

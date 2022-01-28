@@ -6,22 +6,18 @@ module LocalCluster.CardanoApi (
 import Cardano.Api qualified as C
 import Cardano.Launcher.Node (nodeSocketFile)
 import Cardano.Slotting.Slot (WithOrigin)
-import Cardano.Wallet.Api.Types (encodeAddress)
-import Cardano.Wallet.Primitive.AddressDerivation (
-  NetworkDiscriminant (Mainnet),
- )
 import Cardano.Wallet.Primitive.Types.Address (Address)
 import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (..))
 import Control.Exception (Exception)
-import Data.Data (Proxy (Proxy))
 import Data.Set qualified as Set
 import GHC.Generics (Generic)
 import LocalCluster.Types
 import Ouroboros.Network.Protocol.LocalStateQuery.Type (AcquireFailure)
 
+import Address qualified
+
 data CardanoApiError
   = OtherError String
-  | AddressConversionError
   deriving stock (Eq, Show, Generic)
 
 instance Exception CardanoApiError
@@ -34,19 +30,13 @@ currentBlock (ClusterEnv rn _ _) = do
   C.queryNodeLocalState info Nothing query
 
 utxosAtAddress :: ClusterEnv -> Address -> IO (Either CardanoApiError (C.UTxO C.AlonzoEra))
-utxosAtAddress (ClusterEnv rn _ _) addr = do
-  maybe
-    (pure $ Left AddressConversionError)
+utxosAtAddress (ClusterEnv rn _ _) addr =
+  either
+    (pure . Left . OtherError . show) -- fixme: some better errors structure
     queryAddress
-    (convertAddr addr)
+    (Address.walletToCardanoAny addr)
   where
     info = debugConnectionInfo rn
-
-    convertAddr =
-      fmap C.AddressShelley
-        . C.deserialiseAddress (C.proxyToAsType (Proxy :: Proxy (C.Address C.ShelleyAddr)))
-        . encodeAddress @ 'Mainnet
-
     queryAddress addrAny = do
       res <- C.queryNodeLocalState info Nothing (mkQuery addrAny)
       pure $ case res of
@@ -66,6 +56,3 @@ debugConnectionInfo (RunningNode socket _ _) =
     C.Mainnet
     -- C.Testnet $ C.NetworkMagic 8
     (nodeSocketFile socket)
-
--- getValue :: C.UTxO -> Value
--- getValue = undefined

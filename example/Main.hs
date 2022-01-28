@@ -9,6 +9,8 @@ import LocalCluster.Wallet
 import System.Environment (setEnv)
 import Utils (ada, waitSeconds)
 
+import Address as Addr
+
 main :: IO ()
 main = do
   -- todo: maybe some better configuring procedure should be introduced
@@ -35,6 +37,10 @@ main = do
       waitSeconds 2
       mapM_
         (CLI.utxoAtAddress cEnv . mainnetStringAddress)
+        ws
+
+      mapM_
+        (print . Addr.walletToLedger . cwAddress)
         ws
 
 testMnemonic :: [Text]

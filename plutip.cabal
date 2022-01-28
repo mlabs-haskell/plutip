@@ -37,6 +37,8 @@ common common-imports
     , ouroboros-network
     , plutus-chain-index
     , plutus-chain-index-core
+    , plutus-ledger
+    , plutus-ledger-api
     , plutus-pab
     , prettyprinter
     , servant-client
@@ -99,12 +101,13 @@ library
 
   hs-source-dirs:  src/
   exposed-modules:
-    Utils
-    LocalCluster.Cluster
+    Address
     LocalCluster.CardanoApi
-    LocalCluster.Wallet
+    LocalCluster.Cluster
     LocalCluster.DebugCli
     LocalCluster.Types
+    LocalCluster.Wallet
+    Utils
 
 executable plutip-example
   import:        common-language

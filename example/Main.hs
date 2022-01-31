@@ -1,7 +1,9 @@
 module Main (main) where
 
-import Control.Monad (forever)
+import Control.Monad (forever, replicateM_)
 import Data.Text (Text)
+import Data.Text.Encoding (encodeUtf8)
+import Keys as KS
 import LocalCluster.CardanoApi qualified as LCAPI
 import LocalCluster.Cluster (runUsingCluster)
 import LocalCluster.DebugCli qualified as CLI

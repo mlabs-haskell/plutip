@@ -4,7 +4,7 @@ import Cardano.Api (AssetId (AdaAssetId), Quantity (Quantity), TxOut (TxOut), UT
 import Data.Map qualified as Map
 import LocalCluster.CardanoApi (utxosAtAddress)
 import LocalCluster.Cluster (runUsingCluster)
-import LocalCluster.Wallet (addWallet, cwAddress, someWallet)
+import LocalCluster.Wallet (addWallet, cwPaymentAddress, someWallet)
 import System.Environment (setEnv)
 import Test.Tasty (TestTree)
 import Test.Tasty.HUnit (testCase, (@?=))
@@ -16,7 +16,7 @@ test = testCase "Basic integration: launch and add wallet" $ do
   withTestConf . runUsingCluster $ \cEnv -> do
     singleWallet <- addWallet cEnv $ someWallet (ada 707)
     waitSeconds 2
-    res <- utxosAtAddress cEnv (cwAddress singleWallet)
+    res <- utxosAtAddress cEnv (cwPaymentAddress singleWallet)
     let resultValue = toCombinedFlatValue <$> res
     resultValue @?= Right [(AdaAssetId, Quantity 707000000)]
 

@@ -11,6 +11,8 @@ import LocalCluster.Wallet
 import System.Environment (setEnv)
 import Utils (ada, waitSeconds)
 
+import Address as Addr
+
 main :: IO ()
 main = do
   -- todo: maybe some better configuring procedure should be introduced
@@ -28,7 +30,11 @@ main = do
         , someWallet (ada 42)
         ]
     singleWallet <- addWallet cEnv $ someWallet (ada 707) -- adding single wallet
+    waitSeconds 2 
+      >> LCAPI.utxosAtAddress cEnv (cwPaymentAddress singleWallet)
+      >>= print
     debugCheck cEnv (singleWallet : wallets)
+
 
     putStrLn "Done. Debug awaiting - interrupt to exit" >> forever (waitSeconds 60)
   where
@@ -37,6 +43,14 @@ main = do
       waitSeconds 2
       mapM_
         (CLI.utxoAtAddress cEnv . mainnetStringAddress)
+        ws
+      putStrLn "Wallet's Addresses: "
+      mapM_
+        (print . Addr.walletToLedger . cwPaymentAddress)
+        ws
+      putStrLn "Wallet's PubKey hashes: "
+      mapM_
+        (print . paymentPubKeyHash)
         ws
 
 testMnemonic :: [Text]

@@ -18,7 +18,7 @@ genKeyPairs outDir sKeyPrefix vKeyPrefix = do
       hash = verificationKeyHash vKey
 
       skeyPath = rmQuotes $ outDir </> sKeyPrefix ++ showHash hash <.> "skey"
-      vkeyPath = rmQuotes $ outDir </> vKeyPrefix ++ showHash hash <.> "skey"
+      vkeyPath = rmQuotes $ outDir </> vKeyPrefix ++ showHash hash <.> "vkey"
 
       showHash = rmQuotes . show
   res <-

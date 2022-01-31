@@ -47,6 +47,8 @@ common common-imports
     , text
     , text-class
     , typed-process
+    , cardano-crypto-wrapper
+    , cardano-crypto-class
 
 common common-language
   default-extensions:
@@ -108,6 +110,7 @@ library
     LocalCluster.Cluster
     LocalCluster.DebugCli
     LocalCluster.Types
+    Keys
     LocalCluster.Wallet
     Utils
 

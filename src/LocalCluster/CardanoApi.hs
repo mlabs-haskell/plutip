@@ -3,6 +3,7 @@ module LocalCluster.CardanoApi (
   utxosAtAddress,
 ) where
 
+import Address qualified
 import Cardano.Api qualified as C
 import Cardano.Launcher.Node (nodeSocketFile)
 import Cardano.Slotting.Slot (WithOrigin)
@@ -13,8 +14,6 @@ import Data.Set qualified as Set
 import GHC.Generics (Generic)
 import LocalCluster.Types
 import Ouroboros.Network.Protocol.LocalStateQuery.Type (AcquireFailure)
-
-import Address qualified
 
 data CardanoApiError
   = OtherError String
@@ -29,12 +28,8 @@ currentBlock (ClusterEnv rn _ _) = do
       info = debugConnectionInfo rn
   C.queryNodeLocalState info Nothing query
 
-utxosAtAddress :: ClusterEnv -> Address -> IO (Either CardanoApiError (C.UTxO C.AlonzoEra))
-utxosAtAddress (ClusterEnv rn _ _) addr =
-  either
-    (pure . Left . OtherError . show) -- fixme: some better errors structure
-    queryAddress
-    (Address.walletToCardanoAny addr)
+utxosAtAddress :: ClusterEnv -> C.AddressAny -> IO (Either CardanoApiError (C.UTxO C.AlonzoEra))
+utxosAtAddress (ClusterEnv rn _ _) = queryAddress
   where
     info = debugConnectionInfo rn
     queryAddress addrAny = do

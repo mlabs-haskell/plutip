@@ -15,7 +15,10 @@ common common-imports
     , bytestring
     , cardano-addresses
     , cardano-api
+    , cardano-api
     , cardano-crypto
+    , cardano-crypto-class
+    , cardano-crypto-wrapper
     , cardano-slotting
     , cardano-wallet
     , cardano-wallet-cli
@@ -47,8 +50,6 @@ common common-imports
     , text
     , text-class
     , typed-process
-    , cardano-crypto-wrapper
-    , cardano-crypto-class
 
 common common-language
   default-extensions:
@@ -104,13 +105,15 @@ library
 
   hs-source-dirs:  src/
   exposed-modules:
-    LocalCluster.Action
     Address
+    BotInterface.Keys
+    BotInterface.Setup
+    BotInterface.Types
+    BotInterface.Wallet
     LocalCluster.CardanoApi
     LocalCluster.Cluster
     LocalCluster.DebugCli
     LocalCluster.Types
-    Keys
     LocalCluster.Wallet
     Utils
 

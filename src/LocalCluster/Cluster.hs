@@ -98,6 +98,8 @@ import Test.Integration.Faucet (
   shelleyIntegrationTestFunds,
  )
 
+import BotInterface.Setup qualified as BotSetup
+
 {- | Start cluster and run action using provided `CalusterEnv`
  under development (mostly borrowed from `cardano-wallet`)
 -}
@@ -115,7 +117,10 @@ runUsingCluster action = do
         (const (putStrLn "setupFaucet was here")) -- (setupFaucet dir (trMessageText trCluster))
         ( \rn -> do
             awaitSocketCreated (trMessageText trCluster) rn
-            action (ClusterEnv rn dir trCluster)
+            let cEnv = ClusterEnv rn dir trCluster
+            BotSetup.setUpDir cEnv
+            action cEnv -- executing user action on cluster
+
             -- it's possible to setup faucet here as well
             -- setupFaucet dir (trMessageText trCluster) rn
         )

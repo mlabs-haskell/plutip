@@ -1,3 +1,6 @@
+{- | First variant of wallet. Not used at the moment.
+ Decided to move forward with bot interface for now, but maybe one day code here will be useful too.
+-}
 module LocalCluster.Wallet (
   ClusterWallet,
   addWallet,
@@ -123,11 +126,10 @@ mainnetStringAddress = T.unpack . mainnetTextAddress
 getRootXPrv :: ClusterWallet -> XPrv
 getRootXPrv (CWallet mnem _) = fromMnemonic mnem
 
-
 -- there is also `plutus-ledger.Ledger.generateFromSeed :: ByteString -> Passphrase -> XPrv`
 -- maybe less code
 fromMnemonic :: Mnemonic 15 -> XPrv
-fromMnemonic mnem = 
+fromMnemonic mnem =
   Shelley.getKey $
     Shelley.generateKeyFromSeed -- ! atm uses "unsafeGenerateKeyFromSeed" version
       (SomeMnemonic mnem, Nothing)

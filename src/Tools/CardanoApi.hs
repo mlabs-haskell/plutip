@@ -1,8 +1,8 @@
-module Tools.CardanoApi
-  ( currentBlock,
-    utxosAtAddress,
-  queryProtocolParams)
-where
+module Tools.CardanoApi (
+  currentBlock,
+  utxosAtAddress,
+  queryProtocolParams,
+) where
 
 import Cardano.Api qualified as C
 import Cardano.Api.ProtocolParameters (ProtocolParameters)
@@ -13,8 +13,8 @@ import Control.Exception (Exception)
 import Data.Set qualified as Set
 import GHC.Generics (Generic)
 import LocalCluster.Types
-import Ouroboros.Network.Protocol.LocalStateQuery.Type (AcquireFailure)
 import Ouroboros.Consensus.HardFork.Combinator.AcrossEras (EraMismatch)
+import Ouroboros.Network.Protocol.LocalStateQuery.Type (AcquireFailure)
 
 data CardanoApiError
   = SomeError String
@@ -53,17 +53,17 @@ debugConnectionInfo (RunningNode socket _ _) =
     -- C.Testnet $ C.NetworkMagic 8
     (nodeSocketFile socket)
 
-shellyBasedAlonzoQuery 
-  :: C.QueryInShelleyBasedEra C.AlonzoEra result1
-  -> C.QueryInMode C.CardanoMode (Either EraMismatch result1)
+shellyBasedAlonzoQuery ::
+  C.QueryInShelleyBasedEra C.AlonzoEra result1 ->
+  C.QueryInMode C.CardanoMode (Either EraMismatch result1)
 shellyBasedAlonzoQuery =
   C.QueryInEra C.AlonzoEraInCardanoMode
     . C.QueryInShelleyBasedEra C.ShelleyBasedEraAlonzo
 
-flattenQueryResult 
-  :: (Show e1, Show e2, Show b)
-  => Either e1 (Either e2 b) 
-  -> Either CardanoApiError b
+flattenQueryResult ::
+  (Show e1, Show e2, Show b) =>
+  Either e1 (Either e2 b) ->
+  Either CardanoApiError b
 flattenQueryResult = \case
   Right (Right res) -> Right res
   err -> Left $ SomeError (show err)

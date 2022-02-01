@@ -50,6 +50,7 @@ common common-imports
     , text
     , text-class
     , typed-process
+    , ouroboros-consensus
 
 common common-language
   default-extensions:
@@ -110,11 +111,11 @@ library
     BotInterface.Setup
     BotInterface.Types
     BotInterface.Wallet
-    LocalCluster.CardanoApi
     LocalCluster.Cluster
-    LocalCluster.DebugCli
     LocalCluster.Types
     LocalCluster.Wallet
+    Tools.CardanoApi
+    Tools.DebugCli
     Utils
 
 executable plutip-example

@@ -1,4 +1,4 @@
-module LocalCluster.DebugCli (
+module Tools.DebugCli (
   debugCli,
   utxoAtAddress,
 ) where

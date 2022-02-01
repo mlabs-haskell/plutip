@@ -3,23 +3,24 @@ module Test.Integration (test) where
 import BotInterface.Wallet qualified as BW
 import Cardano.Api (AssetId (AdaAssetId), Quantity (Quantity), TxOut (TxOut), UTxO (unUTxO), txOutValueToValue, valueToList)
 import Data.Map qualified as Map
-import LocalCluster.CardanoApi (utxosAtAddress)
 import LocalCluster.Cluster (runUsingCluster)
 import System.Environment (setEnv)
 import Test.Tasty (TestTree)
 import Test.Tasty.HUnit (assertFailure, testCase, (@?=))
+import Tools.CardanoApi (utxosAtAddress)
 import Utils (ada, waitSeconds)
 
 -- FIXME: something prints node configs polluting test outputs
 test :: TestTree
-test = testCase "Basic integration: launch and add wallet" $ do
-  withTestConf . runUsingCluster $ \cEnv -> do
-    ws <-
-      BW.usingEnv cEnv $
-        BW.addSomeWallet (ada 101)
-    case ws of
-      Left e -> assertFailure $ "Error: " <> show e
-      Right wallet -> checkFunds cEnv wallet
+test = do
+  testCase "Basic integration: launch and add wallet" $ do
+    withTestConf . runUsingCluster $ \cEnv -> do
+      ws <-
+        BW.usingEnv cEnv $
+          BW.addSomeWallet (ada 101)
+      case ws of
+        Left e -> assertFailure $ "Error: " <> show e
+        Right wallet -> checkFunds cEnv wallet
   where
     checkFunds cEnv wallet' = do
       waitSeconds 2

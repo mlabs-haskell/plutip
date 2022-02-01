@@ -4,11 +4,11 @@ import BotInterface.Wallet qualified as BW
 import Control.Monad (forever, replicateM_)
 import Data.Text (Text)
 import Data.Text.Encoding (encodeUtf8)
-import LocalCluster.CardanoApi qualified as LCAPI
 import LocalCluster.Cluster (runUsingCluster)
-import LocalCluster.DebugCli qualified as CLI
 import LocalCluster.Wallet
 import System.Environment (setEnv)
+import Tools.CardanoApi qualified as LCAPI
+import Tools.DebugCli qualified as CLI
 import Utils (ada, waitSeconds)
 
 import Address as Addr

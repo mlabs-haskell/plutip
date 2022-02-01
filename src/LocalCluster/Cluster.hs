@@ -118,7 +118,7 @@ runUsingCluster action = do
         ( \rn -> do
             awaitSocketCreated (trMessageText trCluster) rn
             let cEnv = ClusterEnv rn dir trCluster
-            BotSetup.setUpDir cEnv
+            BotSetup.runSetup cEnv
             action cEnv -- executing user action on cluster
 
             -- it's possible to setup faucet here as well

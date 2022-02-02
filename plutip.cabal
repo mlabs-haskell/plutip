@@ -12,6 +12,7 @@ common common-imports
     , aeson
     , async
     , base
+    , bot-plutus-interface
     , bytestring
     , cardano-addresses
     , cardano-api
@@ -38,6 +39,7 @@ common common-imports
     , memory
     , mtl
     , openapi3
+    , ouroboros-consensus
     , ouroboros-network
     , plutus-chain-index
     , plutus-chain-index-core
@@ -50,7 +52,6 @@ common common-imports
     , text
     , text-class
     , typed-process
-    , ouroboros-consensus
 
 common common-language
   default-extensions:

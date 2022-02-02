@@ -109,6 +109,11 @@
         "github:input-output-hk/Win32-network/3825d3abf75f83f406c1f7161883c438dac7277d";
       flake = false;
     };
+    bot-plutus-interface = {
+      url = 
+        "github:mlabs-haskell/bot-plutus-interface/490e9b6305cebe5644dfe56f05dbc737b07e3fe6";
+      flake = false;
+    };
   };
 
   outputs =

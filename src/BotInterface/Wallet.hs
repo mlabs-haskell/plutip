@@ -8,7 +8,21 @@ module BotInterface.Wallet (
 
 import BotInterface.Setup qualified as Setup
 import BotInterface.Types
-import Cardano.Api (AddressAny, AsType (AsPaymentKey), Key (VerificationKey, getVerificationKey, verificationKeyHash), NetworkId (Mainnet), PaymentCredential (PaymentCredentialByKey), PaymentKey, SerialiseAddress (serialiseAddress), SigningKey, StakeAddressReference (NoStakeAddress), generateSigningKey, makeShelleyAddress, toAddressAny, writeFileTextEnvelope)
+import Cardano.Api (
+  AddressAny,
+  AsType (AsPaymentKey),
+  Key (VerificationKey, getVerificationKey, verificationKeyHash),
+  NetworkId (Mainnet),
+  PaymentCredential (PaymentCredentialByKey),
+  PaymentKey,
+  SerialiseAddress (serialiseAddress),
+  SigningKey,
+  StakeAddressReference (NoStakeAddress),
+  generateSigningKey,
+  makeShelleyAddress,
+  toAddressAny,
+  writeFileTextEnvelope,
+ )
 import Cardano.BM.Data.Tracer (nullTracer)
 import Cardano.Wallet.Primitive.Types.Coin (Coin (Coin))
 import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (RunningNode), sendFaucetFundsTo)
@@ -25,7 +39,7 @@ import System.FilePath ((<.>), (</>))
   backed by `.skey` file when added to cluster with `addSomeWallet`
 -}
 data BpiWallet = BpiWallet
-  { walletPkh :: Text
+  { walletPkh :: !Text
   , vrfKey :: VerificationKey PaymentKey
   , signKey :: SigningKey PaymentKey
   -- todo: do we need something else?
@@ -50,14 +64,14 @@ addSomeWallet funds = do
       Left err -> pure $ Left err
   where
     sendFunds wallet = do
-      (ClusterEnv (RunningNode sockPath _ _) dir _) <- ask
+      cEnv <- ask
       let fundAddress = mkMainnetAddress wallet
           amt' = Coin . toEnum . fromEnum $ funds
       liftIO $
         sendFaucetFundsTo
           nullTracer -- todo: fix tracer to be not `nullTracer`
-          sockPath
-          dir
+          (nodeSocket cEnv)
+          (supportDir cEnv)
           [(fundAddress, amt')]
 
 createWallet :: MonadIO m => m BpiWallet

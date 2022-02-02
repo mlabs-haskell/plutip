@@ -1,3 +1,5 @@
+{-# LANGUAGE ViewPatterns #-}
+
 module Tools.CardanoApi (
   currentBlock,
   utxosAtAddress,
@@ -24,13 +26,13 @@ instance Exception CardanoApiError
 
 -- | Get current block using `Cardano.Api` library
 currentBlock :: ClusterEnv -> IO (Either AcquireFailure (WithOrigin C.BlockNo))
-currentBlock (ClusterEnv rn _ _) = do
+currentBlock (runningNode -> rn) = do
   let query = C.QueryChainBlockNo
       info = debugConnectionInfo rn
   C.queryNodeLocalState info Nothing query
 
 utxosAtAddress :: ClusterEnv -> C.AddressAny -> IO (Either CardanoApiError (C.UTxO C.AlonzoEra))
-utxosAtAddress (ClusterEnv rn _ _) addr = do
+utxosAtAddress (runningNode -> rn) addr = do
   flattenQueryResult <$> C.queryNodeLocalState info Nothing query
   where
     info = debugConnectionInfo rn
@@ -39,7 +41,7 @@ utxosAtAddress (ClusterEnv rn _ _) addr = do
         (C.QueryUTxO $ C.QueryUTxOByAddress (Set.singleton addr))
 
 queryProtocolParams :: ClusterEnv -> IO (Either CardanoApiError ProtocolParameters)
-queryProtocolParams (ClusterEnv rn _ _) =
+queryProtocolParams (runningNode -> rn) =
   flattenQueryResult <$> C.queryNodeLocalState info Nothing query
   where
     info = debugConnectionInfo rn
@@ -54,8 +56,8 @@ debugConnectionInfo (RunningNode socket _ _) =
     (nodeSocketFile socket)
 
 shellyBasedAlonzoQuery ::
-  C.QueryInShelleyBasedEra C.AlonzoEra result1 ->
-  C.QueryInMode C.CardanoMode (Either EraMismatch result1)
+  C.QueryInShelleyBasedEra C.AlonzoEra result ->
+  C.QueryInMode C.CardanoMode (Either EraMismatch result)
 shellyBasedAlonzoQuery =
   C.QueryInEra C.AlonzoEraInCardanoMode
     . C.QueryInShelleyBasedEra C.ShelleyBasedEraAlonzo

@@ -33,6 +33,7 @@ common common-imports
     , exceptions
     , filepath
     , http-client
+    , http-types
     , iohk-monitoring
     , lens
     , lobemo-backend-ekg

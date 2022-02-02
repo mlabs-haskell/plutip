@@ -73,12 +73,17 @@ addWallets cEnv = addWallet cEnv . sequence
 -}
 mnemonicWallet :: MonadIO m => [Text] -> Natural -> ReaderT ClusterEnv m ClusterWallet
 mnemonicWallet mnem amt = do
-  (ClusterEnv (RunningNode socketPath _ _) dir _) <- ask
+  cEnv <- ask
   let mnem' = unsafeMkMnemonic mnem
       wallet = mkWallet mnem'
       fundAddress = mainnetStringAddress wallet
       amt' = toEnum . fromEnum $ amt
-  liftIO $ sendFaucetFundsTo nullTracer socketPath dir [(fundAddress, Coin amt')]
+  liftIO $
+    sendFaucetFundsTo
+      nullTracer
+      (nodeSocket cEnv)
+      (supportDir cEnv)
+      [(fundAddress, Coin amt')]
   return wallet
 
 {- | Action, that will build `Address` from randomly generated `Mnemonic`

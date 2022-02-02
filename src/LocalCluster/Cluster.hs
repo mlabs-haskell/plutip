@@ -1,5 +1,7 @@
 module LocalCluster.Cluster (runUsingCluster) where
 
+import BotInterface.Setup qualified as BotSetup
+import Cardano.Api qualified as CAPI
 import Cardano.BM.Data.Severity (
   Severity (..),
  )
@@ -11,6 +13,7 @@ import Cardano.CLI (
   LogOutput (..),
   withLoggingNamed,
  )
+import Cardano.Launcher.Node (nodeSocketFile)
 import Cardano.Startup (
   installSignalHandlers,
   setDefaultFilePermissions,
@@ -57,31 +60,33 @@ import Cardano.Wallet.Shelley.Launch.Cluster (
 import Control.Arrow (
   first,
  )
-import Control.Monad (
-  void,
-  when,
- )
+import Control.Concurrent (threadDelay)
+import Control.Concurrent.Async (async)
+import Control.Monad (unless, void, when)
 import Control.Tracer (
   Tracer,
   contramap,
   traceWith,
  )
+import Data.Maybe (catMaybes, isJust)
 import Data.Proxy (
   Proxy (..),
  )
 import Data.Text (
   Text,
+  pack,
  )
 import Data.Text qualified as T
 import Data.Text.Class (
   ToText (..),
  )
-
-import Cardano.Launcher.Node (nodeSocketFile)
-import Control.Concurrent (threadDelay)
-import Control.Monad (unless)
-import Data.Maybe (catMaybes, isJust)
 import LocalCluster.Types
+import Plutus.ChainIndex.App qualified as ChainIndex
+import Plutus.ChainIndex.Config (ChainIndexConfig (cicNetworkId, cicPort), cicDbPath, cicSocketPath)
+import Plutus.ChainIndex.Config qualified as CI
+import Plutus.ChainIndex.Logging qualified as ChainIndex.Logging
+import Plutus.ChainIndex.Types (Point (..))
+import Servant.Client (BaseUrl (BaseUrl), Scheme (Http))
 import System.Directory (
   createDirectory,
   doesFileExist,
@@ -98,10 +103,13 @@ import Test.Integration.Faucet (
   shelleyIntegrationTestFunds,
  )
 
-import BotInterface.Setup qualified as BotSetup
-
 {- | Start cluster and run action using provided `CalusterEnv`
  under development (mostly borrowed from `cardano-wallet`)
+-}
+
+{- Examples:
+   `plutus-apps` local cluster: https://github.com/input-output-hk/plutus-apps/blob/75a581c6eb98d36192ce3d3f86ea60a04bc4a52a/plutus-pab/src/Plutus/PAB/LocalCluster/Run.hs
+   `cardano-wallet` local cluster: https://github.com/input-output-hk/cardano-wallet/blob/99b13e50f092ffca803fd38b9e435c24dae05c91/lib/shelley/exe/local-cluster.hs
 -}
 runUsingCluster :: (ClusterEnv -> IO ()) -> IO ()
 runUsingCluster action = do
@@ -115,77 +123,27 @@ runUsingCluster action = do
         dir
         clusterCfg
         (const (putStrLn "setupFaucet was here")) -- (setupFaucet dir (trMessageText trCluster))
-        ( \rn -> do
-            awaitSocketCreated (trMessageText trCluster) rn
-            let cEnv = ClusterEnv rn dir trCluster
-            BotSetup.runSetup cEnv
-            action cEnv -- executing user action on cluster
-
-            -- it's possible to setup faucet here as well
-            -- setupFaucet dir (trMessageText trCluster) rn
+        ( \rn -> runActionWthSetup rn dir trCluster action
+        -- it's possible to setup faucet here as well
+        -- setupFaucet dir (trMessageText trCluster) rn
         )
   where
-    -- (whenReady dir (trMessageText trCluster) walletLogs) was here ^
+    runActionWthSetup rn dir trCluster userActon = do
+      let tracer' = trMessageText trCluster
+      awaitSocketCreated tracer' rn
+      ciPort <- launchChainIndex rn dir
+      traceWith tracer' (ChaiIndexStartedAt ciPort)
+      let cEnv =
+            ClusterEnv
+              { runningNode = rn
+              , chainIndexUrl = BaseUrl Http "localhost" ciPort "/"
+              , networkId = CAPI.Mainnet
+              , supportDir = dir
+              , tracer = trCluster
+              }
 
-    setupFaucet dir trCluster (RunningNode socketPath _ _) = do
-      traceWith trCluster MsgSettingUpFaucet
-      let trCluster' = contramap MsgCluster trCluster
-      let encodeAddresses = map (first (T.unpack . encodeAddress @ 'Mainnet))
-      let accts = KeyCredential <$> concatMap genRewardAccounts mirMnemonics
-      let rewards = (,Coin $ fromIntegral oneMillionAda) <$> accts
-
-      sendFaucetFundsTo trCluster' socketPath dir $
-        encodeAddresses shelleyIntegrationTestFunds
-      sendFaucetAssetsTo trCluster' socketPath dir 20 $
-        encodeAddresses $
-          maryIntegrationTestAssets (Coin 1_000_000_000)
-      moveInstantaneousRewardsTo trCluster' socketPath dir rewards
-
--- whenReady dir trCluster logs (RunningNode socketPath block0 (gp, vData)) =
---   withLoggingNamed "cardano-wallet" logs $ \(sb, (cfg, tr)) -> do
---     ekgEnabled >>= flip when (EKG.plugin cfg tr sb >>= loadPlugin sb)
-
---     let tracers = setupTracers (tracerSeverities (Just Debug)) tr
---     let db = dir </> "wallets"
---     createDirectory db
---     listen <- walletListenFromEnv
---     tokenMetadataServer <- tokenMetadataServerFromEnv
-
---     prometheusUrl <-
---       ( maybe
---           "none"
---           (\(h, p) -> T.pack h <> ":" <> toText @(Port "Prometheus") p)
---         )
---         <$> getPrometheusURL
---     ekgUrl <-
---       ( maybe
---           "none"
---           (\(h, p) -> T.pack h <> ":" <> toText @(Port "EKG") p)
---         )
---         <$> getEKGURL
-
---     void $
---       serveWallet
---         (SomeNetworkDiscriminant $ Proxy @'Mainnet)
---         tracers
---         (SyncTolerance 10)
---         (Just db)
---         Nothing
---         "127.0.0.1"
---         listen
---         Nothing
---         Nothing
---         tokenMetadataServer
---         socketPath
---         block0
---         (gp, vData)
---         ( \u ->
---             traceWith trCluster $
---               MsgBaseUrl
---                 (T.pack . show $ u)
---                 ekgUrl
---                 prometheusUrl
---         )
+      BotSetup.runSetup cEnv
+      userActon cEnv -- executing user action on cluster
 
 -- Do all the program setup required for running the local cluster, create a
 -- temporary directory, log output configurations, and pass these to the given
@@ -232,6 +190,7 @@ data TestsLog
   | MsgSettingUpFaucet
   | MsgCluster ClusterLog
   | WaitingSocketCreated
+  | ChaiIndexStartedAt Int
   deriving stock (Show)
 
 instance ToText TestsLog where
@@ -248,6 +207,7 @@ instance ToText TestsLog where
     MsgSettingUpFaucet -> "Setting up faucet..."
     MsgCluster msg -> toText msg
     WaitingSocketCreated -> "Awaiting for node socket to be created"
+    ChaiIndexStartedAt ciPort -> "Chain-index started at port " <> pack (show ciPort)
 
 instance HasPrivacyAnnotation TestsLog
 
@@ -257,13 +217,31 @@ instance HasSeverityAnnotation TestsLog where
     MsgBaseUrl {} -> Notice
     MsgCluster msg -> getSeverityAnnotation msg
     WaitingSocketCreated -> Notice
+    ChaiIndexStartedAt {} -> Notice
 
 awaitSocketCreated :: Tracer IO TestsLog -> RunningNode -> IO ()
 awaitSocketCreated trCluster rn@(RunningNode socket _ _) = do
-  let socketPath = nodeSocketFile socket
-  socketReady <- doesFileExist socketPath
+  let sock = nodeSocketFile socket
+  socketReady <- doesFileExist sock
   unless socketReady (waitASecond >> awaitSocketCreated trCluster rn)
   where
     waitASecond =
       traceWith trCluster WaitingSocketCreated
         >> threadDelay 1000000
+
+-- | Launch the chain index in a separate thread.
+
+-- todo: ability to set custom port (if needed)
+launchChainIndex :: RunningNode -> FilePath -> IO Int
+launchChainIndex (RunningNode sp _block0 (_gp, _vData)) dir = do
+  config <- ChainIndex.Logging.defaultConfig
+  let dbPath = dir </> "chain-index.db"
+      chainIndexConfig =
+        CI.defaultConfig
+          { cicSocketPath = nodeSocketFile sp
+          , cicDbPath = dbPath
+          , cicNetworkId = CAPI.Mainnet
+          }
+  print chainIndexConfig
+  void . async $ void $ ChainIndex.runMain config chainIndexConfig
+  return $ cicPort chainIndexConfig

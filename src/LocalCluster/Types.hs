@@ -1,15 +1,19 @@
 module LocalCluster.Types (
   ClusterEnv (..),
-  socketPath,
+  nodeSocket,
 ) where
 
+import Cardano.Api (NetworkId)
 import Cardano.BM.Tracing (Trace)
 import Cardano.Launcher.Node (CardanoNodeConn)
 import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (RunningNode))
 import Data.Text (Text)
+import Servant.Client (BaseUrl)
 
 data ClusterEnv = ClusterEnv
   { runningNode :: RunningNode
+  , chainIndexUrl :: !BaseUrl
+  , networkId :: !NetworkId
   , -- | this directory atm used to store all node related files
     -- and files created by `cardano-cli`
     supportDir :: FilePath
@@ -17,5 +21,5 @@ data ClusterEnv = ClusterEnv
   }
 
 -- | Helper function to get socket path from
-socketPath :: ClusterEnv -> CardanoNodeConn
-socketPath (ClusterEnv (RunningNode sp _ _) _ _) = sp
+nodeSocket :: ClusterEnv -> CardanoNodeConn
+nodeSocket (ClusterEnv (RunningNode sp _ _) _ _ _ _) = sp

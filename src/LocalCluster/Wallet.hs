@@ -35,7 +35,7 @@ import Cardano.Wallet.Primitive.Types.Address (
 import Cardano.Wallet.Primitive.Types.Coin (
   Coin (..),
  )
-import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (RunningNode), sendFaucetFundsTo)
+import Cardano.Wallet.Shelley.Launch.Cluster (sendFaucetFundsTo)
 import Cardano.Wallet.Unsafe (unsafeMkMnemonic)
 import Control.Monad.IO.Class (MonadIO (liftIO))
 import Control.Monad.Reader (ReaderT (runReaderT), ask)
@@ -54,7 +54,7 @@ import Data.Text.Encoding as T
 import Ledger qualified as LC
 import LocalCluster.Types
 import Numeric.Natural (Natural)
-import Test.Integration.Faucet (genMnemonics, genShelleyAddresses)
+import Test.Integration.Faucet (genMnemonics)
 
 {- | Add single wallet using cluster environment.
  (adding wallet atm means sending specified funds to `Address`)
@@ -115,10 +115,9 @@ mkWallet mn =
   where
     pk = Shelley.ShelleyKey $ toPaymentXPub $ fromMnemonic mn
 
--- toPaymentAddr = cwPaymentAddress @'Mainnet
 
-toAddresses :: Mnemonic 15 -> [Address]
-toAddresses = genShelleyAddresses . SomeMnemonic
+-- toAddresses :: Mnemonic 15 -> [Address]
+-- toAddresses = genShelleyAddresses . SomeMnemonic
 
 mainnetTextAddress :: ClusterWallet -> Text
 mainnetTextAddress = encodeAddress @ 'Mainnet . cwPaymentAddress

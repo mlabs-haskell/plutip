@@ -27,8 +27,7 @@ import Cardano.Api (
 import Cardano.BM.Data.Tracer (nullTracer)
 import Cardano.Wallet.Primitive.Types.Coin (Coin (Coin))
 import Cardano.Wallet.Shelley.Launch.Cluster
-  ( RunningNode (RunningNode),
-    sendFaucetFundsTo,
+  ( sendFaucetFundsTo,
   )
 import Control.Arrow (ArrowChoice (left))
 import Control.Monad.IO.Class (MonadIO, liftIO)
@@ -36,7 +35,7 @@ import Control.Monad.Reader (MonadReader (ask), ReaderT (runReaderT))
 import Data.Bool (bool)
 import Data.Text (Text, pack, unpack)
 import GHC.Natural (Natural)
-import LocalCluster.Types (ClusterEnv (ClusterEnv))
+import LocalCluster.Types (ClusterEnv, nodeSocket, supportDir)
 import System.FilePath ((<.>), (</>))
 
 -- | Wallet that can be used by bot interface,

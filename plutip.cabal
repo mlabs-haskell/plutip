@@ -150,6 +150,7 @@ test-suite plutip-tests
 
   other-modules:
     Test.Integration
+    Test.BotInterface
     
   default-extensions:
     OverloadedStrings

@@ -1,4 +1,4 @@
-module BotInterface.Keys (genKeyPairs) where
+module BotInterface.Keys (genKeyPair, genKeyPairs) where
 
 import Cardano.Api (AsType (AsPaymentKey), Key (VerificationKey, getVerificationKey, verificationKeyHash), PaymentKey, SigningKey, TextEnvelopeDescr, generateSigningKey, writeFileTextEnvelope)
 import System.FilePath ((<.>), (</>))

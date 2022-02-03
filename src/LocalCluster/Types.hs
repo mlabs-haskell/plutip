@@ -1,9 +1,11 @@
 module LocalCluster.Types (
   ClusterEnv (..),
+  socketPath,
 ) where
 
 import Cardano.BM.Tracing (Trace)
-import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode)
+import Cardano.Launcher.Node (CardanoNodeConn)
+import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (RunningNode))
 import Data.Text (Text)
 
 data ClusterEnv = ClusterEnv
@@ -13,3 +15,7 @@ data ClusterEnv = ClusterEnv
     supportDir :: FilePath
   , tracer :: Trace IO Text -- not really used anywhere now, but probably should be =)
   }
+
+-- | Helper function to get socket path from
+socketPath :: ClusterEnv -> CardanoNodeConn
+socketPath (ClusterEnv (RunningNode sp _ _) _ _) = sp

@@ -1,17 +1,14 @@
 module Main (main) where
 
+import BotInterface.Wallet qualified as BW
 import Control.Monad (forever, replicateM_)
 import Data.Text (Text)
-import Data.Text.Encoding (encodeUtf8)
-import Keys as KS
-import LocalCluster.CardanoApi qualified as LCAPI
 import LocalCluster.Cluster (runUsingCluster)
-import LocalCluster.DebugCli qualified as CLI
-import LocalCluster.Wallet
 import System.Environment (setEnv)
+import Tools.DebugCli qualified as CLI
 import Utils (ada, waitSeconds)
 
-import Address as Addr
+import LocalCluster.Types (supportDir)
 
 main :: IO ()
 main = do
@@ -21,37 +18,19 @@ main = do
   setEnv "CARDANO_NODE_TRACING_MIN_SEVERITY" "Debug"
 
   runUsingCluster $ \cEnv -> do
-    LCAPI.currentBlock cEnv >>= print
-    wallets <- -- adding several wallets
-      addWallets
-        cEnv
-        [ mnemonicWallet testMnemonic (ada 11)
-        , someWallet (ada 700)
-        , someWallet (ada 42)
+    ws <- -- ? maybe it will be more ergonomic to get rid of `Ether` and just fail hard
+      BW.usingEnv cEnv . fmap sequence . sequence $
+        [ BW.addSomeWallet (ada 101)
+        , BW.addSomeWallet (ada 202)
+        , BW.addSomeWallet (ada 303)
         ]
-    singleWallet <- addWallet cEnv $ someWallet (ada 707) -- adding single wallet
-    waitSeconds 2 
-      >> LCAPI.utxosAtAddress cEnv (cwPaymentAddress singleWallet)
-      >>= print
-    debugCheck cEnv (singleWallet : wallets)
-
-
+    putStrLn "\nDebug check:"
+    putStrLn $ "Cluster dir: " <> show (supportDir cEnv)
+    waitSeconds 2
+    either 
+      (error . ("Err: " <>) . show) 
+      (mapM_ (CLI.utxoAtAddress cEnv . BW.mkMainnetAddress)) ws
     putStrLn "Done. Debug awaiting - interrupt to exit" >> forever (waitSeconds 60)
-  where
-    debugCheck cEnv ws = do
-      putStrLn "\nDebug address check:"
-      waitSeconds 2
-      mapM_
-        (CLI.utxoAtAddress cEnv . mainnetStringAddress)
-        ws
-      putStrLn "Wallet's Addresses: "
-      mapM_
-        (print . Addr.walletToLedger . cwPaymentAddress)
-        ws
-      putStrLn "Wallet's PubKey hashes: "
-      mapM_
-        (print . paymentPubKeyHash)
-        ws
 
 testMnemonic :: [Text]
 testMnemonic =

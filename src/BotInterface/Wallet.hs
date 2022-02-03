@@ -1,34 +1,51 @@
-module BotInterface.Wallet (
-  BpiWallet,
-  usingEnv,
-  addSomeWallet,
-  mkMainnetAddress,
-  cardanoMainnetAddress,
-) where
+module BotInterface.Wallet
+  ( BpiWallet,
+    usingEnv,
+    addSomeWallet,
+    mkMainnetAddress,
+    cardanoMainnetAddress,
+  )
+where
 
 import BotInterface.Setup qualified as Setup
-import BotInterface.Types
-import Cardano.Api (AddressAny, AsType (AsPaymentKey), Key (VerificationKey, getVerificationKey, verificationKeyHash), NetworkId (Mainnet), PaymentCredential (PaymentCredentialByKey), PaymentKey, SerialiseAddress (serialiseAddress), SigningKey, StakeAddressReference (NoStakeAddress), generateSigningKey, makeShelleyAddress, toAddressAny, writeFileTextEnvelope)
+import BotInterface.Types (BpiError (..))
+import Cardano.Api
+  ( AddressAny,
+    AsType (AsPaymentKey),
+    Key (VerificationKey, getVerificationKey, verificationKeyHash),
+    NetworkId (Mainnet),
+    PaymentCredential (PaymentCredentialByKey),
+    PaymentKey,
+    SerialiseAddress (serialiseAddress),
+    SigningKey,
+    StakeAddressReference (NoStakeAddress),
+    generateSigningKey,
+    makeShelleyAddress,
+    toAddressAny,
+    writeFileTextEnvelope,
+  )
 import Cardano.BM.Data.Tracer (nullTracer)
 import Cardano.Wallet.Primitive.Types.Coin (Coin (Coin))
-import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (RunningNode), sendFaucetFundsTo)
+import Cardano.Wallet.Shelley.Launch.Cluster
+  ( RunningNode (RunningNode),
+    sendFaucetFundsTo,
+  )
 import Control.Arrow (ArrowChoice (left))
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Reader (MonadReader (ask), ReaderT (runReaderT))
 import Data.Bool (bool)
 import Data.Text (Text, pack, unpack)
 import GHC.Natural (Natural)
-import LocalCluster.Types
+import LocalCluster.Types (ClusterEnv (ClusterEnv))
 import System.FilePath ((<.>), (</>))
 
-{- | Wallet that can be used by bot interface,
-  backed by `.skey` file when added to cluster with `addSomeWallet`
--}
+-- | Wallet that can be used by bot interface,
+--  backed by `.skey` file when added to cluster with `addSomeWallet`
 data BpiWallet = BpiWallet
-  { walletPkh :: Text
-  , vrfKey :: VerificationKey PaymentKey
-  , signKey :: SigningKey PaymentKey
-  -- todo: do we need something else?
+  { walletPkh :: Text,
+    vrfKey :: VerificationKey PaymentKey,
+    signKey :: SigningKey PaymentKey
+    -- todo: do we need something else?
   }
   deriving stock (Show)
 
@@ -36,11 +53,10 @@ data BpiWallet = BpiWallet
 usingEnv :: ClusterEnv -> ReaderT ClusterEnv m a -> m a
 usingEnv = flip runReaderT
 
-{- | Add wallet with arbitrary address.
- During wallet addition `.skey` file with required name generated and saved
- to be used by bot interface.
- Directory for files could be obtained with `BotInterface.Setup.keysDir`
--}
+-- | Add wallet with arbitrary address.
+-- During wallet addition `.skey` file with required name generated and saved
+-- to be used by bot interface.
+-- Directory for files could be obtained with `BotInterface.Setup.keysDir`
 addSomeWallet :: MonadIO m => Natural -> ReaderT ClusterEnv m (Either BpiError BpiWallet)
 addSomeWallet funds = do
   bpiWallet <- createWallet

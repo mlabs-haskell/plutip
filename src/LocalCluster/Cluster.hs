@@ -60,6 +60,7 @@ import Control.Arrow (
 import Control.Monad (
   void,
   when,
+  unless,
  )
 import Control.Tracer (
   Tracer,
@@ -79,7 +80,6 @@ import Data.Text.Class (
 
 import Cardano.Launcher.Node (nodeSocketFile)
 import Control.Concurrent (threadDelay)
-import Control.Monad (unless)
 import Data.Maybe (catMaybes, isJust)
 import LocalCluster.Types
 import System.Directory (

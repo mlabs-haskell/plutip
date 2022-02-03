@@ -14,7 +14,7 @@ import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (..))
 import Control.Exception (Exception)
 import Data.Set qualified as Set
 import GHC.Generics (Generic)
-import LocalCluster.Types
+import LocalCluster.Types ( ClusterEnv(ClusterEnv) )
 import Ouroboros.Consensus.HardFork.Combinator.AcrossEras (EraMismatch)
 import Ouroboros.Network.Protocol.LocalStateQuery.Type (AcquireFailure)
 

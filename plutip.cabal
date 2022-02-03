@@ -53,6 +53,7 @@ common common-imports
     , text
     , text-class
     , typed-process
+    , plutus-contract
 
 common common-language
   default-extensions:
@@ -103,13 +104,14 @@ library
   import:          common-ghc-options
   ghc-options:
     -Wall -Wcompat -Wincomplete-uni-patterns -Wredundant-constraints
-    -Wmissing-export-lists -Wmissing-deriving-strategies 
+    -Wmissing-export-lists -Wmissing-deriving-strategies -Wmissing-import-lists
     -- -Werror
 
   hs-source-dirs:  src/
   exposed-modules:
     Address
     BotInterface.Keys
+    BotInterface.Run
     BotInterface.Setup
     BotInterface.Types
     BotInterface.Wallet
@@ -119,6 +121,7 @@ library
     Tools.CardanoApi
     Tools.DebugCli
     Utils
+    DebugContract.LogPkh
 
 executable plutip-example
   import:        common-language

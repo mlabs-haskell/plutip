@@ -14,8 +14,8 @@ data ClusterEnv = ClusterEnv
   { runningNode :: RunningNode
   , chainIndexUrl :: !BaseUrl
   , networkId :: !NetworkId
-  , -- | this directory atm used to store all node related files
-    -- and files created by `cardano-cli`
+  , -- | this directory atm used to store all node related files,
+    -- files created by `cardano-cli`, `chain-index` and `bot-plutus-interface`
     supportDir :: FilePath
   , tracer :: Trace IO Text -- not really used anywhere now, but probably should be =)
   }

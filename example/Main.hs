@@ -2,13 +2,17 @@ module Main (main) where
 
 import BotInterface.Wallet qualified as BW
 import Control.Monad (forever, replicateM_)
-import Data.Text (Text)
+import Data.Text (Text, unpack)
 import LocalCluster.Cluster (runUsingCluster)
 import System.Environment (setEnv)
 import Tools.DebugCli qualified as CLI
 import Utils (ada, waitSeconds)
 
+import Data.Either (fromRight)
 import LocalCluster.Types (supportDir)
+
+import BotInterface.Run qualified as Bot
+import DebugContract.LogPkh (LogPkhContract)
 
 main :: IO ()
 main = do
@@ -27,9 +31,15 @@ main = do
     putStrLn "\nDebug check:"
     putStrLn $ "Cluster dir: " <> show (supportDir cEnv)
     waitSeconds 2
-    either 
-      (error . ("Err: " <>) . show) 
-      (mapM_ (CLI.utxoAtAddress cEnv . BW.mkMainnetAddress)) ws
+    either
+      (error . ("Err: " <>) . show)
+      (mapM_ (CLI.utxoAtAddress cEnv . BW.mkMainnetAddress))
+      ws
+
+    let wallet = head $ fromRight (error "Ouch") ws
+    putStrLn $ "Debug JSON: " <> BW.whateverJsonYouNeed wallet
+    Bot.runContract @LogPkhContract cEnv wallet
+
     putStrLn "Done. Debug awaiting - interrupt to exit" >> forever (waitSeconds 60)
 
 testMnemonic :: [Text]

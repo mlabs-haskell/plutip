@@ -231,7 +231,7 @@ awaitSocketCreated trCluster rn@(RunningNode socket _ _) = do
 
 -- | Launch the chain index in a separate thread.
 
--- todo: ability to set custom port (if needed)
+-- todo: add ability to set custom port (if needed)
 launchChainIndex :: RunningNode -> FilePath -> IO Int
 launchChainIndex (RunningNode sp _block0 (_gp, _vData)) dir = do
   config <- ChainIndex.Logging.defaultConfig

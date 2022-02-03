@@ -115,7 +115,6 @@ mkWallet mn =
   where
     pk = Shelley.ShelleyKey $ toPaymentXPub $ fromMnemonic mn
 
-
 -- toAddresses :: Mnemonic 15 -> [Address]
 -- toAddresses = genShelleyAddresses . SomeMnemonic
 

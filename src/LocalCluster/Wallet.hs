@@ -18,23 +18,18 @@ module LocalCluster.Wallet (
 
 import Cardano.Address.Derivation (XPrv, XPub)
 import Cardano.Mnemonic (Mnemonic, SomeMnemonic (SomeMnemonic), mnemonicToText)
-import Cardano.Wallet.Api.Types (
-  EncodeAddress (..),
- )
-import Cardano.Wallet.Primitive.AddressDerivation (
-  HardDerivation (deriveAccountPrivateKey, deriveAddressPrivateKey),
-  NetworkDiscriminant (..),
-  PaymentAddress (paymentAddress),
-  Role (UtxoExternal),
-  WalletKey (publicKey),
- )
+import Cardano.Wallet.Api.Types
+    ( encodeAddress)
+import Cardano.Wallet.Primitive.AddressDerivation
+    ( HardDerivation(deriveAddressPrivateKey, deriveAccountPrivateKey),
+      Role(UtxoExternal),
+      NetworkDiscriminant(Mainnet),
+      WalletKey(publicKey),
+      PaymentAddress(paymentAddress) )
 import Cardano.Wallet.Primitive.AddressDerivation.Shelley qualified as Shelley
-import Cardano.Wallet.Primitive.Types.Address (
-  Address (..),
- )
-import Cardano.Wallet.Primitive.Types.Coin (
-  Coin (..),
- )
+import Cardano.Wallet.Primitive.Types.Address
+    ( Address(unAddress) ) 
+import Cardano.Wallet.Primitive.Types.Coin ( Coin(Coin) )
 import Cardano.Wallet.Shelley.Launch.Cluster (sendFaucetFundsTo)
 import Cardano.Wallet.Unsafe (unsafeMkMnemonic)
 import Control.Monad.IO.Class (MonadIO (liftIO))
@@ -42,17 +37,14 @@ import Control.Monad.Reader (ReaderT (runReaderT), ask)
 import Control.Tracer (
   nullTracer,
  )
-import Data.ByteArray.Encoding (
-  Base (..),
-  convertToBase,
- )
+import Data.ByteArray.Encoding ( Base(Base16), convertToBase )
 import Data.Text (
   Text,
  )
 import Data.Text qualified as T
-import Data.Text.Encoding as T
+import Data.Text.Encoding as T ( decodeUtf8 )
 import Ledger qualified as LC
-import LocalCluster.Types
+import LocalCluster.Types ( nodeSocket, ClusterEnv(supportDir) )
 import Numeric.Natural (Natural)
 import Test.Integration.Faucet (genMnemonics)
 

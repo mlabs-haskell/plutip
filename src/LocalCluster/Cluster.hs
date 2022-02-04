@@ -1,3 +1,5 @@
+{-# OPTIONS_GHC -Wno-unused-imports #-} -- temporary measure while module under development
+{-# OPTIONS_GHC -Wno-missing-import-lists #-} -- temporary measure while module under development
 module LocalCluster.Cluster (runUsingCluster) where
 
 import BotInterface.Setup qualified as BotSetup
@@ -114,7 +116,7 @@ import Test.Integration.Faucet (
 runUsingCluster :: (ClusterEnv -> IO ()) -> IO ()
 runUsingCluster action = do
   checkProcessesAvailable ["cardano-node", "cardano-cli"]
-  withLocalClusterSetup $ \dir clusterLogs walletLogs -> do
+  withLocalClusterSetup $ \dir clusterLogs _walletLogs -> do
     withLoggingNamed "cluster" clusterLogs $ \(_, (_, trCluster)) -> do
       let tr' = contramap MsgCluster $ trMessageText trCluster
       clusterCfg <- localClusterConfigFromEnv

@@ -10,7 +10,7 @@ import Cardano.Api qualified as C
 import Cardano.Api.ProtocolParameters (ProtocolParameters)
 import Cardano.Launcher.Node (nodeSocketFile)
 import Cardano.Slotting.Slot (WithOrigin)
-import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (..))
+import Cardano.Wallet.Shelley.Launch.Cluster ( RunningNode(RunningNode) )
 import Control.Exception (Exception)
 import Data.Set qualified as Set
 import GHC.Generics (Generic)

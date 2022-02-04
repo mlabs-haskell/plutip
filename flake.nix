@@ -111,13 +111,7 @@
     };
   };
 
-  outputs =
-    { self
-    , nixpkgs
-    , haskell-nix
-    , iohk-nix
-    , ...
-    }@inputs:
+  outputs = { self, nixpkgs, haskell-nix, iohk-nix, ... }@inputs:
     let
       defaultSystems = [ "x86_64-linux" "x86_64-darwin" ];
 
@@ -125,10 +119,7 @@
 
       nixpkgsFor = system:
         import nixpkgs {
-          overlays = [
-            haskell-nix.overlay
-            iohk-nix.overlays.crypto
-          ];
+          overlays = [ haskell-nix.overlay iohk-nix.overlays.crypto ];
           inherit (haskell-nix) config;
           inherit system;
         };
@@ -138,20 +129,14 @@
           pkgs = nixpkgsFor system;
           plutus = import inputs.plutus { inherit system; };
           src = ./.;
-        in
-        import ./nix/haskell.nix { inherit src inputs pkgs system; };
+        in import ./nix/haskell.nix { inherit src inputs pkgs system; };
 
-    in
-    {
+    in {
       flake = perSystem (system: (projectFor system).flake { });
 
-      defaultPackage = perSystem
-        (system:
-          let
-            lib = "plutip:lib:plutip";
-          in
-          self.flake.${system}.packages.${lib}
-        );
+      defaultPackage = perSystem (system:
+        let lib = "plutip:lib:plutip";
+        in self.flake.${system}.packages.${lib});
 
       packages = perSystem (system: self.flake.${system}.packages);
 
@@ -161,12 +146,10 @@
 
       # This will build all of the project's executables and the tests
       check = perSystem (system:
-        (nixpkgsFor system).runCommand "combined-check"
-          {
-            nativeBuildInputs = builtins.attrValues self.checks.${system}
-              ++ builtins.attrValues self.flake.${system}.packages;
-          } "touch $out"
-      );
+        (nixpkgsFor system).runCommand "combined-check" {
+          nativeBuildInputs = builtins.attrValues self.checks.${system}
+            ++ builtins.attrValues self.flake.${system}.packages;
+        } "touch $out");
 
       # NOTE `nix flake check` will not work at the moment due to use of
       # IFD in haskell.nix

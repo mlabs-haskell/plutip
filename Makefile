@@ -41,3 +41,8 @@ fourmolu-format:
 	@ echo "> Formatting all .hs files"
 	fourmolu -i $$(find src/  -iregex ".*.hs")
 	fourmolu -i $$(find test/ -iregex ".*.hs")
+
+NIX_SOURCES := $(shell git ls-tree -r HEAD --full-tree --name-only | grep -E '.*\.nix' )
+
+nixfmt: requires_nix_shell
+	nixfmt $(NIX_SOURCES)

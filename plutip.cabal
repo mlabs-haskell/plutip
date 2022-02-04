@@ -104,7 +104,9 @@ library
   ghc-options:
     -Wall -Wcompat -Wincomplete-uni-patterns -Wredundant-constraints
     -Wmissing-export-lists -Wmissing-deriving-strategies
-    -Wmissing-import-lists -Werror
+    -Wmissing-import-lists
+
+  -- -Werror
 
   hs-source-dirs:  src/
   exposed-modules:
@@ -119,6 +121,7 @@ library
     LocalCluster.Types
     LocalCluster.Wallet
     Tools.CardanoApi
+    Tools.ChainIndex
     Tools.DebugCli
     Utils
 

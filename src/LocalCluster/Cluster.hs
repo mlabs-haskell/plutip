@@ -1,5 +1,8 @@
-{-# OPTIONS_GHC -Wno-unused-imports #-} -- temporary measure while module under development
-{-# OPTIONS_GHC -Wno-missing-import-lists #-} -- temporary measure while module under development
+-- temporary measure while module under development
+{-# OPTIONS_GHC -Wno-missing-import-lists #-}
+-- temporary measure while module under development
+{-# OPTIONS_GHC -Wno-unused-imports #-}
+
 module LocalCluster.Cluster (runUsingCluster) where
 
 import BotInterface.Setup qualified as BotSetup
@@ -138,7 +141,7 @@ runUsingCluster action = do
       let cEnv =
             ClusterEnv
               { runningNode = rn
-              , chainIndexUrl = BaseUrl Http "localhost" ciPort "/"
+              , chainIndexUrl = BaseUrl Http "localhost" ciPort mempty
               , networkId = CAPI.Mainnet
               , supportDir = dir
               , tracer = trCluster

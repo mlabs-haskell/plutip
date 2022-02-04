@@ -9,7 +9,7 @@ module BotInterface.Wallet (
 ) where
 
 import BotInterface.Setup qualified as Setup
-import BotInterface.Types ( BpiError(BotInterfaceDirMissing, SignKeySaveError) ) 
+import BotInterface.Types (BpiError (BotInterfaceDirMissing, SignKeySaveError))
 import Cardano.Api (AddressAny, PaymentKey, SigningKey, VerificationKey)
 import Cardano.Api qualified as CAPI
 import Cardano.BM.Data.Tracer (nullTracer)

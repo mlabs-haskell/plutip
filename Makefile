@@ -33,8 +33,8 @@ nix-cabal-repl:
 
 # Target to use as dependency to fail if not inside nix-shell.
 requires_nix_shell:
-	@ [ "($IN_NIX_SHELL)" ] || echo "The $(MAKECMDGOALS) target must be run from inside `nix develop`"
-	@ [ "($IN_NIX_SHELL)" ] || (echo "    run `nix develop` first" && false)
+	@ [ "$(IN_NIX_SHELL)" ] || echo "The $(MAKECMDGOALS) target must be run from inside a nix shell"
+	@ [ "$(IN_NIX_SHELL)" ] || (echo "    run 'nix develop' first" && false)
 
 # Add folder locations to the list to be reformatted.
 fourmolu-format:

@@ -16,7 +16,6 @@ common common-imports
     , bytestring
     , cardano-addresses
     , cardano-api
-    , cardano-api
     , cardano-crypto
     , cardano-crypto-class
     , cardano-crypto-wrapper
@@ -44,6 +43,7 @@ common common-imports
     , ouroboros-network
     , plutus-chain-index
     , plutus-chain-index-core
+    , plutus-contract
     , plutus-ledger
     , plutus-ledger-api
     , plutus-pab
@@ -53,7 +53,6 @@ common common-imports
     , text
     , text-class
     , typed-process
-    , plutus-contract
 
 common common-language
   default-extensions:
@@ -104,8 +103,10 @@ library
   import:          common-ghc-options
   ghc-options:
     -Wall -Wcompat -Wincomplete-uni-patterns -Wredundant-constraints
-    -Wmissing-export-lists -Wmissing-deriving-strategies -Wmissing-import-lists
-    -- -Werror
+    -Wmissing-export-lists -Wmissing-deriving-strategies
+    -Wmissing-import-lists
+
+  -- -Werror
 
   hs-source-dirs:  src/
   exposed-modules:
@@ -115,21 +116,21 @@ library
     BotInterface.Setup
     BotInterface.Types
     BotInterface.Wallet
+    DebugContract.LogPkh
     LocalCluster.Cluster
     LocalCluster.Types
     LocalCluster.Wallet
     Tools.CardanoApi
     Tools.DebugCli
     Utils
-    DebugContract.LogPkh
 
 executable plutip-example
   import:        common-language
   main-is:       example/Main.hs
   build-depends:
-      base
-    , text  
+    , base
     , plutip
+    , text
 
 test-suite plutip-tests
   import:             common-imports
@@ -140,7 +141,6 @@ test-suite plutip-tests
   hs-source-dirs:     test
   main-is:            Main.hs
   ghc-options:        -Wall -threaded -rtsopts
-
   build-depends:
     , base
     , plutip
@@ -152,9 +152,9 @@ test-suite plutip-tests
     , text
 
   other-modules:
-    Test.Integration
     Test.BotInterface
-    
+    Test.Integration
+
   default-extensions:
     OverloadedStrings
     QuasiQuotes

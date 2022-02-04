@@ -9,6 +9,9 @@ import Tools.DebugCli qualified as CLI
 import Utils (ada, waitSeconds)
 
 import Data.Either (fromRight)
+import Address as Addr
+import BotInterface.Types
+import BotInterface.Wallet (BpiWallet)
 import LocalCluster.Types (supportDir)
 
 import BotInterface.Run qualified as Bot

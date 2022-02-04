@@ -1,10 +1,4 @@
-{ src
-, inputs
-, pkgs
-, doCoverage ? false
-, deferPluginErrors ? true
-, system
-, ...
+{ src, inputs, pkgs, doCoverage ? false, deferPluginErrors ? true, system, ...
 }:
 
 pkgs.haskell-nix.cabalProject {
@@ -18,54 +12,55 @@ pkgs.haskell-nix.cabalProject {
     inputsFrom = [ pkgs.libsodium-vrf ];
 
     # Make sure to keep this list updated after upgrading git dependencies!
-    additional = ps: with ps; [
-      base-deriving-via
-      bot-plutus-interface
-      cardano-addresses
-      cardano-addresses-cli
-      cardano-binary
-      cardano-crypto
-      cardano-crypto-class
-      cardano-crypto-praos
-      cardano-crypto-wrapper
-      cardano-ledger-alonzo
-      cardano-ledger-byron
-      cardano-ledger-core
-      cardano-ledger-pretty
-      cardano-ledger-shelley
-      cardano-ledger-shelley-ma
-      cardano-prelude
-      cardano-slotting
-      filemanip
-      flat
-      freer-extras
-      goblins
-      ieee
-      measures
-      orphans-deriving-via
-      playground-common
-      plutus-chain-index
-      plutus-contract
-      plutus-core
-      plutus-extra
-      plutus-laws
-      plutus-ledger
-      plutus-ledger-api
-      plutus-ledger-constraints
-      plutus-numeric
-      plutus-pab
-      plutus-playground-server
-      plutus-pretty
-      plutus-tx
-      plutus-tx-plugin
-      plutus-tx-spooky
-      plutus-use-cases
-      prettyprinter-configurable
-      quickcheck-dynamic
-      tasty-plutus
-      Win32-network
-      word-array
-    ];
+    additional = ps:
+      with ps; [
+        base-deriving-via
+        bot-plutus-interface
+        cardano-addresses
+        cardano-addresses-cli
+        cardano-binary
+        cardano-crypto
+        cardano-crypto-class
+        cardano-crypto-praos
+        cardano-crypto-wrapper
+        cardano-ledger-alonzo
+        cardano-ledger-byron
+        cardano-ledger-core
+        cardano-ledger-pretty
+        cardano-ledger-shelley
+        cardano-ledger-shelley-ma
+        cardano-prelude
+        cardano-slotting
+        filemanip
+        flat
+        freer-extras
+        goblins
+        ieee
+        measures
+        orphans-deriving-via
+        playground-common
+        plutus-chain-index
+        plutus-contract
+        plutus-core
+        plutus-extra
+        plutus-laws
+        plutus-ledger
+        plutus-ledger-api
+        plutus-ledger-constraints
+        plutus-numeric
+        plutus-pab
+        plutus-playground-server
+        plutus-pretty
+        plutus-tx
+        plutus-tx-plugin
+        plutus-tx-spooky
+        plutus-use-cases
+        prettyprinter-configurable
+        quickcheck-dynamic
+        tasty-plutus
+        Win32-network
+        word-array
+      ];
 
     withHoogle = true;
 
@@ -96,53 +91,47 @@ pkgs.haskell-nix.cabalProject {
         # Cardano tools
         inputs.cardano-node.packages.${system}.cardano-node
         inputs.cardano-node.packages.${system}.cardano-cli
-      ] ++ (
-        lib.optionals (!stdenv.isDarwin) [
-          rPackages.plotly
-          R
-          systemdMinimal
-        ]
-      );
+      ] ++ (lib.optionals (!stdenv.isDarwin) [
+        rPackages.plotly
+        R
+        systemdMinimal
+      ]);
   };
 
+  modules = [{
+    packages = {
+      eventful-sql-common.doHaddock = false;
+      eventful-sql-common.ghcOptions = [''
+        -XDerivingStrategies -XStandaloneDeriving -XUndecidableInstances
+                -XDataKinds -XFlexibleInstances -XMultiParamTypeClasses''];
 
-  modules = [
-    {
-      packages = {
-        eventful-sql-common.doHaddock = false;
-        eventful-sql-common.ghcOptions = [
-          ''
-            -XDerivingStrategies -XStandaloneDeriving -XUndecidableInstances
-                    -XDataKinds -XFlexibleInstances -XMultiParamTypeClasses''
-        ];
+      plutus-use-cases.doHaddock = deferPluginErrors;
+      plutus-use-cases.flags.defer-plugin-errors = deferPluginErrors;
 
-        plutus-use-cases.doHaddock = deferPluginErrors;
-        plutus-use-cases.flags.defer-plugin-errors = deferPluginErrors;
+      plutus-contract.doHaddock = deferPluginErrors;
+      plutus-contract.flags.defer-plugin-errors = deferPluginErrors;
 
-        plutus-contract.doHaddock = deferPluginErrors;
-        plutus-contract.flags.defer-plugin-errors = deferPluginErrors;
+      plutus-ledger.doHaddock = deferPluginErrors;
+      plutus-ledger.flags.defer-plugin-errors = deferPluginErrors;
 
-        plutus-ledger.doHaddock = deferPluginErrors;
-        plutus-ledger.flags.defer-plugin-errors = deferPluginErrors;
+      # see https://github.com/input-output-hk/haskell.nix/issues/1128
+      ieee.components.library.libs = pkgs.lib.mkForce [ ];
 
-        # see https://github.com/input-output-hk/haskell.nix/issues/1128
-        ieee.components.library.libs = pkgs.lib.mkForce [ ];
-
-        cardano-crypto-praos.components.library.pkgconfig =
-          pkgs.lib.mkForce [ [ pkgs.libsodium-vrf ] ];
-        cardano-crypto-class.components.library.pkgconfig =
-          pkgs.lib.mkForce [ [ pkgs.libsodium-vrf ] ];
-      };
-    }
-  ];
+      cardano-crypto-praos.components.library.pkgconfig =
+        pkgs.lib.mkForce [ [ pkgs.libsodium-vrf ] ];
+      cardano-crypto-class.components.library.pkgconfig =
+        pkgs.lib.mkForce [ [ pkgs.libsodium-vrf ] ];
+      cardano-wallet-core.components.library.build-tools =
+        [ pkgs.buildPackages.buildPackages.gitMinimal ];
+      cardano-config.components.library.build-tools =
+        [ pkgs.buildPackages.buildPackages.gitMinimal ];
+    };
+  }];
 
   extraSources = [
     {
       src = inputs.cardano-addresses;
-      subdirs = [
-        "core"
-        "command-line"
-      ];
+      subdirs = [ "core" "command-line" ];
     }
     {
       src = inputs.cardano-base;
@@ -161,9 +150,7 @@ pkgs.haskell-nix.cabalProject {
     }
     {
       src = inputs.cardano-crypto;
-      subdirs = [
-        "."
-      ];
+      subdirs = [ "." ];
     }
     {
       src = inputs.cardano-ledger-specs;
@@ -190,19 +177,11 @@ pkgs.haskell-nix.cabalProject {
     }
     {
       src = inputs.cardano-node;
-      subdirs = [
-        "cardano-api"
-        "cardano-node"
-        "cardano-cli"
-        "cardano-config"
-      ];
+      subdirs = [ "cardano-api" "cardano-node" "cardano-cli" "cardano-config" ];
     }
     {
       src = inputs.cardano-prelude;
-      subdirs = [
-        "cardano-prelude"
-        "cardano-prelude-test"
-      ];
+      subdirs = [ "cardano-prelude" "cardano-prelude-test" ];
     }
     {
       src = inputs.cardano-wallet;
@@ -220,15 +199,11 @@ pkgs.haskell-nix.cabalProject {
     }
     {
       src = inputs.flat;
-      subdirs = [
-        "."
-      ];
+      subdirs = [ "." ];
     }
     {
       src = inputs.goblins;
-      subdirs = [
-        "."
-      ];
+      subdirs = [ "." ];
     }
     {
       src = inputs.iohk-monitoring-framework;
@@ -245,9 +220,7 @@ pkgs.haskell-nix.cabalProject {
     }
     {
       src = inputs.optparse-applicative;
-      subdirs = [
-        "."
-      ];
+      subdirs = [ "." ];
     }
     {
       src = inputs.ouroboros-network;
@@ -316,33 +289,27 @@ pkgs.haskell-nix.cabalProject {
     }
     {
       src = inputs.plutus-tx-spooky;
-      subdirs = [
-        "."
-      ];
+      subdirs = [ "." ];
     }
     {
       src = inputs.purescript-bridge;
-      subdirs = [
-        "."
-      ];
+      subdirs = [ "." ];
     }
     {
       src = inputs.servant-purescript;
-      subdirs = [
-        "."
-      ];
+      subdirs = [ "." ];
     }
     {
       src = inputs.Win32-network;
-      subdirs = [
-        "."
-      ];
+      subdirs = [ "." ];
     }
     {
       src = inputs.bot-plutus-interface;
-      subdirs = [
-        "."
-      ];
+      subdirs = [ "." ];
+    }
+    {
+      src = inputs.bot-plutus-interface;
+      subdirs = [ "." ];
     }
   ];
 }

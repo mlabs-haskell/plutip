@@ -14,14 +14,8 @@ pkgs.haskell-nix.cabalProject {
     # Make sure to keep this list updated after upgrading git dependencies!
     additional = ps:
       with ps; [
-        filemanip
-        ieee
-        plutus-extra
-        tasty-plutus
-        plutus-pretty
-        plutus-laws
-        plutus-numeric
         base-deriving-via
+        bot-plutus-interface
         cardano-addresses
         cardano-addresses-cli
         cardano-binary
@@ -37,26 +31,33 @@ pkgs.haskell-nix.cabalProject {
         cardano-ledger-shelley-ma
         cardano-prelude
         cardano-slotting
+        filemanip
         flat
         freer-extras
         goblins
+        ieee
         measures
         orphans-deriving-via
         playground-common
         plutus-chain-index
-        plutus-ledger-constraints
         plutus-contract
         plutus-core
+        plutus-extra
+        plutus-laws
         plutus-ledger
         plutus-ledger-api
+        plutus-ledger-constraints
+        plutus-numeric
         plutus-pab
         plutus-playground-server
+        plutus-pretty
         plutus-tx
         plutus-tx-plugin
         plutus-tx-spooky
         plutus-use-cases
         prettyprinter-configurable
         quickcheck-dynamic
+        tasty-plutus
         Win32-network
         word-array
       ];

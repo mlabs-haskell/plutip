@@ -105,7 +105,7 @@ library
   ghc-options:
     -Wall -Wcompat -Wincomplete-uni-patterns -Wredundant-constraints
     -Wmissing-export-lists -Wmissing-deriving-strategies -Wmissing-import-lists
-    -Werror
+    -- -Werror
 
   hs-source-dirs:  src/
   exposed-modules:
@@ -122,6 +122,7 @@ library
     Tools.DebugCli
     Utils
     DebugContract.LogPkh
+    Tools.ChainIndex
 
 executable plutip-example
   import:        common-language

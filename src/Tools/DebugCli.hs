@@ -8,7 +8,7 @@ module Tools.DebugCli (
 import Cardano.Launcher.Node (nodeSocketFile)
 import Data.ByteString.Lazy.Char8 qualified as BS
 import GHC.IO.Exception (ExitCode (ExitSuccess))
-import LocalCluster.Types ( nodeSocket, ClusterEnv )
+import LocalCluster.Types (ClusterEnv, nodeSocket)
 import System.Environment (getEnvironment)
 import System.Exit (ExitCode (ExitFailure))
 import System.Process.Typed (

@@ -1,19 +1,18 @@
-module DebugContract.LogPkh (LogPkhContract, logPkh) where
+module DebugContract.LogPkh (LogPkhContract (..), logPkh) where
 
-import BotPlutusInterface.Types
-  ( HasDefinitions
-      ( getContract,
-        getDefinitions,
-        getSchema
-      ),
-    SomeBuiltin (SomeBuiltin),
-    endpointsToSchemas,
-  )
+import BotPlutusInterface.Types (
+  HasDefinitions (
+    getContract,
+    getDefinitions,
+    getSchema
+  ),
+  SomeBuiltin (SomeBuiltin),
+  endpointsToSchemas,
+ )
 import Data.Aeson (FromJSON, ToJSON)
 import Data.OpenApi (ToSchema)
 import Data.Text (Text)
 import GHC.Generics (Generic)
-import GHC.IO (unsafePerformIO)
 import Ledger (pubKeyHashAddress)
 import Plutus.Contract (Contract, utxosAt)
 import Plutus.Contract qualified as Contract
@@ -24,13 +23,19 @@ logPkh :: Contract () EmptySchema Text ()
 logPkh = do
   pkh <- Contract.ownPaymentPubKeyHash
   Contract.logInfo @String $ printf "Own PPKH: %s" (show pkh)
-  pure $ unsafePerformIO $ print pkh
   utxos <- utxosAt $ pubKeyHashAddress pkh Nothing
   Contract.logInfo @String $ printf "Own UTxOs: %s" (show utxos)
+  error $
+    mconcat
+      [ "Logs are ignored now, so take this error as proof that I was run.\n"
+      , "--> Own PKH: " <> show pkh <> "\n"
+      , "--> Own UTxOs: " <> show utxos
+      ]
 
 -- PAB stuff
 
-data LogPkhContract = LogPkhContract
+data LogPkhContract
+  = LogPkhContract
   deriving stock (Show, Generic)
   deriving anyclass (ToJSON, FromJSON, ToSchema)
 

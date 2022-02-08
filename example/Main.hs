@@ -12,9 +12,11 @@ import Data.Either (fromRight)
 import LocalCluster.Types (ClusterEnv (chainIndexUrl), supportDir)
 
 import BotInterface.Run qualified as Bot
-import DebugContract.LogPkh (LogPkhContract (LogPkhContract))
+import DebugContract.DebugGet qualified as DebugContract
 
 -- debug stuff
+
+import DebugContract.DebugGet qualified as DebugContract
 import Tools.ChainIndex qualified as CIX
 
 -- debug stuff - END
@@ -36,9 +38,10 @@ main = do
 
     debugWallets ws cEnv
 
-    let wallet = head $ fromRight (error "Ouch") ws
-    Bot.activateAndThen @LogPkhContract cEnv wallet $ do
-      Bot.execute LogPkhContract
+    let wallet = head $ tail $ fromRight (error "Ouch") ws
+    Bot.runWrapped cEnv wallet DebugContract.getUtxos >>= print
+    Bot.runWrapped cEnv wallet DebugContract.getUtxosThrowsErr >>= print
+    Bot.runWrapped cEnv wallet DebugContract.getUtxosThrowsEx >>= print
 
     putStrLn "Done. Debug awaiting - interrupt to exit" >> forever (waitSeconds 60)
   where

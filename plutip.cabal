@@ -48,11 +48,14 @@ common common-imports
     , plutus-ledger-api
     , plutus-pab
     , prettyprinter
+    , row-types
     , servant-client
     , servant-server
+    , stm
     , text
     , text-class
     , typed-process
+    , uuid
 
 common common-language
   default-extensions:
@@ -116,7 +119,7 @@ library
     BotInterface.Setup
     BotInterface.Types
     BotInterface.Wallet
-    DebugContract.LogPkh
+    DebugContract.DebugGet
     LocalCluster.Cluster
     LocalCluster.Types
     LocalCluster.Wallet

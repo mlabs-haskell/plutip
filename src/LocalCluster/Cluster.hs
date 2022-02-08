@@ -3,7 +3,7 @@
 -- temporary measure while module under development
 {-# OPTIONS_GHC -Wno-unused-imports #-}
 
-module LocalCluster.Cluster (runUsingCluster) where
+module LocalCluster.Cluster (runUsingCluster, runUsingCluster') where
 
 import BotInterface.Setup qualified as BotSetup
 import Cardano.Api qualified as CAPI
@@ -68,6 +68,7 @@ import Control.Arrow (
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (async)
 import Control.Monad (unless, void, when)
+import Control.Monad.Reader (ReaderT (runReaderT))
 import Control.Tracer (
   Tracer,
   contramap,
@@ -111,13 +112,15 @@ import Test.Integration.Faucet (
 {- | Start cluster and run action using provided `CalusterEnv`
  under development (mostly borrowed from `cardano-wallet`)
 -}
+runUsingCluster :: ReaderT ClusterEnv IO () -> IO ()
+runUsingCluster act = runUsingCluster' (runReaderT act)
 
 {- Examples:
    `plutus-apps` local cluster: https://github.com/input-output-hk/plutus-apps/blob/75a581c6eb98d36192ce3d3f86ea60a04bc4a52a/plutus-pab/src/Plutus/PAB/LocalCluster/Run.hs
    `cardano-wallet` local cluster: https://github.com/input-output-hk/cardano-wallet/blob/99b13e50f092ffca803fd38b9e435c24dae05c91/lib/shelley/exe/local-cluster.hs
 -}
-runUsingCluster :: (ClusterEnv -> IO ()) -> IO ()
-runUsingCluster action = do
+runUsingCluster' :: (ClusterEnv -> IO ()) -> IO ()
+runUsingCluster' action = do
   checkProcessesAvailable ["cardano-node", "cardano-cli"]
   withLocalClusterSetup $ \dir clusterLogs _walletLogs -> do
     withLoggingNamed "cluster" clusterLogs $ \(_, (_, trCluster)) -> do

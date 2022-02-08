@@ -1,8 +1,11 @@
 module LocalCluster.Types (
   ClusterEnv (..),
+  RunResult (..),
+  FailReason (..),
   nodeSocket,
 ) where
 
+import BotPlutusInterface.Types (ContractState)
 import Cardano.Api (NetworkId)
 import Cardano.BM.Tracing (Trace)
 import Cardano.Launcher.Node (CardanoNodeConn)
@@ -23,3 +26,16 @@ data ClusterEnv = ClusterEnv
 -- | Helper function to get socket path from
 nodeSocket :: ClusterEnv -> CardanoNodeConn
 nodeSocket (ClusterEnv (RunningNode sp _ _) _ _ _ _) = sp
+
+data FailReason e
+  = ContractErr e
+  | OtherErr Text
+  deriving stock (Show)
+
+data RunResult w e a
+  = RunSuccess
+      { contractResult :: a
+      , contractState :: ContractState w
+      }
+  | RunFailed {reason :: FailReason e}
+  deriving stock (Show)

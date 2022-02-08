@@ -1,5 +1,5 @@
 -- | Cardano-Api/Ledger/Cardano-Wallet address conversions
-module Address (
+module Tools.Address (
   walletToCardano,
   walletToCardanoAny,
   walletToLedger,

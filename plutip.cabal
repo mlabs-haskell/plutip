@@ -113,16 +113,17 @@ library
 
   hs-source-dirs:  src/
   exposed-modules:
-    Address
     BotInterface.Keys
     BotInterface.Run
     BotInterface.Setup
     BotInterface.Types
     BotInterface.Wallet
+    DSL
     DebugContract.DebugGet
     LocalCluster.Cluster
     LocalCluster.Types
     LocalCluster.Wallet
+    Tools.Address
     Tools.CardanoApi
     Tools.ChainIndex
     Tools.DebugCli
@@ -135,6 +136,7 @@ executable plutip-example
     , base
     , plutip
     , text
+    , mtl
 
 test-suite plutip-tests
   import:             common-imports

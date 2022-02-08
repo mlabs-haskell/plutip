@@ -5,7 +5,6 @@ module BotInterface.Wallet (
   mkMainnetAddress,
   cardanoMainnetAddress,
   ledgerPkh,
-  whateverJsonYouNeed,
 ) where
 
 import BotInterface.Setup qualified as Setup
@@ -20,12 +19,10 @@ import Cardano.Wallet.Shelley.Launch.Cluster (
 import Control.Arrow (ArrowChoice (left))
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Reader (MonadReader (ask), ReaderT (runReaderT))
-import Data.Aeson (encode)
 import Data.Bool (bool)
-import Data.ByteString.Lazy.Char8 qualified as C8
 import Data.Text (Text, pack, unpack)
 import GHC.Natural (Natural)
-import Ledger (Address (addressCredential), PaymentPubKeyHash (PaymentPubKeyHash), PubKey (PubKey), PubKeyHash, pubKeyHash, pubKeyHashAddress)
+import Ledger (PubKey (PubKey), PubKeyHash, pubKeyHash)
 import LocalCluster.Types (ClusterEnv, nodeSocket, supportDir)
 import Plutus.V1.Ledger.Api qualified as LAPI
 import System.FilePath ((<.>), (</>))
@@ -112,6 +109,6 @@ ledgerPkh =
     . CAPI.serialiseToRawBytes
     . vrfKey
 
-whateverJsonYouNeed :: BpiWallet -> String
-whateverJsonYouNeed wallet =
-  (C8.unpack $ encode $ addressCredential $ pubKeyHashAddress (PaymentPubKeyHash $ ledgerPkh wallet) Nothing)
+-- whateverJsonYouNeed :: BpiWallet -> String
+-- whateverJsonYouNeed wallet =
+--   (C8.unpack $ encode $ addressCredential $ pubKeyHashAddress (PaymentPubKeyHash $ ledgerPkh wallet) Nothing)

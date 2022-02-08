@@ -1,7 +1,12 @@
 module Test.BotInterface (test) where
 
 import BotInterface.Setup (keysDir, pParamsFile)
-import LocalCluster.Cluster (runUsingCluster)
+
+-- import LocalCluster.Cluster (runUsingCluster)
+
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Reader (ask)
+import DSL
 import Network.HTTP.Client (
   Response (responseStatus),
   defaultManagerSettings,
@@ -17,13 +22,17 @@ import Test.Tasty.HUnit (assertBool, testCase)
 
 test :: TestTree
 test = testCase "Bot interface integration" $ do
-  withTestConf . runUsingCluster $ \cEnv -> do
-    doesDirectoryExist (keysDir cEnv)
-      >>= assertBool "Required directory not found after setup run"
-    doesFileExist (pParamsFile cEnv)
-      >>= assertBool "Protocol params file not found after setup run"
-    tipChainIndex
-      >>= assertBool "Chain index not available" . (== status200) . responseStatus
+  withTestConf . runUsingCluster $ do
+    cEnv <- ask
+    liftIO $
+      doesDirectoryExist (keysDir cEnv)
+        >>= assertBool "Required directory not found after setup run"
+    liftIO $
+      doesFileExist (pParamsFile cEnv)
+        >>= assertBool "Protocol params file not found after setup run"
+    liftIO $
+      tipChainIndex
+        >>= assertBool "Chain index not available" . (== status200) . responseStatus
   where
     tipChainIndex = do
       mgr <- newManager defaultManagerSettings

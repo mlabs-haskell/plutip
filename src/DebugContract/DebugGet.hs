@@ -1,12 +1,12 @@
 module DebugContract.DebugGet (getUtxos, getUtxosThrowsErr, getUtxosThrowsEx) where
 
+import Data.Map (Map)
 import Data.Text (Text, pack)
-import Ledger (pubKeyHashAddress, TxOutRef, ChainIndexTxOut)
+import Ledger (ChainIndexTxOut, TxOutRef, pubKeyHashAddress)
 import Plutus.Contract (Contract, utxosAt)
 import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
 import Text.Printf (printf)
-import Data.Map (Map)
 
 getUtxos :: Contract () EmptySchema Text (Map TxOutRef ChainIndexTxOut)
 getUtxos = do
@@ -14,7 +14,7 @@ getUtxos = do
   Contract.logInfo @String $ printf "Own PKH: %s" (show pkh)
   utxosAt $ pubKeyHashAddress pkh Nothing
 
-getUtxosThrowsErr :: Contract () EmptySchema Text  (Map TxOutRef ChainIndexTxOut)
+getUtxosThrowsErr :: Contract () EmptySchema Text (Map TxOutRef ChainIndexTxOut)
 getUtxosThrowsErr = do
   pkh <- Contract.ownPaymentPubKeyHash
   Contract.logInfo @String $ printf "Own PKH: %s" (show pkh)
@@ -28,7 +28,7 @@ getUtxosThrowsErr = do
           , "Debug: Own UTxOs: " <> show utxos <> "\n"
           ]
 
-getUtxosThrowsEx :: Contract () EmptySchema Text  (Map TxOutRef ChainIndexTxOut)
+getUtxosThrowsEx :: Contract () EmptySchema Text (Map TxOutRef ChainIndexTxOut)
 getUtxosThrowsEx = do
   pkh <- Contract.ownPaymentPubKeyHash
   Contract.logInfo @String $ printf "Own PKH: %s" (show pkh)

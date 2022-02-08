@@ -1,5 +1,3 @@
-{-# LANGUAGE ViewPatterns #-}
-
 module Tools.DebugCli (
   debugCli,
   utxoAtAddress,

@@ -39,7 +39,7 @@ main = do
     runContract testWallet DebugContract.getUtxosThrowsEx
       >>= report
 
-  putStrLn "Done. Debug awaiting - interrupt to exit" >> forever (waitSeconds 60)
+    liftIO $ putStrLn "Done. Debug awaiting - interrupt to exit" >> forever (waitSeconds 60)
   where
     debugWallets ws = do
       cEnv <- ask

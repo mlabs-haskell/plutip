@@ -8,8 +8,9 @@ module BotInterface.Setup (
 ) where
 
 import Data.Aeson (encodeFile)
-import LocalCluster.Types (ClusterEnv (supportDir))
+import LocalCluster.Types (ClusterEnv (supportDir), nodeSocket)
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist)
+import System.Environment (setEnv)
 import System.FilePath ((</>))
 import Tools.CardanoApi (queryProtocolParams)
 
@@ -30,7 +31,10 @@ runSetup :: ClusterEnv -> IO ()
 runSetup cEnv = do
   createRequiredDirs
   saveProtocolParams
+  setSocketPathEnv
   where
+    setSocketPathEnv =
+      setEnv "CARDANO_NODE_SOCKET_PATH" (nodeSocketFile $ nodeSocket cEnv)
     createRequiredDirs =
       mapM_
         (createDirectoryIfMissing True . ($ cEnv))

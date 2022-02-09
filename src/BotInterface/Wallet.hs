@@ -5,6 +5,7 @@ module BotInterface.Wallet (
   mkMainnetAddress,
   cardanoMainnetAddress,
   ledgerPkh,
+  ledgerPaymentPkh,
 ) where
 
 import BotInterface.Setup qualified as Setup
@@ -22,7 +23,7 @@ import Control.Monad.Reader (MonadReader (ask), ReaderT (runReaderT))
 import Data.Bool (bool)
 import Data.Text (Text, pack, unpack)
 import GHC.Natural (Natural)
-import Ledger (PubKey (PubKey), PubKeyHash, pubKeyHash)
+import Ledger (PaymentPubKeyHash (PaymentPubKeyHash), PubKey (PubKey), PubKeyHash, pubKeyHash)
 import LocalCluster.Types (ClusterEnv, nodeSocket, supportDir)
 import Plutus.V1.Ledger.Api qualified as LAPI
 import System.FilePath ((<.>), (</>))
@@ -108,6 +109,9 @@ ledgerPkh =
     . LAPI.fromBytes
     . CAPI.serialiseToRawBytes
     . vrfKey
+
+ledgerPaymentPkh :: BpiWallet -> PaymentPubKeyHash
+ledgerPaymentPkh = PaymentPubKeyHash . ledgerPkh
 
 -- whateverJsonYouNeed :: BpiWallet -> String
 -- whateverJsonYouNeed wallet =

@@ -46,6 +46,7 @@ common common-imports
     , plutus-contract
     , plutus-ledger
     , plutus-ledger-api
+    , plutus-ledger-constraints
     , plutus-pab
     , prettyprinter
     , row-types
@@ -119,7 +120,8 @@ library
     BotInterface.Types
     BotInterface.Wallet
     DSL
-    DebugContract.DebugGet
+    DebugContract.GetUtxos
+    DebugContract.PayToWallet
     LocalCluster.Cluster
     LocalCluster.Types
     LocalCluster.Wallet

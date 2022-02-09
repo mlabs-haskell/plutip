@@ -1,5 +1,6 @@
 module DSL (
   BpiWallet,
+  RunResult (RunSuccess, RunFailed),
   addSomeWallet,
   runContract,
   runContract_,
@@ -10,6 +11,7 @@ module DSL (
   report,
   mkMainnetAddress,
   cardanoMainnetAddress,
+  ledgerPaymentPkh,
 ) where
 
 import BotInterface.Run (runContract, runContract_)
@@ -17,10 +19,12 @@ import BotInterface.Wallet (
   BpiWallet,
   addSomeWallet,
   cardanoMainnetAddress,
+  ledgerPaymentPkh,
   mkMainnetAddress,
  )
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import LocalCluster.Cluster (runUsingCluster, runUsingCluster')
+import LocalCluster.Types (RunResult (RunFailed, RunSuccess))
 import Utils (ada, waitSeconds)
 
 {- | Stand-in for upcoming report functionality

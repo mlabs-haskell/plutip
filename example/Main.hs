@@ -6,6 +6,7 @@ import Control.Monad.Reader (ask)
 import DSL (
   ada,
   addSomeWallet,
+  ledgerPaymentPkh,
   mkMainnetAddress,
   report,
   runContract,
@@ -13,7 +14,8 @@ import DSL (
   waitSeconds,
  )
 import Data.Text (Text, unpack)
-import DebugContract.DebugGet qualified as DebugContract
+import DebugContract.GetUtxos qualified as DebugContract
+import DebugContract.PayToWallet qualified as DebugContract
 import LocalCluster.Types (supportDir)
 import System.Environment (setEnv)
 import Tools.DebugCli qualified as CLI
@@ -31,15 +33,20 @@ main = do
     w2 <- addSomeWallet (ada 202)
 
     debugWallets (sequence [w1, w2]) --temporary, for debugging
-    testWallet <- either (error . show) pure w1
-    runContract testWallet DebugContract.getUtxos
+    testW1 <- either (error . show) pure w1
+    runContract testW1 DebugContract.getUtxos
       >>= report
-    runContract testWallet DebugContract.getUtxosThrowsErr
+    runContract testW1 DebugContract.getUtxosThrowsErr
       >>= report
-    runContract testWallet DebugContract.getUtxosThrowsEx
+    runContract testW1 DebugContract.getUtxosThrowsEx
       >>= report
 
-    liftIO $ putStrLn "Done. Debug awaiting - interrupt to exit" >> forever (waitSeconds 60)
+    testW2 <- either (error . show) pure w2
+    runContract testW1 (DebugContract.payTo (ledgerPaymentPkh testW2) 10_000_000)
+      >>= report
+      >> debugWallets (sequence [w1, w2])
+
+    liftIO $ putStrLn "Done. Debug awaiting - Enter to exit" >> void getLine
   where
     debugWallets ws = do
       cEnv <- ask
@@ -50,22 +57,3 @@ main = do
         (error . ("Err: " <>) . show)
         (mapM_ (liftIO . CLI.utxoAtAddress cEnv . mkMainnetAddress))
         ws
-
-testMnemonic :: [Text]
-testMnemonic =
-  [ "radar"
-  , "scare"
-  , "sense"
-  , "winner"
-  , "little"
-  , "jeans"
-  , "blue"
-  , "spell"
-  , "mystery"
-  , "sketch"
-  , "omit"
-  , "time"
-  , "tiger"
-  , "leave"
-  , "load"
-  ]

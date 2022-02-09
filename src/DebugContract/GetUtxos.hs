@@ -1,4 +1,4 @@
-module DebugContract.DebugGet (getUtxos, getUtxosThrowsErr, getUtxosThrowsEx) where
+module DebugContract.GetUtxos (getUtxos, getUtxosThrowsErr, getUtxosThrowsEx) where
 
 import Data.Map (Map)
 import Data.Text (Text, pack)

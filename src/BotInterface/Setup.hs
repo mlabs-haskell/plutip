@@ -7,6 +7,7 @@ module BotInterface.Setup (
   txsDir,
 ) where
 
+import Cardano.Launcher.Node (nodeSocketFile)
 import Data.Aeson (encodeFile)
 import LocalCluster.Types (ClusterEnv (supportDir), nodeSocket)
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist)
@@ -34,6 +35,7 @@ runSetup cEnv = do
   setSocketPathEnv
   where
     setSocketPathEnv =
+      -- required by `cardano-cli` used by bot interface
       setEnv "CARDANO_NODE_SOCKET_PATH" (nodeSocketFile $ nodeSocket cEnv)
     createRequiredDirs =
       mapM_

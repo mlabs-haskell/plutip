@@ -29,6 +29,7 @@ nodeSocket (ClusterEnv (RunningNode sp _ _) _ _ _ _) = sp
 
 data FailReason e
   = ContractErr e
+  | CaughtExcpetion
   | OtherErr Text
   deriving stock (Show)
 

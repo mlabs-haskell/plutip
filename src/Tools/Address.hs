@@ -3,7 +3,7 @@ module Tools.Address (
   walletToCardano,
   walletToCardanoAny,
   walletToLedger,
-) where
+ledgerToCardanoMainnet,ledgerToCardanoMainnet') where
 
 import Cardano.Api qualified as CAPI
 import Cardano.Wallet.Primitive.Types.Address qualified as Wallet
@@ -12,6 +12,7 @@ import Data.Data (Proxy)
 import Data.Proxy (Proxy (Proxy))
 import Ledger.Tx.CardanoAPI qualified as Ledger
 import Plutus.V1.Ledger.Address qualified as Ledger
+import Data.Text (Text)
 
 data AddressConversionError
   = WalletToCardanoDeserializationError
@@ -38,3 +39,18 @@ walletToLedger wAddr =
     convert =
       Ledger.fromCardanoAddress
         . CAPI.shelleyAddressInEra @CAPI.AlonzoEra
+
+
+ledgerToCardanoMainnet :: Ledger.Address -> Either Ledger.ToCardanoError (CAPI.AddressInEra CAPI.AlonzoEra)
+ledgerToCardanoMainnet = Ledger.toCardanoAddress CAPI.Mainnet
+
+ledgerToCardanoMainnet' :: Ledger.Address -> Either Ledger.ToCardanoError Text
+ledgerToCardanoMainnet' addr =
+  CAPI.serialiseAddress <$> Ledger.toCardanoAddress CAPI.Mainnet addr
+
+-- | Get `String` representation of address on mainnet
+-- mkMainnetAddress :: BpiWallet -> String
+-- mkMainnetAddress bw =
+--   unpack
+--     . CAPI.serialiseAddress
+--     $ cardanoMainnetAddress bw

@@ -58,6 +58,10 @@ common common-imports
     , typed-process
     , uuid
 
+    , plutus-tx
+    , plutus-tx-plugin
+    , tasty
+
 common common-language
   default-extensions:
     BangPatterns

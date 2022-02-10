@@ -250,6 +250,5 @@ launchChainIndex (RunningNode sp _block0 (_gp, _vData)) dir = do
           , cicDbPath = dbPath
           , cicNetworkId = CAPI.Mainnet
           }
-  print chainIndexConfig
   void . async $ void $ ChainIndex.runMain config chainIndexConfig
   return $ cicPort chainIndexConfig

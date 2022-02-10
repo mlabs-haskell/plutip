@@ -13,6 +13,7 @@ import Servant.Client (
   mkClientEnv,
   runClientM,
  )
+import Cardano.Wallet.Mock.Types (ChainClient(ChainClient))
 
 utxosAtPkh :: BaseUrl -> PubKeyHash -> IO (Either ClientError UtxosResponse)
 utxosAtPkh url pkh = do

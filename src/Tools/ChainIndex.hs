@@ -1,6 +1,7 @@
 module Tools.ChainIndex (utxosAtPkh) where
 
 import Cardano.Pool.Metadata (newManager)
+import Cardano.Wallet.Mock.Types (ChainClient (ChainClient))
 import Data.Default (Default (def))
 import Ledger (PubKeyHash)
 import Network.HTTP.Client (defaultManagerSettings)
@@ -13,7 +14,6 @@ import Servant.Client (
   mkClientEnv,
   runClientM,
  )
-import Cardano.Wallet.Mock.Types (ChainClient(ChainClient))
 
 utxosAtPkh :: BaseUrl -> PubKeyHash -> IO (Either ClientError UtxosResponse)
 utxosAtPkh url pkh = do

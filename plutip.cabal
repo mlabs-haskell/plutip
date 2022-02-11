@@ -122,10 +122,11 @@ library
     BotInterface.Setup
     BotInterface.Types
     BotInterface.Wallet
+    DSL
     DebugContract.GetUtxos
     DebugContract.LockUnlock
+    DebugContract.LockUnlockValidationFail
     DebugContract.PayToWallet
-    DSL
     LocalCluster.Cluster
     LocalCluster.Types
     LocalCluster.Wallet

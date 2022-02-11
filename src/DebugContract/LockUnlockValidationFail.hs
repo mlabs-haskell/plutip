@@ -1,8 +1,9 @@
-module DebugContract.LockUnlock (
-  lockAtScript,
-  unlockFromScript,
-  validatorAddr,
-) where
+module DebugContract.LockUnlockValidationFail
+  ( lockAtScript,
+    unlockFromScript,
+    validatorAddr,
+  )
+where
 
 import Data.Map qualified as Map
 import Data.Text (Text)
@@ -19,12 +20,7 @@ import PlutusTx.Prelude qualified as PP
 {-# INLINEABLE mkValidator #-}
 mkValidator :: () -> () -> ScriptContext -> Bool
 mkValidator _ _ _ =
-  PP.traceIfFalse "Some error message" check
-  where
-    -- cpu budget was overspent
-    check =
-      let l = 1 : l
-       in PP.length (PP.take 1_000_000_000 l) PP.== 0
+  PP.traceIfFalse "Some error message" False
 
 data TestLock
 
@@ -72,3 +68,4 @@ unlockFromScript = do
       tx <- submitTxConstraintsWith @TestLock lookups txc
       awaitTxConfirmed $ getCardanoTxId tx
       pure (getCardanoTxId tx, tx)
+ 

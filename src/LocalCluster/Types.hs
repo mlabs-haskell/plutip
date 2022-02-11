@@ -1,8 +1,11 @@
 module LocalCluster.Types (
   ClusterEnv (..),
   RunResult (..),
+  Outcome (..),
   FailReason (..),
   nodeSocket,
+  isSuccess,
+  prettyResult,
 ) where
 
 import BotPlutusInterface.Types (ContractState)
@@ -10,7 +13,8 @@ import Cardano.Api (NetworkId)
 import Cardano.BM.Tracing (Trace)
 import Cardano.Launcher.Node (CardanoNodeConn)
 import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (RunningNode))
-import Data.Text (Text)
+import Control.Exception (SomeException)
+import Data.Text (Text, intercalate, pack)
 import Servant.Client (BaseUrl)
 
 data ClusterEnv = ClusterEnv
@@ -27,16 +31,52 @@ data ClusterEnv = ClusterEnv
 nodeSocket :: ClusterEnv -> CardanoNodeConn
 nodeSocket (ClusterEnv (RunningNode sp _ _) _ _ _ _) = sp
 
-data FailReason e
-  = ContractErr e
-  | CaughtExcpetion
-  | OtherErr Text
+data RunResult w e a = RunResult
+  { contractTag :: Maybe Text
+  , outcome :: Outcome w e a
+  }
   deriving stock (Show)
 
-data RunResult w e a
-  = RunSuccess
+data Outcome w e a
+  = Success
       { contractResult :: a
       , contractState :: ContractState w
       }
-  | RunFailed {reason :: FailReason e}
+  | Fail {reason :: FailReason e}
   deriving stock (Show)
+
+data FailReason e
+  = ContractExecutionError e
+  | CaughtException SomeException
+  | OtherErr Text
+  deriving stock (Show)
+
+isSuccess :: RunResult w e a -> Bool
+isSuccess = \case
+  RunResult _ (Success _ _) -> True
+  RunResult _ (Fail _) -> False
+
+-- temporary impl
+prettyResult :: (Show a, Show w, Show e) => RunResult w e a -> Text
+prettyResult res@(RunResult tag outc) =
+  intercalate "\n" [header, prettyOut outc, ""]
+  where
+    header =
+      mconcat
+        [ maybe "Contract" (\t -> "\'" <> t <> "\'") tag
+        , " execution "
+        , if isSuccess res then "succeeded" else "failed"
+        ]
+
+prettyOut :: (Show a, Show w, Show e) => Outcome w e a -> Text
+prettyOut = \case
+  (Success cRes cState) ->
+    intercalate
+      "\n"
+      [ " Contract returned: " <> toText cRes
+      , " Contract state: " <> toText cState
+      ]
+  (Fail e) -> " The error is: " <> toText e
+
+toText :: Show a => a -> Text
+toText = pack . show

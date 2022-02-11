@@ -10,7 +10,6 @@ import Tools.CardanoApi (utxosAtAddress)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ask)
 import DSL (
-  RunResult (RunFailed, RunSuccess),
   ada,
   addSomeWallet,
   cardanoMainnetAddress,
@@ -23,6 +22,7 @@ import DebugContract.GetUtxos qualified as DebugContract
 import DebugContract.PayToWallet qualified as DebugContract
 
 import BotInterface.Wallet (ledgerPaymentPkh)
+import LocalCluster.Types (isSuccess)
 
 -- FIXME: something prints node configs polluting test outputs
 test :: TestTree
@@ -51,11 +51,12 @@ test = do
   where
     checkFunds wallet' expectedAmt = do
       let expectedAmt' = toInteger expectedAmt
-      ask >>= \cEnv -> liftIO $ do
+      ask >>= \cEnv -> do
         waitSeconds 2
-        res <- utxosAtAddress cEnv (cardanoMainnetAddress wallet')
-        let resultValue = toCombinedFlatValue <$> res
-        resultValue @?= Right [(AdaAssetId, Quantity expectedAmt')]
+        liftIO $ do
+          res <- utxosAtAddress cEnv (cardanoMainnetAddress wallet')
+          let resultValue = toCombinedFlatValue <$> res
+          resultValue @?= Right [(AdaAssetId, Quantity expectedAmt')]
 
     assertSucceeds tag act = do
       act >>= liftIO . assertBool (tag <> " did not succeed") . isSuccess
@@ -66,9 +67,9 @@ test = do
     checkAdaTxFromTo w1 w2 = do
       res <- runContract w1 (DebugContract.payTo (ledgerPaymentPkh w2) 10_000_000)
       cEnv <- ask
+      waitSeconds 1 -- todo: some "wait tx processed" could be handy
       liftIO $ do
         assertBool ("Wallet to wallet tx failed: " <> show res) (isSuccess res)
-        waitSeconds 1 -- todo: some "wait tx processed" could be handy
         utxosAtAddress cEnv (cardanoMainnetAddress w2)
           >>= \case
             Left e ->
@@ -78,10 +79,6 @@ test = do
                in assertBool
                     ("Should be 2 UTxO at destination wallet, but request returned " <> show utxoCnt)
                     (utxoCnt == 2)
-
-    isSuccess = \case
-      RunSuccess _ _ -> True
-      RunFailed _ -> False
 
 withTestConf :: IO b -> IO b
 withTestConf runTest = do

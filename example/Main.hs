@@ -56,10 +56,9 @@ main = do
     -- successful wallet to wallet transaction
     let p2pContract = DebugContract.payTo (ledgerPaymentPkh testW2) 10_000_000
     runContractTagged "Pay wallet-to-wallet" testW1 p2pContract
-      >>= report
+      `andThen` report
 
     -- budget overspend script
-    let scriptAddr = getAddr FailBudget.validatorAddr
     waitSeconds 2
     runContractTagged "Lock at script - budget overspend" testW1 FailBudget.lockAtScript
       `andThen` report
@@ -68,7 +67,6 @@ main = do
       `andThen` report
 
     -- validation fail script
-    let scriptAddr = getAddr FailValidation.validatorAddr
     waitSeconds 2
     runContractTagged "Lock at script - validation fail" testW1 FailValidation.lockAtScript
       `andThen` report

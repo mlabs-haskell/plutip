@@ -28,24 +28,23 @@ import Control.Concurrent (threadDelay)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Reader (ReaderT)
 import Data.Text.IO qualified as TIO
-import LocalCluster.Cluster (runUsingCluster, runUsingCluster')
+import LocalCluster.Cluster (runUsingCluster)
 import LocalCluster.Types (ClusterEnv, RunResult, isSuccess, prettyResult)
 import Numeric.Natural (Natural)
+import System.Console.ANSI (hSupportsANSIColor)
+import System.IO (stdout)
 import Test.Tasty.Ingredients.ConsoleReporter (withConsoleFormat)
 import Test.Tasty.Providers.ConsoleFormat (failFormat, okFormat)
 import Utils (ada)
 
-{- | Stand-in for upcoming report functionality
- (just print out for now)
--}
+-- | Print contract execution result to terminal
 report :: (Show a, Show w, Show e, MonadIO m) => RunResult w e a -> m ()
--- report = liftIO . print
-report r = do
-  let ?colors = True
-  liftIO $
-    withConsoleFormat
-      (pickFormat r)
-      (TIO.putStrLn $ prettyResult r)
+report r = liftIO $ do
+  canColors <- hSupportsANSIColor stdout
+  let ?colors = canColors
+  withConsoleFormat
+    (pickFormat r)
+    (TIO.putStrLn $ prettyResult r)
   where
     pickFormat res =
       if isSuccess res

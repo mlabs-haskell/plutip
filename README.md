@@ -2,7 +2,6 @@
 
 A Cardano tool to spin up a testnet and run contracts with an EDSL to describe the instructions
 
-## Prerequisites
+## Current WIP, but working example workflow
 
- - (depending on how to use it) cardano-cli in PATH
- - cardano-node on PATH
+`nix develop` -> `cabal repl` -> run [example/Main.hs](example/Main.hs) from repl

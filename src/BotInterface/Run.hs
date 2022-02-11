@@ -48,15 +48,23 @@ import Wallet.Types (ContractInstanceId (ContractInstanceId))
 
 runContract ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (m :: Type -> Type).
-  (ToJSON w, Monoid w, MonadIO m, MonadCatch m, Show a, Show e) =>
+  (ToJSON w, Monoid w, MonadIO m, MonadCatch m) =>
   BpiWallet ->
   Contract w s e a ->
   ReaderT ClusterEnv m (RunResult w e a)
 runContract = runContractTagged' Nothing
 
+runContract_ ::
+  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (m :: Type -> Type).
+  (ToJSON w, Monoid w, MonadIO m, MonadCatch m) =>
+  BpiWallet ->
+  Contract w s e a ->
+  ReaderT ClusterEnv m ()
+runContract_ bpiWallet contract = void $ runContract bpiWallet contract
+
 runContractTagged ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (m :: Type -> Type).
-  (ToJSON w, Monoid w, MonadIO m, MonadCatch m, Show a, Show e) =>
+  (ToJSON w, Monoid w, MonadIO m, MonadCatch m) =>
   Text ->
   BpiWallet ->
   Contract w s e a ->
@@ -65,7 +73,7 @@ runContractTagged = runContractTagged' . Just
 
 runContractTagged' ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (m :: Type -> Type).
-  (ToJSON w, Monoid w, MonadIO m, MonadCatch m, Show a, Show e) =>
+  (ToJSON w, Monoid w, MonadIO m, MonadCatch m) =>
   Maybe Text ->
   BpiWallet ->
   Contract w s e a ->
@@ -113,11 +121,3 @@ runContractTagged' contractTag bpiWallet contract =
       case res of
         Left e -> return $ taggedFail (ContractExecutionError e)
         Right a -> taggedRes . Success a <$> liftIO (readTVarIO contractState)
-
-runContract_ ::
-  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (m :: Type -> Type).
-  (ToJSON w, Monoid w, MonadIO m, MonadCatch m, Show a, Show e) =>
-  BpiWallet ->
-  Contract w s e a ->
-  ReaderT ClusterEnv m ()
-runContract_ bpiWallet contract = void $ runContract bpiWallet contract

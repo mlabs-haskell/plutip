@@ -1,9 +1,8 @@
-module DebugContract.LockUnlockValidationFail
-  ( lockAtScript,
-    unlockFromScript,
-    validatorAddr,
-  )
-where
+module DebugContract.LockUnlockValidationFail (
+  lockAtScript,
+  unlockFromScript,
+  validatorAddr,
+) where
 
 import Data.Map qualified as Map
 import Data.Text (Text)
@@ -68,4 +67,3 @@ unlockFromScript = do
       tx <- submitTxConstraintsWith @TestLock lookups txc
       awaitTxConfirmed $ getCardanoTxId tx
       pure (getCardanoTxId tx, tx)
- 

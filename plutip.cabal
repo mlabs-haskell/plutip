@@ -123,11 +123,11 @@ library
     BotInterface.Setup
     BotInterface.Types
     BotInterface.Wallet
-    DSL
     DebugContract.GetUtxos
     DebugContract.LockUnlock
     DebugContract.LockUnlockValidationFail
     DebugContract.PayToWallet
+    DSL
     LocalCluster.Cluster
     LocalCluster.Types
     LocalCluster.Wallet
@@ -161,7 +161,6 @@ test-suite plutip-tests
     , tasty
     , tasty-expected-failure
     , tasty-hunit
-    , tasty-plutus
     , tasty-quickcheck
     , text
 

@@ -2,7 +2,7 @@
   description = "plutip";
 
   inputs = {
-    haskell-nix.url = "github:L-as/haskell.nix?ref=master";
+    haskell-nix.url = "github:L-as/haskell.nix";
 
     nixpkgs.follows = "haskell-nix/nixpkgs-2105";
 
@@ -21,32 +21,37 @@
     };
     cardano-base = {
       url =
-        "github:input-output-hk/cardano-base/4ea7e2d927c9a7f78ddc69738409a5827ab66b98";
+        "github:input-output-hk/cardano-base/654f5b7c76f7cc57900b4ddc664a82fc3b925fb0";
+      flake = false;
+    };
+    cardano-config = {
+      url =
+        "github:input-output-hk/cardano-config/e9de7a2cf70796f6ff26eac9f9540184ded0e4e6";
       flake = false;
     };
     cardano-crypto = {
       url =
-        "github:input-output-hk/cardano-crypto/07397f0e50da97eaa0575d93bee7ac4b2b2576ec";
+        "github:input-output-hk/cardano-crypto/f73079303f663e028288f9f4a9e08bcca39a923e";
       flake = false;
     };
-    cardano-ledger-specs = {
+    cardano-ledger = {
       url =
-        "github:input-output-hk/cardano-ledger-specs/bf008ce028751cae9fb0b53c3bef20f07c06e333";
+        "github:input-output-hk/cardano-ledger/bf008ce028751cae9fb0b53c3bef20f07c06e333";
       flake = false;
     };
     cardano-node = {
       url =
-        "github:input-output-hk/cardano-node/b6ca519f97a0e795611a63174687e6bb70c9f752";
-      # flake = false; -- we need it to be awaliable in shell
+        "github:input-output-hk/cardano-node/4f65fb9a27aa7e3a1873ab4211e412af780a3648";
+      # flake = false; -- we need it to be available in shell
     };
     cardano-prelude = {
       url =
-        "github:input-output-hk/cardano-prelude/fd773f7a58412131512b9f694ab95653ac430852";
+        "github:input-output-hk/cardano-prelude/bb4ed71ba8e587f672d06edf9d2e376f4b055555";
       flake = false;
     };
     cardano-wallet = {
       url =
-        "github:j-mueller/cardano-wallet/6be73ab852c0592713dfe78218856d4a8a0ee69e";
+        "github:input-output-hk/cardano-wallet/760140e238a5fbca61d1b286d7a80ece058dc729";
       flake = false;
     };
     flat = {
@@ -71,27 +76,17 @@
     };
     ouroboros-network = {
       url =
-        "github:input-output-hk/ouroboros-network/1f4973f36f689d6da75b5d351fb124d66ef1057d";
+        "github:input-output-hk/ouroboros-network/d613de3d872ec8b4a5da0c98afb443f322dc4dab";
       flake = false;
     };
     plutus = {
       url =
-        "github:input-output-hk/plutus/c8c5183f7facd967d48fe07b3b14465b8dd48fe7";
+        "github:input-output-hk/plutus/65bad0fd53e432974c3c203b1b1999161b6c2dce";
       flake = false;
     };
     plutus-apps = {
       url =
-        "github:input-output-hk/plutus-apps/75a581c6eb98d36192ce3d3f86ea60a04bc4a52a";
-      flake = false;
-    };
-    plutus-extra = {
-      url =
-        "github:t4ccer/plutus-extra/80b48c148b49deb68c436e8bbdf289633c042b06";
-      flake = false;
-    };
-    plutus-tx-spooky = {
-      url =
-        "gitlab:fresheyeball/plutus-tx-spooky/0c409907fa5b6aee4a2f2d18f871b850a8547fdf";
+        "github:input-output-hk/plutus-apps/34fe6eeff441166fee0cd0ceba68c1439f0e93d2";
       flake = false;
     };
     purescript-bridge = {
@@ -111,7 +106,7 @@
     };
     bot-plutus-interface = {
       url =
-        "github:mlabs-haskell/bot-plutus-interface/29dba547fa5759edb421c9955f7977809f07a5c2";
+        "github:mlabs-haskell/bot-plutus-interface/9cf0c14bed5cbde1baac048d82ac724911f169ac";
     };
   };
 

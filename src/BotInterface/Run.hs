@@ -23,12 +23,12 @@ import BotPlutusInterface.Types (
     pcProtocolParamsFile,
     pcScriptFileDir,
     pcSigningKeyFileDir,
+    pcSlotConfig,
     pcTxFileDir
   ),
   ceContractInstanceId,
   ceContractState,
   cePABConfig,
-  ceWallet,
  )
 import Cardano.Api.ProtocolParameters (ProtocolParameters)
 import Control.Concurrent.STM (newTVarIO, readTVarIO)
@@ -37,6 +37,7 @@ import Control.Monad.Catch (MonadCatch, handleAll)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Reader (MonadReader (ask), ReaderT)
 import Data.Aeson (ToJSON, eitherDecodeFileStrict')
+import Data.Default (def)
 import Data.Kind (Type)
 import Data.Row (Row)
 import Data.Text (Text, pack)
@@ -87,7 +88,6 @@ runContractTagged' contractTag bpiWallet contract =
   where
     taggedRes = RunResult contractTag
     taggedFail = taggedRes . Fail
-    playGroundWallet = undefined -- ? fixme: seems like not being used by bot interface?
     readProtocolParams = liftIO . eitherDecodeFileStrict' . BIS.pParamsFile
     handleErr = return . taggedFail . CaughtException
     runContract' :: ProtocolParameters -> ReaderT ClusterEnv m (RunResult w e a)
@@ -101,6 +101,7 @@ runContractTagged' contractTag bpiWallet contract =
               , pcChainIndexUrl = chainIndexUrl cEnv
               , pcNetwork = networkId cEnv
               , pcProtocolParams = pparams
+              , pcSlotConfig = def
               , pcScriptFileDir = pack $ BIS.scriptsDir cEnv
               , pcSigningKeyFileDir = pack $ BIS.keysDir cEnv
               , pcTxFileDir = pack $ BIS.txsDir cEnv
@@ -114,10 +115,9 @@ runContractTagged' contractTag bpiWallet contract =
             ContractEnvironment
               { cePABConfig = pabConf
               , ceContractState = contractState
-              , ceWallet = playGroundWallet
               , ceContractInstanceId = contractInstanceID
               }
-      res <- liftIO $ BIC.runContract contractEnv playGroundWallet contract
+      res <- liftIO $ BIC.runContract contractEnv contract
       case res of
         Left e -> return $ taggedFail (ContractExecutionError e)
         Right a -> taggedRes . Success a <$> liftIO (readTVarIO contractState)

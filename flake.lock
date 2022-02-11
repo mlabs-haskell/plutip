@@ -76,17 +76,17 @@
         "plutus": "plutus"
       },
       "locked": {
-        "lastModified": 1643192611,
-        "narHash": "sha256-R+hKIgc++WiKPPJBP4VzsZwO4Kn4LKvuNmywI9OsIH4=",
+        "lastModified": 1644504999,
+        "narHash": "sha256-6NcnEDb7xYRJpZuRGRG0a55r6DMV8xLdjtD5Iy1dEXs=",
         "owner": "mlabs-haskell",
         "repo": "bot-plutus-interface",
-        "rev": "490e9b6305cebe5644dfe56f05dbc737b07e3fe6",
+        "rev": "a259e626b6023bade7a6e75ea44c8f4864de0db0",
         "type": "github"
       },
       "original": {
         "owner": "mlabs-haskell",
         "repo": "bot-plutus-interface",
-        "rev": "490e9b6305cebe5644dfe56f05dbc737b07e3fe6",
+        "rev": "a259e626b6023bade7a6e75ea44c8f4864de0db0",
         "type": "github"
       }
     },

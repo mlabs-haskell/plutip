@@ -48,19 +48,18 @@ common common-imports
     , plutus-ledger-api
     , plutus-ledger-constraints
     , plutus-pab
+    , plutus-tx
+    , plutus-tx-plugin
     , prettyprinter
     , row-types
     , servant-client
     , servant-server
     , stm
+    , tasty
     , text
     , text-class
     , typed-process
     , uuid
-
-    , plutus-tx
-    , plutus-tx-plugin
-    , tasty
 
 common common-language
   default-extensions:
@@ -123,9 +122,10 @@ library
     BotInterface.Setup
     BotInterface.Types
     BotInterface.Wallet
-    DSL
     DebugContract.GetUtxos
+    DebugContract.LockUnlock
     DebugContract.PayToWallet
+    DSL
     LocalCluster.Cluster
     LocalCluster.Types
     LocalCluster.Wallet
@@ -140,9 +140,9 @@ executable plutip-example
   main-is:       example/Main.hs
   build-depends:
     , base
+    , mtl
     , plutip
     , text
-    , mtl
 
 test-suite plutip-tests
   import:             common-imports

@@ -33,11 +33,16 @@ nix-cabal-repl:
 
 # Target to use as dependency to fail if not inside nix-shell.
 requires_nix_shell:
-	@ [ "($IN_NIX_SHELL)" ] || echo "The $(MAKECMDGOALS) target must be run from inside `nix develop`"
-	@ [ "($IN_NIX_SHELL)" ] || (echo "    run `nix develop` first" && false)
+	@ [ "$(IN_NIX_SHELL)" ] || echo "The $(MAKECMDGOALS) target must be run from inside a nix shell"
+	@ [ "$(IN_NIX_SHELL)" ] || (echo "    run 'nix develop' first" && false)
 
 # Add folder locations to the list to be reformatted.
 fourmolu-format:
 	@ echo "> Formatting all .hs files"
 	fourmolu -i $$(find src/  -iregex ".*.hs")
 	fourmolu -i $$(find test/ -iregex ".*.hs")
+
+NIX_SOURCES := $(shell git ls-tree -r HEAD --full-tree --name-only | grep -E '.*\.nix' )
+
+nixfmt: requires_nix_shell
+	nixfmt $(NIX_SOURCES)

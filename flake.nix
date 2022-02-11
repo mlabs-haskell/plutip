@@ -111,7 +111,7 @@
     };
     bot-plutus-interface = {
       url =
-        "github:mlabs-haskell/bot-plutus-interface/a259e626b6023bade7a6e75ea44c8f4864de0db0";
+        "github:mlabs-haskell/bot-plutus-interface/29dba547fa5759edb421c9955f7977809f07a5c2";
     };
   };
 

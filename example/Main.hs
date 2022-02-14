@@ -59,19 +59,17 @@ main = do
       `andThen` report
 
     -- budget overspend script
-    waitSeconds 2
-    runContractTagged "Lock at script - budget overspend" testW1 FailBudget.lockAtScript
-      `andThen` report
-    waitSeconds 2
-    runContractTagged "Spend from script - budget overspend" testW1 FailBudget.unlockFromScript
+    runContractTagged
+      "Lock at script then spend - budget overspend"
+      testW1
+      FailBudget.lockThenSpend
       `andThen` report
 
     -- validation fail script
-    waitSeconds 2
-    runContractTagged "Lock at script - validation fail" testW1 FailValidation.lockAtScript
-      `andThen` report
-    waitSeconds 2
-    runContractTagged "Spend from script - validation fail" testW1 FailValidation.unlockFromScript
+    runContractTagged
+      "Lock at script then spend - validation fail"
+      testW1
+      FailValidation.lockThenSpend
       `andThen` report
 
     liftIO $ putStrLn "Done. Debug awaiting - Enter to exit" >> void getLine

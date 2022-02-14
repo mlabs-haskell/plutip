@@ -131,10 +131,7 @@ runUsingCluster' action = do
         dir
         clusterCfg
         (const (putStrLn "setupFaucet was here")) -- (setupFaucet dir (trMessageText trCluster))
-        ( \rn -> runActionWthSetup rn dir trCluster action
-        -- it's possible to setup faucet here as well
-        -- setupFaucet dir (trMessageText trCluster) rn
-        )
+        (\rn -> runActionWthSetup rn dir trCluster action)
   where
     runActionWthSetup rn dir trCluster userActon = do
       let tracer' = trMessageText trCluster

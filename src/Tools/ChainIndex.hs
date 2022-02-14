@@ -1,7 +1,6 @@
 module Tools.ChainIndex (utxosAtPkh) where
 
 import Cardano.Pool.Metadata (newManager)
-import Cardano.Wallet.Mock.Types (ChainClient (ChainClient))
 import Data.Default (Default (def))
 import Ledger (PubKeyHash)
 import Network.HTTP.Client (defaultManagerSettings)

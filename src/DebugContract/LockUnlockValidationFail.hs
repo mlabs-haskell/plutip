@@ -1,6 +1,7 @@
 module DebugContract.LockUnlockValidationFail (
   lockAtScript,
-  unlockFromScript,
+  spendFromScript,
+  lockThenSpend,
   validatorAddr,
 ) where
 
@@ -52,8 +53,8 @@ lockAtScript = do
   awaitTxConfirmed $ getCardanoTxId tx
   pure (getCardanoTxId tx, tx)
 
-unlockFromScript :: Contract () EmptySchema Text (TxId, CardanoTx)
-unlockFromScript = do
+spendFromScript :: Contract () EmptySchema Text (TxId, CardanoTx)
+spendFromScript = do
   utxos <- Map.toList <$> Contract.utxosAt validatorAddr
   case utxos of
     [] -> Contract.throwError "No UTxOs at script address"
@@ -67,3 +68,7 @@ unlockFromScript = do
       tx <- submitTxConstraintsWith @TestLock lookups txc
       awaitTxConfirmed $ getCardanoTxId tx
       pure (getCardanoTxId tx, tx)
+
+lockThenSpend :: Contract () EmptySchema Text (TxId, CardanoTx)
+lockThenSpend =
+  lockAtScript >> Contract.waitNSlots 1 >> spendFromScript

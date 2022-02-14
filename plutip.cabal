@@ -18,7 +18,6 @@ common common-imports
     , cardano-addresses
     , cardano-api
     , cardano-crypto
-    , cardano-crypto-class
     , cardano-crypto-wrapper
     , cardano-slotting
     , cardano-wallet
@@ -35,8 +34,6 @@ common common-imports
     , http-client
     , http-types
     , iohk-monitoring
-    , lens
-    , lobemo-backend-ekg
     , memory
     , mtl
     , openapi3
@@ -51,10 +48,8 @@ common common-imports
     , plutus-pab
     , plutus-tx
     , plutus-tx-plugin
-    , prettyprinter
     , row-types
     , servant-client
-    , servant-server
     , stm
     , tasty
     , text

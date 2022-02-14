@@ -67,7 +67,6 @@ test = do
     checkAdaTxFromTo w1 w2 = do
       res <- runContract w1 (DebugContract.payTo (ledgerPaymentPkh w2) 10_000_000)
       cEnv <- ask
-      waitSeconds 1 -- todo: some "wait tx processed" could be handy
       liftIO $ do
         assertBool ("Wallet to wallet tx failed: " <> show res) (isSuccess res)
         utxosAtAddress cEnv (cardanoMainnetAddress w2)

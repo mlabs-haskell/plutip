@@ -12,9 +12,9 @@ common common-imports
     , aeson
     , async
     , base
+    , bot-plutus-interface
     , bytestring
     , cardano-addresses
-    , cardano-api
     , cardano-api
     , cardano-crypto
     , cardano-crypto-class
@@ -32,25 +32,31 @@ common common-imports
     , exceptions
     , filepath
     , http-client
+    , http-types
     , iohk-monitoring
     , lens
     , lobemo-backend-ekg
     , memory
     , mtl
     , openapi3
+    , ouroboros-consensus
     , ouroboros-network
     , plutus-chain-index
     , plutus-chain-index-core
+    , plutus-contract
     , plutus-ledger
     , plutus-ledger-api
+    , plutus-ledger-constraints
     , plutus-pab
     , prettyprinter
+    , row-types
     , servant-client
     , servant-server
+    , stm
     , text
     , text-class
     , typed-process
-    , ouroboros-consensus
+    , uuid
 
 common common-language
   default-extensions:
@@ -101,20 +107,27 @@ library
   import:          common-ghc-options
   ghc-options:
     -Wall -Wcompat -Wincomplete-uni-patterns -Wredundant-constraints
-    -Wmissing-export-lists -Wmissing-deriving-strategies 
-    -- -Werror
+    -Wmissing-export-lists -Wmissing-deriving-strategies
+    -Wmissing-import-lists
+
+  -- -Werror
 
   hs-source-dirs:  src/
   exposed-modules:
-    Address
     BotInterface.Keys
+    BotInterface.Run
     BotInterface.Setup
     BotInterface.Types
     BotInterface.Wallet
+    DSL
+    DebugContract.GetUtxos
+    DebugContract.PayToWallet
     LocalCluster.Cluster
     LocalCluster.Types
     LocalCluster.Wallet
+    Tools.Address
     Tools.CardanoApi
+    Tools.ChainIndex
     Tools.DebugCli
     Utils
 
@@ -122,9 +135,10 @@ executable plutip-example
   import:        common-language
   main-is:       example/Main.hs
   build-depends:
-      base
-    , text  
+    , base
     , plutip
+    , text
+    , mtl
 
 test-suite plutip-tests
   import:             common-imports
@@ -135,7 +149,6 @@ test-suite plutip-tests
   hs-source-dirs:     test
   main-is:            Main.hs
   ghc-options:        -Wall -threaded -rtsopts
-
   build-depends:
     , base
     , plutip
@@ -147,8 +160,9 @@ test-suite plutip-tests
     , text
 
   other-modules:
+    Test.BotInterface
     Test.Integration
-    
+
   default-extensions:
     OverloadedStrings
     QuasiQuotes

@@ -10,7 +10,7 @@ main =
     testGroup
       "tests"
       -- fixme: both `Integration.test` and `BotInterface.test`
-      -- start own cluster to run tests, need better solution in future
+      -- start own cluster to run tests, probably, need better solution in future
       [ Integration.test
       , BotInterface.test
       ]

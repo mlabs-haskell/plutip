@@ -76,12 +76,12 @@
     };
     plutus = {
       url =
-        "github:input-output-hk/plutus/2721c59fd2302b75c4138456c29fd5b509e8340a";
+        "github:input-output-hk/plutus/c8c5183f7facd967d48fe07b3b14465b8dd48fe7";
       flake = false;
     };
     plutus-apps = {
       url =
-        "github:input-output-hk/plutus-apps/21b592b1ea4bc727c1d486432e8aa8388d9e706c";
+        "github:input-output-hk/plutus-apps/75a581c6eb98d36192ce3d3f86ea60a04bc4a52a";
       flake = false;
     };
     plutus-extra = {
@@ -108,6 +108,10 @@
       url =
         "github:input-output-hk/Win32-network/3825d3abf75f83f406c1f7161883c438dac7277d";
       flake = false;
+    };
+    bot-plutus-interface = {
+      url =
+        "github:mlabs-haskell/bot-plutus-interface/490e9b6305cebe5644dfe56f05dbc737b07e3fe6";
     };
   };
 

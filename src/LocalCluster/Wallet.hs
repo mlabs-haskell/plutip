@@ -19,42 +19,37 @@ module LocalCluster.Wallet (
 import Cardano.Address.Derivation (XPrv, XPub)
 import Cardano.Mnemonic (Mnemonic, SomeMnemonic (SomeMnemonic), mnemonicToText)
 import Cardano.Wallet.Api.Types (
-  EncodeAddress (..),
+  encodeAddress,
  )
 import Cardano.Wallet.Primitive.AddressDerivation (
   HardDerivation (deriveAccountPrivateKey, deriveAddressPrivateKey),
-  NetworkDiscriminant (..),
+  NetworkDiscriminant (Mainnet),
   PaymentAddress (paymentAddress),
   Role (UtxoExternal),
   WalletKey (publicKey),
  )
 import Cardano.Wallet.Primitive.AddressDerivation.Shelley qualified as Shelley
 import Cardano.Wallet.Primitive.Types.Address (
-  Address (..),
+  Address (unAddress),
  )
-import Cardano.Wallet.Primitive.Types.Coin (
-  Coin (..),
- )
-import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (RunningNode), sendFaucetFundsTo)
+import Cardano.Wallet.Primitive.Types.Coin (Coin (Coin))
+import Cardano.Wallet.Shelley.Launch.Cluster (sendFaucetFundsTo)
 import Cardano.Wallet.Unsafe (unsafeMkMnemonic)
 import Control.Monad.IO.Class (MonadIO (liftIO))
 import Control.Monad.Reader (ReaderT (runReaderT), ask)
 import Control.Tracer (
   nullTracer,
  )
-import Data.ByteArray.Encoding (
-  Base (..),
-  convertToBase,
- )
+import Data.ByteArray.Encoding (Base (Base16), convertToBase)
 import Data.Text (
   Text,
  )
 import Data.Text qualified as T
-import Data.Text.Encoding as T
+import Data.Text.Encoding as T (decodeUtf8)
 import Ledger qualified as LC
-import LocalCluster.Types
+import LocalCluster.Types (ClusterEnv (supportDir), nodeSocket)
 import Numeric.Natural (Natural)
-import Test.Integration.Faucet (genMnemonics, genShelleyAddresses)
+import Test.Integration.Faucet (genMnemonics)
 
 {- | Add single wallet using cluster environment.
  (adding wallet atm means sending specified funds to `Address`)
@@ -73,12 +68,17 @@ addWallets cEnv = addWallet cEnv . sequence
 -}
 mnemonicWallet :: MonadIO m => [Text] -> Natural -> ReaderT ClusterEnv m ClusterWallet
 mnemonicWallet mnem amt = do
-  (ClusterEnv (RunningNode socketPath _ _) dir _) <- ask
+  cEnv <- ask
   let mnem' = unsafeMkMnemonic mnem
       wallet = mkWallet mnem'
       fundAddress = mainnetStringAddress wallet
       amt' = toEnum . fromEnum $ amt
-  liftIO $ sendFaucetFundsTo nullTracer socketPath dir [(fundAddress, Coin amt')]
+  liftIO $
+    sendFaucetFundsTo
+      nullTracer
+      (nodeSocket cEnv)
+      (supportDir cEnv)
+      [(fundAddress, Coin amt')]
   return wallet
 
 {- | Action, that will build `Address` from randomly generated `Mnemonic`
@@ -110,10 +110,8 @@ mkWallet mn =
   where
     pk = Shelley.ShelleyKey $ toPaymentXPub $ fromMnemonic mn
 
--- toPaymentAddr = cwPaymentAddress @'Mainnet
-
-toAddresses :: Mnemonic 15 -> [Address]
-toAddresses = genShelleyAddresses . SomeMnemonic
+-- toAddresses :: Mnemonic 15 -> [Address]
+-- toAddresses = genShelleyAddresses . SomeMnemonic
 
 mainnetTextAddress :: ClusterWallet -> Text
 mainnetTextAddress = encodeAddress @ 'Mainnet . cwPaymentAddress

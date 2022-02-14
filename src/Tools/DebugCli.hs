@@ -4,10 +4,9 @@ module Tools.DebugCli (
 ) where
 
 import Cardano.Launcher.Node (nodeSocketFile)
-import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (RunningNode))
 import Data.ByteString.Lazy.Char8 qualified as BS
 import GHC.IO.Exception (ExitCode (ExitSuccess))
-import LocalCluster.Types
+import LocalCluster.Types (ClusterEnv, nodeSocket)
 import System.Environment (getEnvironment)
 import System.Exit (ExitCode (ExitFailure))
 import System.Process.Typed (
@@ -23,10 +22,11 @@ debugCli ::
   ClusterEnv ->
   [String] ->
   IO BS.ByteString
-debugCli (ClusterEnv (RunningNode conn _ _) _ _) args = do
+debugCli cEnv args = do
   env <- getEnvironment
-  let process =
-        setEnv (("CARDANO_NODE_SOCKET_PATH", nodeSocketFile conn) : env) $
+  let socket = nodeSocketFile $ nodeSocket cEnv
+      process =
+        setEnv (("CARDANO_NODE_SOCKET_PATH", socket) : env) $
           proc "cardano-cli" args
   (st, out, err) <- readProcess process
   pure $ case st of

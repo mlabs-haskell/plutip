@@ -3,6 +3,6 @@ module BotInterface.Types (
 ) where
 
 data BpiError
-  = SignKeySaveError String
+  = SignKeySaveError !String
   | BotInterfaceDirMissing
   deriving stock (Show)

@@ -28,22 +28,10 @@ import Tools.DebugCli qualified as CLI
 
 main :: IO ()
 main = do
-  -- mapM_ (`hSetBuffering` NoBuffering) [stdout, stderr]
-  -- todo: maybe some better configuring procedure should be introduced
-  setEnv "SHELLEY_TEST_DATA" "cluster-data/cardano-node-shelley"
-  setEnv "NO_POOLS" "1"
-  -- setEnv "NO_CLEANUP" "0"
-
   runUsingCluster $ do
-    w1 <- -- ? maybe it will be more ergonomic to get rid of `Ether` and just fail hard
-    -- as there is no reason to continue if wallet can't be set up
-      addSomeWallet (ada 101)
-    w2 <- addSomeWallet (ada 202)
-    waitSeconds 2
-
-    -- debugWallets (sequence [w1, w2]) --temporary, for debugging
-    testW1 <- either (error . show) pure w1
-    testW2 <- either (error . show) pure w2
+    testW1 <- addSomeWallet (ada 101)
+    testW2 <- addSomeWallet (ada 202)
+    waitSeconds 2 -- wait for transactions to submit
 
     -- 1 successful and 2 failing scenarios
     runContract testW1 DebugContract.getUtxos
@@ -73,13 +61,3 @@ main = do
       `andThen` report
 
     liftIO $ putStrLn "Done. Debug awaiting - Enter to exit" >> void getLine
-  where
-    getAddr = either (error . show) unpack . Tools.ledgerToCardanoMainnet'
-    debugWallets ws = do
-      cEnv <- ask
-      liftIO $ putStrLn "\nDebug check:"
-      liftIO $ putStrLn $ "Cluster dir: " <> show (supportDir cEnv)
-      either
-        (error . ("Err: " <>) . show)
-        (mapM_ (liftIO . CLI.utxoAtAddress cEnv . mkMainnetAddress))
-        ws

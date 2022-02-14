@@ -47,6 +47,7 @@ import Plutus.Contract (Contract)
 import Plutus.PAB.Core.ContractInstance.STM (Activity (Active))
 import Wallet.Types (ContractInstanceId (ContractInstanceId))
 
+-- | Run contract on private network
 runContract ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (m :: Type -> Type).
   (ToJSON w, Monoid w, MonadIO m, MonadCatch m) =>
@@ -63,6 +64,7 @@ runContract_ ::
   ReaderT ClusterEnv m ()
 runContract_ bpiWallet contract = void $ runContract bpiWallet contract
 
+-- | Run contract on private network propagating arbitrary description to `RunResult`
 runContractTagged ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (m :: Type -> Type).
   (ToJSON w, Monoid w, MonadIO m, MonadCatch m) =>

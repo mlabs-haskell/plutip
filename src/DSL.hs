@@ -1,5 +1,6 @@
 {-# LANGUAGE ImplicitParams #-}
 
+-- 
 module DSL (
   BpiWallet,
   addSomeWallet,
@@ -51,9 +52,10 @@ report r = liftIO $ do
         then okFormat
         else failFormat
 
+-- | Awaiting via `threadDelay`
 waitSeconds :: Natural -> ReaderT ClusterEnv IO ()
 waitSeconds n = liftIO $ threadDelay (fromEnum n * 1_000_000)
 
--- readability ¯\_(ツ)_/¯
+-- | Alias for `>>=` for readability
 andThen :: Monad m => m a -> (a -> m b) -> m b
 andThen = (>>=)

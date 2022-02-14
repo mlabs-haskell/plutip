@@ -79,6 +79,7 @@ pkgs.haskell-nix.cabalProject {
         entr
         ghcid
         git
+        nixfmt
 
         # hls doesn't support preprocessors yet so this has to exist in PATH
         haskellPackages.record-dot-preprocessor

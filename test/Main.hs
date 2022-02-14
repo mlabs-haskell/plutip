@@ -9,7 +9,7 @@ main =
   defaultMain $
     testGroup
       "tests"
-      -- fixme: both `Integration.test` and `BotInterface.test`
+      -- FIXME: both `Integration.test` and `BotInterface.test`
       -- start own cluster to run tests, probably, need better solution in future
       [ Integration.test
       , BotInterface.test

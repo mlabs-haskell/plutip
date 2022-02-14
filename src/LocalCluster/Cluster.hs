@@ -108,6 +108,7 @@ import Test.Integration.Faucet (
   mirMnemonics,
   shelleyIntegrationTestFunds,
  )
+import System.Environment (setEnv)
 
 {- | Start cluster and run action using provided `CalusterEnv`
  under development (mostly borrowed from `cardano-wallet`)
@@ -121,7 +122,9 @@ runUsingCluster act = runUsingCluster' (runReaderT act)
 -}
 runUsingCluster' :: (ClusterEnv -> IO ()) -> IO ()
 runUsingCluster' action = do
+  -- current setup requires `cardano-node` and `cardano-cli` as external processes
   checkProcessesAvailable ["cardano-node", "cardano-cli"]
+
   withLocalClusterSetup $ \dir clusterLogs _walletLogs -> do
     withLoggingNamed "cluster" clusterLogs $ \(_, (_, trCluster)) -> do
       let tr' = contramap MsgCluster $ trMessageText trCluster
@@ -130,11 +133,8 @@ runUsingCluster' action = do
         tr'
         dir
         clusterCfg
-        (const (putStrLn "setupFaucet was here")) -- (setupFaucet dir (trMessageText trCluster))
-        ( \rn -> runActionWthSetup rn dir trCluster action
-        -- it's possible to setup faucet here as well
-        -- setupFaucet dir (trMessageText trCluster) rn
-        )
+        (const $ pure ()) -- faucet setup was here in `cardano-wallet` version
+        (\rn -> runActionWthSetup rn dir trCluster action)
   where
     runActionWthSetup rn dir trCluster userActon = do
       let tracer' = trMessageText trCluster
@@ -150,7 +150,7 @@ runUsingCluster' action = do
               , tracer = trCluster
               }
 
-      BotSetup.runSetup cEnv
+      BotSetup.runSetup cEnv -- run preparations to use `bot-plutus-interface`
       userActon cEnv -- executing user action on cluster
 
 -- Do all the program setup required for running the local cluster, create a
@@ -160,6 +160,10 @@ withLocalClusterSetup ::
   (FilePath -> [LogOutput] -> [LogOutput] -> IO a) ->
   IO a
 withLocalClusterSetup action = do
+  -- Setting required environment variables
+  setEnv "NO_POOLS" "1"
+  setEnv "SHELLEY_TEST_DATA" "cluster-data"
+
   -- Handle SIGTERM properly
   installSignalHandlers (putStrLn "Terminated")
 
@@ -185,7 +189,7 @@ checkProcessesAvailable :: [String] -> IO ()
 checkProcessesAvailable requiredProcesses = do
   results <- mapM findExecutable requiredProcesses
   unless (isJust `all` results) $
-    -- todo: maybe some better way throwing needed?
+    -- TODO: maybe some better way throwing needed?
     die $
       "This processes should be available in the environment:\n " <> show requiredProcesses
         <> "\n but only these were found:\n "
@@ -239,7 +243,7 @@ awaitSocketCreated trCluster rn@(RunningNode socket _ _) = do
 
 -- | Launch the chain index in a separate thread.
 
--- todo: add ability to set custom port (if needed)
+-- TODO: add ability to set custom port (if needed)
 launchChainIndex :: RunningNode -> FilePath -> IO Int
 launchChainIndex (RunningNode sp _block0 (_gp, _vData)) dir = do
   config <- ChainIndex.Logging.defaultConfig
@@ -250,6 +254,5 @@ launchChainIndex (RunningNode sp _block0 (_gp, _vData)) dir = do
           , cicDbPath = dbPath
           , cicNetworkId = CAPI.Mainnet
           }
-  print chainIndexConfig
   void . async $ void $ ChainIndex.runMain config chainIndexConfig
   return $ cicPort chainIndexConfig

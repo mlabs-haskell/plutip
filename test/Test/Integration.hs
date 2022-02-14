@@ -2,7 +2,6 @@ module Test.Integration (test) where
 
 import Cardano.Api (AssetId (AdaAssetId), Quantity (Quantity), TxOut (TxOut), UTxO (UTxO, unUTxO), txOutValueToValue, valueToList)
 import Data.Map qualified as Map
-import System.Environment (setEnv)
 import Test.Tasty (TestTree)
 import Test.Tasty.HUnit (assertBool, assertFailure, testCase, (@?=))
 import Tools.CardanoApi (utxosAtAddress)
@@ -10,7 +9,6 @@ import Tools.CardanoApi (utxosAtAddress)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ask)
 import DSL (
-  RunResult (RunFailed, RunSuccess),
   ada,
   addSomeWallet,
   cardanoMainnetAddress,
@@ -23,15 +21,17 @@ import DebugContract.GetUtxos qualified as DebugContract
 import DebugContract.PayToWallet qualified as DebugContract
 
 import BotInterface.Wallet (ledgerPaymentPkh)
+import LocalCluster.Types (isSuccess)
 
--- FIXME: something prints node configs polluting test outputs
+-- FIXME: something prints node configs polluting test outputs even with maximum log severity
+-- upd: (https://github.com/input-output-hk/cardano-node/blob/4ad6cddd40517c2eb8c3df144a6fa6737952aa92/cardano-node/src/Cardano/Node/Run.hs#L117)
 test :: TestTree
 test = do
   testCase "Basic integration: launch, add wallet, tx from wallet to wallet" $ do
-    withTestConf . runUsingCluster $ do
-      w1 <- addSomeWallet (ada 101) >>= either (error . show) pure
+   runUsingCluster $ do
+      w1 <- addSomeWallet (ada 101)
       checkFunds w1 (ada 101)
-      w2 <- addSomeWallet (ada 102) >>= either (error . show) pure
+      w2 <- addSomeWallet (ada 102)
       checkFunds w2 (ada 102)
 
       assertSucceeds
@@ -51,11 +51,12 @@ test = do
   where
     checkFunds wallet' expectedAmt = do
       let expectedAmt' = toInteger expectedAmt
-      ask >>= \cEnv -> liftIO $ do
+      ask >>= \cEnv -> do
         waitSeconds 2
-        res <- utxosAtAddress cEnv (cardanoMainnetAddress wallet')
-        let resultValue = toCombinedFlatValue <$> res
-        resultValue @?= Right [(AdaAssetId, Quantity expectedAmt')]
+        liftIO $ do
+          res <- utxosAtAddress cEnv (cardanoMainnetAddress wallet')
+          let resultValue = toCombinedFlatValue <$> res
+          resultValue @?= Right [(AdaAssetId, Quantity expectedAmt')]
 
     assertSucceeds tag act = do
       act >>= liftIO . assertBool (tag <> " did not succeed") . isSuccess
@@ -68,7 +69,6 @@ test = do
       cEnv <- ask
       liftIO $ do
         assertBool ("Wallet to wallet tx failed: " <> show res) (isSuccess res)
-        waitSeconds 1 -- todo: some "wait tx processed" could be handy
         utxosAtAddress cEnv (cardanoMainnetAddress w2)
           >>= \case
             Left e ->
@@ -78,18 +78,6 @@ test = do
                in assertBool
                     ("Should be 2 UTxO at destination wallet, but request returned " <> show utxoCnt)
                     (utxoCnt == 2)
-
-    isSuccess = \case
-      RunSuccess _ _ -> True
-      RunFailed _ -> False
-
-withTestConf :: IO b -> IO b
-withTestConf runTest = do
-  setEnv "SHELLEY_TEST_DATA" "cluster-data/cardano-node-shelley"
-  setEnv "NO_POOLS" "1"
-  setEnv "CARDANO_NODE_TRACING_MIN_SEVERITY" "Error"
-  setEnv "TESTS_TRACING_MIN_SEVERITY" "Error"
-  runTest
 
 toCombinedFlatValue :: UTxO era -> [(AssetId, Quantity)]
 toCombinedFlatValue =

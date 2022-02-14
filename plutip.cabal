@@ -10,6 +10,7 @@ extra-source-files: CHANGELOG.md
 common common-imports
   build-depends:
     , aeson
+    , ansi-terminal
     , async
     , base
     , bot-plutus-interface
@@ -17,7 +18,6 @@ common common-imports
     , cardano-addresses
     , cardano-api
     , cardano-crypto
-    , cardano-crypto-class
     , cardano-crypto-wrapper
     , cardano-slotting
     , cardano-wallet
@@ -34,8 +34,6 @@ common common-imports
     , http-client
     , http-types
     , iohk-monitoring
-    , lens
-    , lobemo-backend-ekg
     , memory
     , mtl
     , openapi3
@@ -48,11 +46,12 @@ common common-imports
     , plutus-ledger-api
     , plutus-ledger-constraints
     , plutus-pab
-    , prettyprinter
+    , plutus-tx
+    , plutus-tx-plugin
     , row-types
     , servant-client
-    , servant-server
     , stm
+    , tasty
     , text
     , text-class
     , typed-process
@@ -108,9 +107,8 @@ library
   ghc-options:
     -Wall -Wcompat -Wincomplete-uni-patterns -Wredundant-constraints
     -Wmissing-export-lists -Wmissing-deriving-strategies
-    -Wmissing-import-lists
-
-  -- -Werror
+    -Wmissing-import-lists 
+    -- -Werror
 
   hs-source-dirs:  src/
   exposed-modules:
@@ -119,12 +117,13 @@ library
     BotInterface.Setup
     BotInterface.Types
     BotInterface.Wallet
-    DSL
     DebugContract.GetUtxos
+    DebugContract.LockUnlock
+    DebugContract.LockUnlockValidationFail
     DebugContract.PayToWallet
+    DSL
     LocalCluster.Cluster
     LocalCluster.Types
-    LocalCluster.Wallet
     Tools.Address
     Tools.CardanoApi
     Tools.ChainIndex
@@ -136,9 +135,11 @@ executable plutip-example
   main-is:       example/Main.hs
   build-depends:
     , base
+    , mtl
     , plutip
     , text
-    , mtl
+    , plutus-ledger-constraints
+    , plutus-ledger-api
 
 test-suite plutip-tests
   import:             common-imports
@@ -155,7 +156,6 @@ test-suite plutip-tests
     , tasty
     , tasty-expected-failure
     , tasty-hunit
-    , tasty-plutus
     , tasty-quickcheck
     , text
 

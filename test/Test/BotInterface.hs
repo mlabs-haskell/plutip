@@ -16,13 +16,12 @@ import Network.HTTP.Client (
  )
 import Network.HTTP.Types.Status (status200)
 import System.Directory (doesDirectoryExist, doesFileExist)
-import System.Environment (setEnv)
 import Test.Tasty (TestTree)
 import Test.Tasty.HUnit (assertBool, testCase)
 
 test :: TestTree
 test = testCase "Bot interface integration" $ do
-  withTestConf . runUsingCluster $ do
+  runUsingCluster $ do
     cEnv <- ask
     liftIO $
       doesDirectoryExist (keysDir cEnv)
@@ -36,13 +35,5 @@ test = testCase "Bot interface integration" $ do
   where
     tipChainIndex = do
       mgr <- newManager defaultManagerSettings
-      req <- parseRequest "http://localhost:9083/tip" --todo: port from cEnv
+      req <- parseRequest "http://localhost:9083/tip" --TODO: port from cEnv
       httpNoBody req mgr
-
-withTestConf :: IO b -> IO b
-withTestConf runTest = do
-  setEnv "SHELLEY_TEST_DATA" "cluster-data/cardano-node-shelley"
-  setEnv "NO_POOLS" "1"
-  setEnv "CARDANO_NODE_TRACING_MIN_SEVERITY" "Error"
-  setEnv "TESTS_TRACING_MIN_SEVERITY" "Error"
-  runTest

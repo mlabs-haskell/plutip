@@ -42,22 +42,16 @@ pkgs.haskell-nix.cabalProject {
         plutus-chain-index
         plutus-contract
         plutus-core
-        plutus-extra
-        plutus-laws
         plutus-ledger
         plutus-ledger-api
         plutus-ledger-constraints
-        plutus-numeric
         plutus-pab
         plutus-playground-server
-        plutus-pretty
         plutus-tx
         plutus-tx-plugin
-        plutus-tx-spooky
         plutus-use-cases
         prettyprinter-configurable
         quickcheck-dynamic
-        tasty-plutus
         Win32-network
         word-array
       ];
@@ -154,7 +148,7 @@ pkgs.haskell-nix.cabalProject {
       subdirs = [ "." ];
     }
     {
-      src = inputs.cardano-ledger-specs;
+      src = inputs.cardano-ledger;
       subdirs = [
         "byron/ledger/impl"
         "cardano-ledger-core"
@@ -178,7 +172,11 @@ pkgs.haskell-nix.cabalProject {
     }
     {
       src = inputs.cardano-node;
-      subdirs = [ "cardano-api" "cardano-node" "cardano-cli" "cardano-config" ];
+      subdirs = [ "cardano-api" "cardano-node" "cardano-cli" ];
+    }
+    {
+      src = inputs.cardano-config;
+      subdirs = [ "." ];
     }
     {
       src = inputs.cardano-prelude;
@@ -187,6 +185,7 @@ pkgs.haskell-nix.cabalProject {
     {
       src = inputs.cardano-wallet;
       subdirs = [
+        "lib/dbvar"
         "lib/text-class"
         "lib/strict-non-empty-containers"
         "lib/core"
@@ -250,9 +249,9 @@ pkgs.haskell-nix.cabalProject {
         "plutus-ledger-api"
         "plutus-tx"
         "plutus-tx-plugin"
-        "word-array"
         "prettyprinter-configurable"
         "stubs/plutus-ghc-stub"
+        "word-array"
       ];
     }
     {
@@ -272,25 +271,6 @@ pkgs.haskell-nix.cabalProject {
         "quickcheck-dynamic"
         "web-ghc"
       ];
-    }
-    {
-      src = inputs.plutus-extra;
-      subdirs = [
-        "plutus-extra"
-        "tasty-plutus"
-        "plutus-pretty"
-        "plutus-numeric"
-        "plutus-golden"
-        "plutus-laws"
-        "plutus-list"
-        "plutus-size-check"
-        "quickcheck-plutus-instances"
-        "plutus-deriving"
-      ];
-    }
-    {
-      src = inputs.plutus-tx-spooky;
-      subdirs = [ "." ];
     }
     {
       src = inputs.purescript-bridge;

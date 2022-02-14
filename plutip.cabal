@@ -138,6 +138,8 @@ executable plutip-example
     , mtl
     , plutip
     , text
+    , plutus-ledger-constraints
+    , plutus-ledger-api
 
 test-suite plutip-tests
   import:             common-imports

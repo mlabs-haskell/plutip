@@ -8,11 +8,13 @@ import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
 
 import Control.Monad (void)
 import Ledger.Constraints qualified as Constraints
-import Ledger.Constraints qualified as Contract
 
 payTo :: PaymentPubKeyHash -> Integer -> Contract () EmptySchema Text CardanoTx
 payTo toPkh amt = do
-  uwnPkh <- ownPaymentPubKeyHash
-  tx <- submitTx (Constraints.mustPayToPubKey toPkh (Ada.lovelaceValueOf amt) <> Contract.mustBeSignedBy uwnPkh)
+  ownPkh <- ownPaymentPubKeyHash
+  tx <- submitTx 
+          (Constraints.mustPayToPubKey toPkh (Ada.lovelaceValueOf amt) 
+          <> Constraints.mustBeSignedBy ownPkh
+          )
   void $ waitNSlots 1
   pure tx

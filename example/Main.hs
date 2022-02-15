@@ -21,7 +21,6 @@ import Test.Plutip (
   runUsingCluster,
   waitSeconds,
  )
-import Test.Plutip.LocalCluster.Types (supportDir)
 
 main :: IO ()
 main = do

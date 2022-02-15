@@ -1,4 +1,4 @@
-module Test.Plutip.BotPlutusInterface.Types (
+module Test.Plutip.Internal.BotPlutusInterface.Types (
   BpiError (..),
 ) where
 

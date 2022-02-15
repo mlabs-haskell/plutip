@@ -1,6 +1,6 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 
-module Test.Plutip.BotPlutusInterface.Run (runContractTagged, runContract, runContract_) where
+module Test.Plutip.Internal.BotPlutusInterface.Run (runContractTagged, runContract, runContract_) where
 
 import BotPlutusInterface.Contract qualified as BIC
 import BotPlutusInterface.Types (
@@ -42,9 +42,9 @@ import Data.Text (Text, pack)
 import Data.UUID.V4 qualified as UUID
 import Plutus.Contract (Contract)
 import Plutus.PAB.Core.ContractInstance.STM (Activity (Active))
-import Test.Plutip.BotPlutusInterface.Setup qualified as BIS
-import Test.Plutip.BotPlutusInterface.Wallet (BpiWallet, ledgerPkh)
-import Test.Plutip.LocalCluster.Types (ClusterEnv (chainIndexUrl, networkId), FailReason (CaughtException, ContractExecutionError, OtherErr), Outcome (Fail, Success), RunResult (RunResult))
+import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BIS
+import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet, ledgerPkh)
+import Test.Plutip.Internal.LocalCluster.Types (ClusterEnv (chainIndexUrl, networkId), FailReason (CaughtException, ContractExecutionError, OtherErr), Outcome (Fail, Success), RunResult (RunResult))
 import Wallet.Types (ContractInstanceId (ContractInstanceId))
 
 -- | Run contract on private network

@@ -1,4 +1,4 @@
-module Test.Plutip.BotPlutusInterface.Setup (
+module Test.Plutip.Internal.BotPlutusInterface.Setup (
   runSetup,
   keysDir,
   directoryIsSet,
@@ -12,7 +12,7 @@ import Data.Aeson (encodeFile)
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist)
 import System.Environment (setEnv)
 import System.FilePath ((</>))
-import Test.Plutip.LocalCluster.Types (ClusterEnv (supportDir), nodeSocket)
+import Test.Plutip.Internal.LocalCluster.Types (ClusterEnv (supportDir), nodeSocket)
 import Test.Plutip.Tools.CardanoApi (queryProtocolParams)
 
 workDir' :: FilePath

@@ -3,7 +3,7 @@
 -- temporary measure while module under development
 {-# OPTIONS_GHC -Wno-unused-imports #-}
 
-module Test.Plutip.LocalCluster.Cluster (runUsingCluster, runUsingCluster') where
+module Test.Plutip.Internal.LocalCluster.Cluster (runUsingCluster, runUsingCluster') where
 
 import Cardano.Api qualified as CAPI
 import Cardano.BM.Data.Severity (
@@ -107,8 +107,8 @@ import Test.Integration.Faucet (
   mirMnemonics,
   shelleyIntegrationTestFunds,
  )
-import Test.Plutip.BotPlutusInterface.Setup qualified as BotSetup
-import Test.Plutip.LocalCluster.Types
+import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BotSetup
+import Test.Plutip.Internal.LocalCluster.Types
 
 {- | Start cluster and run action using provided `CalusterEnv`
  under development (mostly borrowed from `cardano-wallet`)

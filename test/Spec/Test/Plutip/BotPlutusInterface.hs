@@ -12,7 +12,7 @@ import Network.HTTP.Client (
 import Network.HTTP.Types.Status (status200)
 import System.Directory (doesDirectoryExist, doesFileExist)
 import Test.Plutip (runUsingCluster)
-import Test.Plutip.BotPlutusInterface.Setup (keysDir, pParamsFile)
+import Test.Plutip.Internal.BotPlutusInterface.Setup (keysDir, pParamsFile)
 import Test.Tasty (TestTree)
 import Test.Tasty.HUnit (assertBool, testCase)
 

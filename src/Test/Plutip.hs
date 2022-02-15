@@ -31,16 +31,16 @@ import Numeric.Natural (Natural)
 import Plutus.Contract (Contract)
 import System.Console.ANSI (hSupportsANSIColor)
 import System.IO (stdout)
-import Test.Plutip.BotPlutusInterface.Run (runContract, runContractTagged, runContract_)
-import Test.Plutip.BotPlutusInterface.Wallet (
+import Test.Plutip.Internal.BotPlutusInterface.Run (runContract, runContractTagged, runContract_)
+import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   BpiWallet,
   addSomeWallet,
   cardanoMainnetAddress,
   ledgerPaymentPkh,
   mkMainnetAddress,
  )
-import Test.Plutip.LocalCluster.Cluster (runUsingCluster)
-import Test.Plutip.LocalCluster.Types (ClusterEnv, RunResult, isSuccess, prettyResult)
+import Test.Plutip.Internal.LocalCluster.Cluster (runUsingCluster)
+import Test.Plutip.Internal.LocalCluster.Types (ClusterEnv, RunResult, isSuccess, prettyResult)
 import Test.Plutip.Tools (ada)
 import Test.Tasty.Ingredients.ConsoleReporter (withConsoleFormat)
 import Test.Tasty.Providers.ConsoleFormat (failFormat, okFormat)

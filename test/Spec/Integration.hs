@@ -21,8 +21,8 @@ import Test.Plutip (
   runUsingCluster,
   waitSeconds,
  )
-import Test.Plutip.BotPlutusInterface.Wallet (ledgerPaymentPkh)
-import Test.Plutip.LocalCluster.Types (isSuccess)
+import Test.Plutip.Internal.BotPlutusInterface.Wallet (ledgerPaymentPkh)
+import Test.Plutip.Internal.LocalCluster.Types (isSuccess)
 import Test.Plutip.Tools.CardanoApi (utxosAtAddress)
 import Test.Tasty (TestTree)
 import Test.Tasty.HUnit (assertBool, assertFailure, testCase, (@?=))

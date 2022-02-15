@@ -16,7 +16,7 @@ import Data.Set qualified as Set
 import GHC.Generics (Generic)
 import Ouroboros.Consensus.HardFork.Combinator.AcrossEras (EraMismatch)
 import Ouroboros.Network.Protocol.LocalStateQuery.Type (AcquireFailure)
-import Test.Plutip.LocalCluster.Types (ClusterEnv (runningNode))
+import Test.Plutip.Internal.LocalCluster.Types (ClusterEnv (runningNode))
 
 data CardanoApiError
   = SomeError String

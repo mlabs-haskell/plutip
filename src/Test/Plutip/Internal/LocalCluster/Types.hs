@@ -1,4 +1,4 @@
-module Test.Plutip.LocalCluster.Types (
+module Test.Plutip.Internal.LocalCluster.Types (
   ClusterEnv (..),
   RunResult (..),
   Outcome (..),

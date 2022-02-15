@@ -1,4 +1,4 @@
-module Test.Plutip.BotPlutusInterface.Wallet (
+module Test.Plutip.Internal.BotPlutusInterface.Wallet (
   BpiWallet (..),
   addSomeWallet,
   eitherAddSomeWallet,
@@ -24,9 +24,9 @@ import GHC.Natural (Natural)
 import Ledger (PaymentPubKeyHash (PaymentPubKeyHash), PubKey (PubKey), PubKeyHash, pubKeyHash)
 import Plutus.V1.Ledger.Api qualified as LAPI
 import System.FilePath ((<.>), (</>))
-import Test.Plutip.BotPlutusInterface.Setup qualified as Setup
-import Test.Plutip.BotPlutusInterface.Types (BpiError (BotInterfaceDirMissing, SignKeySaveError))
-import Test.Plutip.LocalCluster.Types (ClusterEnv, nodeSocket, supportDir)
+import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as Setup
+import Test.Plutip.Internal.BotPlutusInterface.Types (BpiError (BotInterfaceDirMissing, SignKeySaveError))
+import Test.Plutip.Internal.LocalCluster.Types (ClusterEnv, nodeSocket, supportDir)
 
 {- | Wallet that can be used by bot interface,
   backed by `.skey` file when added to cluster with `addSomeWallet`

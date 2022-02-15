@@ -1,4 +1,4 @@
-module Test.Plutip.BotPlutusInterface.Keys (genKeyPair, genKeyPairs) where
+module Test.Plutip.Internal.BotPlutusInterface.Keys (genKeyPair, genKeyPairs) where
 
 import Cardano.Api (AsType (AsPaymentKey), Key (VerificationKey, getVerificationKey, verificationKeyHash), PaymentKey, SigningKey, TextEnvelopeDescr, generateSigningKey, writeFileTextEnvelope)
 import System.FilePath ((<.>), (</>))

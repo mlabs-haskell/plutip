@@ -1,99 +1,54 @@
--- temporary measure while module under development
-{-# OPTIONS_GHC -Wno-missing-import-lists #-}
--- temporary measure while module under development
-{-# OPTIONS_GHC -Wno-unused-imports #-}
-
 module Test.Plutip.Internal.LocalCluster.Cluster (runUsingCluster, runUsingCluster') where
 
 import Cardano.Api qualified as CAPI
-import Cardano.BM.Data.Severity (
-  Severity (..),
- )
+import Cardano.BM.Data.Severity qualified as Severity
 import Cardano.BM.Data.Tracer (
-  HasPrivacyAnnotation (..),
-  HasSeverityAnnotation (..),
+  HasPrivacyAnnotation,
+  HasSeverityAnnotation,
+  Tracer,
+  contramap,
+  getSeverityAnnotation,
+  traceWith,
  )
-import Cardano.CLI (
-  LogOutput (..),
-  withLoggingNamed,
- )
+import Cardano.CLI (LogOutput (LogToFile, LogToStdStreams), withLoggingNamed)
 import Cardano.Launcher.Node (nodeSocketFile)
 import Cardano.Startup (
   installSignalHandlers,
   setDefaultFilePermissions,
   withUtf8Encoding,
  )
-import Cardano.Wallet.Api.Types (
-  EncodeAddress (..),
- )
 import Cardano.Wallet.Logging (
   stdoutTextTracer,
   trMessageText,
- )
-import Cardano.Wallet.Primitive.AddressDerivation (
-  NetworkDiscriminant (..),
- )
-import Cardano.Wallet.Primitive.Types.Coin (
-  Coin (..),
- )
-import Cardano.Wallet.Shelley (
-  SomeNetworkDiscriminant (..),
-  serveWallet,
-  setupTracers,
-  tracerSeverities,
  )
 import Cardano.Wallet.Shelley.Launch (
   withSystemTempDir,
  )
 import Cardano.Wallet.Shelley.Launch.Cluster (
-  ClusterLog (..),
-  Credential (..),
-  RunningNode (..),
+  ClusterLog,
+  RunningNode (RunningNode),
   localClusterConfigFromEnv,
-  moveInstantaneousRewardsTo,
-  nodeMinSeverityFromEnv,
-  oneMillionAda,
-  sendFaucetAssetsTo,
-  sendFaucetFundsTo,
   testMinSeverityFromEnv,
-  tokenMetadataServerFromEnv,
-  walletListenFromEnv,
   walletMinSeverityFromEnv,
   withCluster,
  )
-import Control.Arrow (
-  first,
- )
-import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (async)
-import Control.Monad (unless, void, when)
+import Control.Monad (unless, void)
+import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ReaderT (runReaderT))
-import Control.Tracer (
-  Tracer,
-  contramap,
-  traceWith,
- )
+import Control.Retry (constantDelay, limitRetries, recoverAll)
 import Data.Maybe (catMaybes, isJust)
-import Data.Proxy (
-  Proxy (..),
- )
 import Data.Text (
   Text,
   pack,
  )
-import Data.Text qualified as T
-import Data.Text.Class (
-  ToText (..),
- )
+import Data.Text.Class (ToText (toText))
 import Plutus.ChainIndex.App qualified as ChainIndex
 import Plutus.ChainIndex.Config (ChainIndexConfig (cicNetworkId, cicPort), cicDbPath, cicSocketPath)
 import Plutus.ChainIndex.Config qualified as CI
 import Plutus.ChainIndex.Logging qualified as ChainIndex.Logging
-import Plutus.ChainIndex.Types (Point (..))
 import Servant.Client (BaseUrl (BaseUrl), Scheme (Http))
 import System.Directory (
-  createDirectory,
-  doesFileExist,
   findExecutable,
  )
 import System.Environment (setEnv)
@@ -101,17 +56,12 @@ import System.Exit (die)
 import System.FilePath (
   (</>),
  )
-import Test.Integration.Faucet (
-  genRewardAccounts,
-  maryIntegrationTestAssets,
-  mirMnemonics,
-  shelleyIntegrationTestFunds,
- )
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BotSetup
-import Test.Plutip.Internal.LocalCluster.Types
+import Test.Plutip.Internal.LocalCluster.Types (ClusterEnv (ClusterEnv, chainIndexUrl, networkId, runningNode, supportDir, tracer))
+import Test.Plutip.Tools.CardanoApi qualified as Tools
 
 {- | Start cluster and run action using provided `CalusterEnv`
- under development (mostly borrowed from `cardano-wallet`)
+ under development
 -}
 runUsingCluster :: ReaderT ClusterEnv IO () -> IO ()
 runUsingCluster act = runUsingCluster' (runReaderT act)
@@ -138,7 +88,7 @@ runUsingCluster' action = do
   where
     runActionWthSetup rn dir trCluster userActon = do
       let tracer' = trMessageText trCluster
-      awaitSocketCreated tracer' rn
+      waitForRelayNode tracer' rn
       ciPort <- launchChainIndex rn dir
       traceWith tracer' (ChaiIndexStartedAt ciPort)
       let cEnv =
@@ -176,7 +126,7 @@ withLocalClusterSetup action = do
     -- produced by the local test cluster.
     withSystemTempDir stdoutTextTracer "test-cluster" $ \dir -> do
       let logOutputs name minSev =
-            [ LogToFile (dir </> name) (min minSev Info)
+            [ LogToFile (dir </> name) (min minSev Severity.Info)
             , LogToStdStreams minSev
             ]
 
@@ -201,7 +151,7 @@ data TestsLog
   = MsgBaseUrl Text Text Text -- wallet url, ekg url, prometheus url
   | MsgSettingUpFaucet
   | MsgCluster ClusterLog
-  | WaitingSocketCreated
+  | WaitingRelayNode
   | ChaiIndexStartedAt Int
   deriving stock (Show)
 
@@ -218,32 +168,30 @@ instance ToText TestsLog where
         ]
     MsgSettingUpFaucet -> "Setting up faucet..."
     MsgCluster msg -> toText msg
-    WaitingSocketCreated -> "Awaiting for node socket to be created"
+    WaitingRelayNode -> "Waiting for relay node up and running"
     ChaiIndexStartedAt ciPort -> "Chain-index started at port " <> pack (show ciPort)
 
 instance HasPrivacyAnnotation TestsLog
 
 instance HasSeverityAnnotation TestsLog where
   getSeverityAnnotation = \case
-    MsgSettingUpFaucet -> Notice
-    MsgBaseUrl {} -> Notice
+    MsgSettingUpFaucet -> Severity.Notice
+    MsgBaseUrl {} -> Severity.Notice
     MsgCluster msg -> getSeverityAnnotation msg
-    WaitingSocketCreated -> Notice
-    ChaiIndexStartedAt {} -> Notice
+    WaitingRelayNode -> Severity.Notice
+    ChaiIndexStartedAt {} -> Severity.Notice
 
-awaitSocketCreated :: Tracer IO TestsLog -> RunningNode -> IO ()
-awaitSocketCreated trCluster rn@(RunningNode socket _ _) = do
-  let sock = nodeSocketFile socket
-  socketReady <- doesFileExist sock
-  unless socketReady (waitASecond >> awaitSocketCreated trCluster rn)
+waitForRelayNode :: Tracer IO TestsLog -> RunningNode -> IO ()
+waitForRelayNode trCluster rn = do
+  liftIO $ recoverAll policy (const getTip)
   where
-    waitASecond =
-      traceWith trCluster WaitingSocketCreated
-        >> threadDelay 1000000
+    policy = constantDelay 500000 <> limitRetries 5
+    getTip = trace >> void (Tools.queryTip rn)
+    trace = traceWith trCluster WaitingRelayNode
 
--- | Launch the chain index in a separate thread.
-
--- TODO: add ability to set custom port (if needed)
+{- | Launch the chain index in a separate thread.
+ TODO: add ability to set custom port (if needed)
+-}
 launchChainIndex :: RunningNode -> FilePath -> IO Int
 launchChainIndex (RunningNode sp _block0 (_gp, _vData)) dir = do
   config <- ChainIndex.Logging.defaultConfig

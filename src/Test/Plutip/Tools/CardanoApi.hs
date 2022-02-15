@@ -1,9 +1,11 @@
 {-# LANGUAGE ViewPatterns #-}
 
+-- | Helpers based on Cardano.Api (do not use `cardano-cli` executable)
 module Test.Plutip.Tools.CardanoApi (
   currentBlock,
   utxosAtAddress,
   queryProtocolParams,
+  queryTip,
 ) where
 
 import Cardano.Api qualified as C
@@ -28,14 +30,14 @@ instance Exception CardanoApiError
 currentBlock :: ClusterEnv -> IO (Either AcquireFailure (WithOrigin C.BlockNo))
 currentBlock (runningNode -> rn) = do
   let query = C.QueryChainBlockNo
-      info = debugConnectionInfo rn
+      info = connectionInfo rn
   C.queryNodeLocalState info Nothing query
 
 utxosAtAddress :: ClusterEnv -> C.AddressAny -> IO (Either CardanoApiError (C.UTxO C.AlonzoEra))
 utxosAtAddress (runningNode -> rn) addr = do
   flattenQueryResult <$> C.queryNodeLocalState info Nothing query
   where
-    info = debugConnectionInfo rn
+    info = connectionInfo rn
     query =
       shellyBasedAlonzoQuery
         (C.QueryUTxO $ C.QueryUTxOByAddress (Set.singleton addr))
@@ -44,16 +46,18 @@ queryProtocolParams :: ClusterEnv -> IO (Either CardanoApiError ProtocolParamete
 queryProtocolParams (runningNode -> rn) =
   flattenQueryResult <$> C.queryNodeLocalState info Nothing query
   where
-    info = debugConnectionInfo rn
+    info = connectionInfo rn
     query = shellyBasedAlonzoQuery C.QueryProtocolParameters
 
-debugConnectionInfo :: RunningNode -> C.LocalNodeConnectInfo C.CardanoMode
-debugConnectionInfo (RunningNode socket _ _) =
+connectionInfo :: RunningNode -> C.LocalNodeConnectInfo C.CardanoMode
+connectionInfo (RunningNode socket _ _) =
   C.LocalNodeConnectInfo
     (C.CardanoModeParams (C.EpochSlots 21600))
     C.Mainnet
-    -- C.Testnet $ C.NetworkMagic 8
     (nodeSocketFile socket)
+
+queryTip :: RunningNode -> IO C.ChainTip
+queryTip = C.getLocalChainTip . connectionInfo
 
 shellyBasedAlonzoQuery ::
   C.QueryInShelleyBasedEra C.AlonzoEra result ->

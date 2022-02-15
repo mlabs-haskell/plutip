@@ -48,6 +48,7 @@ common common-imports
     , plutus-pab
     , plutus-tx
     , plutus-tx-plugin
+    , retry
     , row-types
     , servant-client
     , stm
@@ -130,6 +131,7 @@ library
 
 executable plutip-example
   import:         common-language
+  import:         common-ghc-options
   main-is:        Main.hs
   other-modules:
     DebugContract.GetUtxos

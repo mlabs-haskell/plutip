@@ -1,12 +1,18 @@
 module Spec.Integration (test) where
 
 import Cardano.Api (AssetId (AdaAssetId), Quantity (Quantity), TxOut (TxOut), UTxO (UTxO, unUTxO), txOutValueToValue, valueToList)
-import Data.Map qualified as Map
-import Test.Tasty (TestTree)
-import Test.Tasty.HUnit (assertBool, assertFailure, testCase, (@?=))
-import Test.Plutip.Tools.CardanoApi (utxosAtAddress)
+import Control.Monad (void)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ask)
+import Data.Map (Map)
+import Data.Map qualified as Map
+import Data.Text (Text, pack)
+import Ledger (CardanoTx, ChainIndexTxOut, PaymentPubKeyHash, TxOutRef, pubKeyHashAddress)
+import Ledger.Ada qualified as Ada
+import Ledger.Constraints qualified as Constraints
+import Plutus.Contract (Contract, ownPaymentPubKeyHash, submitTx, utxosAt, waitNSlots)
+import Plutus.Contract qualified as Contract
+import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
 import Test.Plutip (
   ada,
   addSomeWallet,
@@ -15,17 +21,19 @@ import Test.Plutip (
   runUsingCluster,
   waitSeconds,
  )
-import Test.Plutip.DebugContract.GetUtxos qualified as DebugContract
-import Test.Plutip.DebugContract.PayToWallet qualified as DebugContract
 import Test.Plutip.BotPlutusInterface.Wallet (ledgerPaymentPkh)
 import Test.Plutip.LocalCluster.Types (isSuccess)
+import Test.Plutip.Tools.CardanoApi (utxosAtAddress)
+import Test.Tasty (TestTree)
+import Test.Tasty.HUnit (assertBool, assertFailure, testCase, (@?=))
+import Text.Printf (printf)
 
 -- FIXME: something prints node configs polluting test outputs even with maximum log severity
 -- upd: (https://github.com/input-output-hk/cardano-node/blob/4ad6cddd40517c2eb8c3df144a6fa6737952aa92/cardano-node/src/Cardano/Node/Run.hs#L117)
 test :: TestTree
 test = do
   testCase "Basic integration: launch, add wallet, tx from wallet to wallet" $ do
-   runUsingCluster $ do
+    runUsingCluster $ do
       w1 <- addSomeWallet (ada 101)
       checkFunds w1 (ada 101)
       w2 <- addSomeWallet (ada 102)
@@ -33,16 +41,16 @@ test = do
 
       assertSucceeds
         "Get utxos"
-        (runContract w1 DebugContract.getUtxos)
+        (runContract w1 getUtxos)
       assertFails
         "Get utxos throwing error"
-        (runContract w1 DebugContract.getUtxosThrowsErr)
+        (runContract w1 getUtxosThrowsErr)
       assertFails
         "Get utxos throwing exception"
-        (runContract w1 DebugContract.getUtxosThrowsEx)
+        (runContract w1 getUtxosThrowsEx)
       assertFails
         "Pay negative amount"
-        (runContract w1 (DebugContract.payTo (ledgerPaymentPkh w2) (-10_000_000)))
+        (runContract w1 (payTo (ledgerPaymentPkh w2) (-10_000_000)))
 
       checkAdaTxFromTo w1 w2
   where
@@ -62,7 +70,7 @@ test = do
       act >>= liftIO . assertBool (tag <> " did not fail") . not . isSuccess
 
     checkAdaTxFromTo w1 w2 = do
-      res <- runContract w1 (DebugContract.payTo (ledgerPaymentPkh w2) 10_000_000)
+      res <- runContract w1 (payTo (ledgerPaymentPkh w2) 10_000_000)
       cEnv <- ask
       liftIO $ do
         assertBool ("Wallet to wallet tx failed: " <> show res) (isSuccess res)
@@ -75,6 +83,48 @@ test = do
                in assertBool
                     ("Should be 2 UTxO at destination wallet, but request returned " <> show utxoCnt)
                     (utxoCnt == 2)
+
+getUtxos :: Contract () EmptySchema Text (Map TxOutRef ChainIndexTxOut)
+getUtxos = do
+  pkh <- Contract.ownPaymentPubKeyHash
+  Contract.logInfo @String $ printf "Own PKH: %s" (show pkh)
+  utxosAt $ pubKeyHashAddress pkh Nothing
+
+getUtxosThrowsErr :: Contract () EmptySchema Text (Map TxOutRef ChainIndexTxOut)
+getUtxosThrowsErr = do
+  pkh <- Contract.ownPaymentPubKeyHash
+  Contract.logInfo @String $ printf "Own PKH: %s" (show pkh)
+  utxos <- utxosAt $ pubKeyHashAddress pkh Nothing
+  Contract.throwError (mkMsg utxos)
+  where
+    mkMsg utxos =
+      pack $
+        mconcat
+          [ "This Error was thrown intentionally by Contract \n"
+          , "Debug: Own UTxOs: " <> show utxos <> "\n"
+          ]
+
+getUtxosThrowsEx :: Contract () EmptySchema Text (Map TxOutRef ChainIndexTxOut)
+getUtxosThrowsEx = do
+  pkh <- Contract.ownPaymentPubKeyHash
+  Contract.logInfo @String $ printf "Own PKH: %s" (show pkh)
+  utxos <- utxosAt $ pubKeyHashAddress pkh Nothing
+  error $
+    mconcat
+      [ "This Exception was thrown intentionally in Contract.\n"
+      , "Debug: Own UTxOs: " <> show utxos <> "\n"
+      ]
+
+payTo :: PaymentPubKeyHash -> Integer -> Contract () EmptySchema Text CardanoTx
+payTo toPkh amt = do
+  ownPkh <- ownPaymentPubKeyHash
+  tx <-
+    submitTx
+      ( Constraints.mustPayToPubKey toPkh (Ada.lovelaceValueOf amt)
+          <> Constraints.mustBeSignedBy ownPkh
+      )
+  void $ waitNSlots 1
+  pure tx
 
 toCombinedFlatValue :: UTxO era -> [(AssetId, Quantity)]
 toCombinedFlatValue =

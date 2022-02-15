@@ -119,10 +119,6 @@ library
     Test.Plutip.BotPlutusInterface.Setup
     Test.Plutip.BotPlutusInterface.Types
     Test.Plutip.BotPlutusInterface.Wallet
-    Test.Plutip.DebugContract.GetUtxos
-    Test.Plutip.DebugContract.LockUnlock
-    Test.Plutip.DebugContract.LockUnlockValidationFail
-    Test.Plutip.DebugContract.PayToWallet
     Test.Plutip.LocalCluster.Cluster
     Test.Plutip.LocalCluster.Types
     Test.Plutip.Tools
@@ -134,6 +130,12 @@ library
 executable plutip-example
   import:        common-language
   main-is:       example/Main.hs
+  other-modules:
+    DebugContract.GetUtxos
+    DebugContract.LockUnlock
+    DebugContract.LockUnlockValidationFail
+    DebugContract.PayToWallet
+
   build-depends:
     , base
     , mtl

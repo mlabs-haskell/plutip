@@ -20,8 +20,8 @@ import Test.Plutip (
   runContract,
   runUsingCluster,
   waitSeconds,
+  ledgerPaymentPkh,
  )
-import Test.Plutip.Internal.BotPlutusInterface.Wallet (ledgerPaymentPkh)
 import Test.Plutip.Internal.LocalCluster.Types (isSuccess)
 import Test.Plutip.Tools.CardanoApi (utxosAtAddress)
 import Test.Tasty (TestTree)

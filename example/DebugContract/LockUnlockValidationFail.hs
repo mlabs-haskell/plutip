@@ -1,4 +1,4 @@
-module Test.Plutip.DebugContract.LockUnlockValidationFail (
+module DebugContract.LockUnlockValidationFail (
   lockAtScript,
   spendFromScript,
   lockThenSpend,

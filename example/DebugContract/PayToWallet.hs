@@ -1,4 +1,4 @@
-module Test.Plutip.DebugContract.PayToWallet (payTo) where
+module DebugContract.PayToWallet (payTo) where
 
 import Control.Monad (void)
 import Data.Text (Text)

@@ -68,6 +68,7 @@ common common-language
     DeriveLift
     DeriveTraversable
     DerivingStrategies
+    EmptyDataDecls
     ExplicitForAll
     FlexibleContexts
     FlexibleInstances
@@ -128,20 +129,27 @@ library
     Test.Plutip.Tools.DebugCli
 
 executable plutip-example
-  import:        common-language
-  main-is:       example/Main.hs
+  import:         common-language
+  main-is:        Main.hs
   other-modules:
     DebugContract.GetUtxos
     DebugContract.LockUnlock
     DebugContract.LockUnlockValidationFail
     DebugContract.PayToWallet
 
+  hs-source-dirs: example/
   build-depends:
     , base
+    , containers
     , mtl
     , plutip
+    , plutus-contract
+    , plutus-ledger
     , plutus-ledger-api
     , plutus-ledger-constraints
+    , plutus-pab
+    , plutus-tx
+    , plutus-tx-plugin
     , text
 
 test-suite plutip-tests

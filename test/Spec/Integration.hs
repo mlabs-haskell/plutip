@@ -6,7 +6,8 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ask)
 import Data.Map (Map)
 import Data.Map qualified as Map
-import Data.Text (Text, pack)
+import Data.Text (Text)
+import Data.Text qualified as Text
 import Ledger (CardanoTx, ChainIndexTxOut, PaymentPubKeyHash, TxOutRef, pubKeyHashAddress)
 import Ledger.Ada qualified as Ada
 import Ledger.Constraints qualified as Constraints
@@ -17,6 +18,7 @@ import Test.Plutip (
   ada,
   addSomeWallet,
   cardanoMainnetAddress,
+  ledgerPaymentPkh,
   runContract,
   runUsingCluster,
   waitSeconds,
@@ -91,29 +93,11 @@ getUtxos = do
   utxosAt $ pubKeyHashAddress pkh Nothing
 
 getUtxosThrowsErr :: Contract () EmptySchema Text (Map TxOutRef ChainIndexTxOut)
-getUtxosThrowsErr = do
-  pkh <- Contract.ownPaymentPubKeyHash
-  Contract.logInfo @String $ printf "Own PKH: %s" (show pkh)
-  utxos <- utxosAt $ pubKeyHashAddress pkh Nothing
-  Contract.throwError (mkMsg utxos)
-  where
-    mkMsg utxos =
-      pack $
-        mconcat
-          [ "This Error was thrown intentionally by Contract \n"
-          , "Debug: Own UTxOs: " <> show utxos <> "\n"
-          ]
+getUtxosThrowsErr =
+  Contract.throwError $ Text.pack "This Error was thrown intentionally by Contract \n"
 
 getUtxosThrowsEx :: Contract () EmptySchema Text (Map TxOutRef ChainIndexTxOut)
-getUtxosThrowsEx = do
-  pkh <- Contract.ownPaymentPubKeyHash
-  Contract.logInfo @String $ printf "Own PKH: %s" (show pkh)
-  utxos <- utxosAt $ pubKeyHashAddress pkh Nothing
-  error $
-    mconcat
-      [ "This Exception was thrown intentionally in Contract.\n"
-      , "Debug: Own UTxOs: " <> show utxos <> "\n"
-      ]
+getUtxosThrowsEx = error "This Exception was thrown intentionally in Contract.\n"
 
 payTo :: PaymentPubKeyHash -> Integer -> Contract () EmptySchema Text CardanoTx
 payTo toPkh amt = do

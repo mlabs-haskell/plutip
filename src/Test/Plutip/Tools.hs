@@ -1,4 +1,4 @@
-module Utils (
+module Test.Plutip.Tools (
   ada,
   waitSeconds,
 ) where

@@ -1,4 +1,4 @@
-module Tools.ChainIndex (utxosAtPkh) where
+module Test.Plutip.Tools.ChainIndex (utxosAtPkh) where
 
 import Cardano.Pool.Metadata (newManager)
 import Data.Default (Default (def))

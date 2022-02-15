@@ -1,4 +1,4 @@
-module LocalCluster.Types (
+module Test.Plutip.Internal.LocalCluster.Types (
   ClusterEnv (..),
   RunResult (..),
   Outcome (..),
@@ -34,25 +34,33 @@ nodeSocket (ClusterEnv (RunningNode sp _ _) _ _ _ _) = sp
 
 -- | Result of `Contract` execution
 data RunResult w e a = RunResult
-  { contractTag :: Maybe Text -- ^ optional text tag
-  , outcome :: Outcome w e a -- ^ outcome of running contract (success or failure)
+  { -- | optional text tag
+    contractTag :: Maybe Text
+  , -- | outcome of running contract (success or failure)
+    outcome :: Outcome w e a
   }
   deriving stock (Show)
 
 -- | Outcome of running contract
 data Outcome w e a
   = Success
-      { contractResult :: a -- ^ return value of `Contract`
-      , contractState :: ContractState w -- ^ `Contract` state after execution
+      { -- | return value of `Contract`
+        contractResult :: a
+      , -- | `Contract` state after execution
+        contractState :: ContractState w
       }
-  | Fail {reason :: FailReason e -- ^ reason of `Contract` execution failure
-         }
+  | Fail
+      { -- | reason of `Contract` execution failure
+        reason :: FailReason e
+      }
   deriving stock (Show)
 
 -- | Reason of `Contract` execution failure
 data FailReason e
-  = ContractExecutionError e -- ^ error thrown by `Contract` (via `throwError`)
-  | CaughtException SomeException -- ^ exception caught during contract run
+  = -- | error thrown by `Contract` (via `throwError`)
+    ContractExecutionError e
+  | -- | exception caught during contract run
+    CaughtException SomeException
   | OtherErr Text
   deriving stock (Show)
 

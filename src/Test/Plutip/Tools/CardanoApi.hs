@@ -1,6 +1,6 @@
 {-# LANGUAGE ViewPatterns #-}
 
-module Tools.CardanoApi (
+module Test.Plutip.Tools.CardanoApi (
   currentBlock,
   utxosAtAddress,
   queryProtocolParams,
@@ -14,9 +14,9 @@ import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (RunningNode))
 import Control.Exception (Exception)
 import Data.Set qualified as Set
 import GHC.Generics (Generic)
-import LocalCluster.Types (ClusterEnv (runningNode))
 import Ouroboros.Consensus.HardFork.Combinator.AcrossEras (EraMismatch)
 import Ouroboros.Network.Protocol.LocalStateQuery.Type (AcquireFailure)
+import Test.Plutip.Internal.LocalCluster.Types (ClusterEnv (runningNode))
 
 data CardanoApiError
   = SomeError String

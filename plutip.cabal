@@ -68,6 +68,7 @@ common common-language
     DeriveLift
     DeriveTraversable
     DerivingStrategies
+    EmptyDataDecls
     ExplicitForAll
     FlexibleContexts
     FlexibleInstances
@@ -107,39 +108,49 @@ library
   ghc-options:
     -Wall -Wcompat -Wincomplete-uni-patterns -Wredundant-constraints
     -Wmissing-export-lists -Wmissing-deriving-strategies
-    -Wmissing-import-lists 
-    -- -Werror
+    -Wmissing-import-lists
+
+  -- -Werror
 
   hs-source-dirs:  src/
   exposed-modules:
-    BotInterface.Keys
-    BotInterface.Run
-    BotInterface.Setup
-    BotInterface.Types
-    BotInterface.Wallet
+    Test.Plutip
+    Test.Plutip.Internal.BotPlutusInterface.Keys
+    Test.Plutip.Internal.BotPlutusInterface.Run
+    Test.Plutip.Internal.BotPlutusInterface.Setup
+    Test.Plutip.Internal.BotPlutusInterface.Types
+    Test.Plutip.Internal.BotPlutusInterface.Wallet
+    Test.Plutip.Internal.LocalCluster.Cluster
+    Test.Plutip.Internal.LocalCluster.Types
+    Test.Plutip.Tools
+    Test.Plutip.Tools.Address
+    Test.Plutip.Tools.CardanoApi
+    Test.Plutip.Tools.ChainIndex
+    Test.Plutip.Tools.DebugCli
+
+executable plutip-example
+  import:         common-language
+  main-is:        Main.hs
+  other-modules:
     DebugContract.GetUtxos
     DebugContract.LockUnlock
     DebugContract.LockUnlockValidationFail
     DebugContract.PayToWallet
-    DSL
-    LocalCluster.Cluster
-    LocalCluster.Types
-    Tools.Address
-    Tools.CardanoApi
-    Tools.ChainIndex
-    Tools.DebugCli
-    Utils
 
-executable plutip-example
-  import:        common-language
-  main-is:       example/Main.hs
+  hs-source-dirs: example/
   build-depends:
     , base
+    , containers
     , mtl
     , plutip
-    , text
-    , plutus-ledger-constraints
+    , plutus-contract
+    , plutus-ledger
     , plutus-ledger-api
+    , plutus-ledger-constraints
+    , plutus-pab
+    , plutus-tx
+    , plutus-tx-plugin
+    , text
 
 test-suite plutip-tests
   import:             common-imports
@@ -160,8 +171,8 @@ test-suite plutip-tests
     , text
 
   other-modules:
-    Test.BotInterface
-    Test.Integration
+    Spec.Integration
+    Spec.Test.Plutip.BotPlutusInterface
 
   default-extensions:
     OverloadedStrings

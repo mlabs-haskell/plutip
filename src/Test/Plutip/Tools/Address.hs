@@ -1,5 +1,5 @@
 -- | Cardano-Api/Ledger/Cardano-Wallet address conversions
-module Tools.Address (
+module Test.Plutip.Tools.Address (
   walletToCardano,
   walletToCardanoAny,
   walletToLedger,

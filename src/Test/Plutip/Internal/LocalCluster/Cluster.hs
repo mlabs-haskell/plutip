@@ -3,9 +3,8 @@
 -- temporary measure while module under development
 {-# OPTIONS_GHC -Wno-unused-imports #-}
 
-module LocalCluster.Cluster (runUsingCluster, runUsingCluster') where
+module Test.Plutip.Internal.LocalCluster.Cluster (runUsingCluster, runUsingCluster') where
 
-import BotInterface.Setup qualified as BotSetup
 import Cardano.Api qualified as CAPI
 import Cardano.BM.Data.Severity (
   Severity (..),
@@ -86,7 +85,6 @@ import Data.Text qualified as T
 import Data.Text.Class (
   ToText (..),
  )
-import LocalCluster.Types
 import Plutus.ChainIndex.App qualified as ChainIndex
 import Plutus.ChainIndex.Config (ChainIndexConfig (cicNetworkId, cicPort), cicDbPath, cicSocketPath)
 import Plutus.ChainIndex.Config qualified as CI
@@ -98,6 +96,7 @@ import System.Directory (
   doesFileExist,
   findExecutable,
  )
+import System.Environment (setEnv)
 import System.Exit (die)
 import System.FilePath (
   (</>),
@@ -108,7 +107,8 @@ import Test.Integration.Faucet (
   mirMnemonics,
   shelleyIntegrationTestFunds,
  )
-import System.Environment (setEnv)
+import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BotSetup
+import Test.Plutip.Internal.LocalCluster.Types
 
 {- | Start cluster and run action using provided `CalusterEnv`
  under development (mostly borrowed from `cardano-wallet`)

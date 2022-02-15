@@ -1,4 +1,4 @@
-module BotInterface.Setup (
+module Test.Plutip.Internal.BotPlutusInterface.Setup (
   runSetup,
   keysDir,
   directoryIsSet,
@@ -9,11 +9,11 @@ module BotInterface.Setup (
 
 import Cardano.Launcher.Node (nodeSocketFile)
 import Data.Aeson (encodeFile)
-import LocalCluster.Types (ClusterEnv (supportDir), nodeSocket)
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist)
 import System.Environment (setEnv)
 import System.FilePath ((</>))
-import Tools.CardanoApi (queryProtocolParams)
+import Test.Plutip.Internal.LocalCluster.Types (ClusterEnv (supportDir), nodeSocket)
+import Test.Plutip.Tools.CardanoApi (queryProtocolParams)
 
 workDir' :: FilePath
 workDir' = "bot-plutus-interface"

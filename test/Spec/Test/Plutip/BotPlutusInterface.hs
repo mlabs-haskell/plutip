@@ -1,12 +1,11 @@
-module Test.BotInterface (test) where
+module Spec.Test.Plutip.BotPlutusInterface (test) where
 
-import BotInterface.Setup (keysDir, pParamsFile)
+import Test.Plutip.BotPlutusInterface.Setup (keysDir, pParamsFile)
 
 -- import LocalCluster.Cluster (runUsingCluster)
 
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ask)
-import DSL
 import Network.HTTP.Client (
   Response (responseStatus),
   defaultManagerSettings,
@@ -16,6 +15,7 @@ import Network.HTTP.Client (
  )
 import Network.HTTP.Types.Status (status200)
 import System.Directory (doesDirectoryExist, doesFileExist)
+import Test.Plutip (runUsingCluster)
 import Test.Tasty (TestTree)
 import Test.Tasty.HUnit (assertBool, testCase)
 

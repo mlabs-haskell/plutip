@@ -1,4 +1,4 @@
-module Tools.DebugCli (
+module Test.Plutip.Tools.DebugCli (
   debugCli,
   utxoAtAddress,
 ) where
@@ -6,7 +6,6 @@ module Tools.DebugCli (
 import Cardano.Launcher.Node (nodeSocketFile)
 import Data.ByteString.Lazy.Char8 qualified as BS
 import GHC.IO.Exception (ExitCode (ExitSuccess))
-import LocalCluster.Types (ClusterEnv, nodeSocket)
 import System.Environment (getEnvironment)
 import System.Exit (ExitCode (ExitFailure))
 import System.Process.Typed (
@@ -14,6 +13,7 @@ import System.Process.Typed (
   readProcess,
   setEnv,
  )
+import Test.Plutip.LocalCluster.Types (ClusterEnv, nodeSocket)
 
 {- | Call `cardano-cli` as external process.
  `cardano-cli` must be available in shell

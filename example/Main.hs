@@ -3,7 +3,10 @@ module Main (main) where
 import Control.Monad (forever, replicateM_, void)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ask)
-import DSL (
+import Data.Text (Text, unpack)
+import System.Environment (setEnv)
+import System.IO (BufferMode (NoBuffering), hSetBuffering, stderr, stdout)
+import Test.Plutip (
   ada,
   addSomeWallet,
   andThen,
@@ -15,16 +18,11 @@ import DSL (
   runUsingCluster,
   waitSeconds,
  )
-import Data.Text (Text, unpack)
-import DebugContract.GetUtxos qualified as DebugContract
-import DebugContract.LockUnlock qualified as FailBudget
-import DebugContract.LockUnlockValidationFail qualified as FailValidation
-import DebugContract.PayToWallet qualified as DebugContract
-import LocalCluster.Types (supportDir)
-import System.Environment (setEnv)
-import System.IO (BufferMode (NoBuffering), hSetBuffering, stderr, stdout)
-import Tools.Address qualified as Tools
-import Tools.DebugCli qualified as CLI
+import Test.Plutip.DebugContract.GetUtxos qualified as DebugContract
+import Test.Plutip.DebugContract.LockUnlock qualified as FailBudget
+import Test.Plutip.DebugContract.LockUnlockValidationFail qualified as FailValidation
+import Test.Plutip.DebugContract.PayToWallet qualified as DebugContract
+import Test.Plutip.LocalCluster.Types (supportDir)
 
 main :: IO ()
 main = do

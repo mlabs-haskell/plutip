@@ -107,28 +107,29 @@ library
   ghc-options:
     -Wall -Wcompat -Wincomplete-uni-patterns -Wredundant-constraints
     -Wmissing-export-lists -Wmissing-deriving-strategies
-    -Wmissing-import-lists 
-    -- -Werror
+    -Wmissing-import-lists
+
+  -- -Werror
 
   hs-source-dirs:  src/
   exposed-modules:
-    BotInterface.Keys
-    BotInterface.Run
-    BotInterface.Setup
-    BotInterface.Types
-    BotInterface.Wallet
-    DebugContract.GetUtxos
-    DebugContract.LockUnlock
-    DebugContract.LockUnlockValidationFail
-    DebugContract.PayToWallet
-    DSL
-    LocalCluster.Cluster
-    LocalCluster.Types
-    Tools.Address
-    Tools.CardanoApi
-    Tools.ChainIndex
-    Tools.DebugCli
-    Utils
+    Test.Plutip
+    Test.Plutip.BotPlutusInterface.Keys
+    Test.Plutip.BotPlutusInterface.Run
+    Test.Plutip.BotPlutusInterface.Setup
+    Test.Plutip.BotPlutusInterface.Types
+    Test.Plutip.BotPlutusInterface.Wallet
+    Test.Plutip.DebugContract.GetUtxos
+    Test.Plutip.DebugContract.LockUnlock
+    Test.Plutip.DebugContract.LockUnlockValidationFail
+    Test.Plutip.DebugContract.PayToWallet
+    Test.Plutip.LocalCluster.Cluster
+    Test.Plutip.LocalCluster.Types
+    Test.Plutip.Tools
+    Test.Plutip.Tools.Address
+    Test.Plutip.Tools.CardanoApi
+    Test.Plutip.Tools.ChainIndex
+    Test.Plutip.Tools.DebugCli
 
 executable plutip-example
   import:        common-language
@@ -137,9 +138,9 @@ executable plutip-example
     , base
     , mtl
     , plutip
-    , text
-    , plutus-ledger-constraints
     , plutus-ledger-api
+    , plutus-ledger-constraints
+    , text
 
 test-suite plutip-tests
   import:             common-imports
@@ -160,8 +161,8 @@ test-suite plutip-tests
     , text
 
   other-modules:
-    Test.BotInterface
-    Test.Integration
+    Spec.Integration
+    Spec.Test.Plutip.BotPlutusInterface
 
   default-extensions:
     OverloadedStrings

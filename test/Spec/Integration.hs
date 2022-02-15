@@ -1,14 +1,13 @@
-module Test.Integration (test) where
+module Spec.Integration (test) where
 
 import Cardano.Api (AssetId (AdaAssetId), Quantity (Quantity), TxOut (TxOut), UTxO (UTxO, unUTxO), txOutValueToValue, valueToList)
 import Data.Map qualified as Map
 import Test.Tasty (TestTree)
 import Test.Tasty.HUnit (assertBool, assertFailure, testCase, (@?=))
-import Tools.CardanoApi (utxosAtAddress)
-
+import Test.Plutip.Tools.CardanoApi (utxosAtAddress)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ask)
-import DSL (
+import Test.Plutip (
   ada,
   addSomeWallet,
   cardanoMainnetAddress,
@@ -16,12 +15,10 @@ import DSL (
   runUsingCluster,
   waitSeconds,
  )
-
-import DebugContract.GetUtxos qualified as DebugContract
-import DebugContract.PayToWallet qualified as DebugContract
-
-import BotInterface.Wallet (ledgerPaymentPkh)
-import LocalCluster.Types (isSuccess)
+import Test.Plutip.DebugContract.GetUtxos qualified as DebugContract
+import Test.Plutip.DebugContract.PayToWallet qualified as DebugContract
+import Test.Plutip.BotPlutusInterface.Wallet (ledgerPaymentPkh)
+import Test.Plutip.LocalCluster.Types (isSuccess)
 
 -- FIXME: something prints node configs polluting test outputs even with maximum log severity
 -- upd: (https://github.com/input-output-hk/cardano-node/blob/4ad6cddd40517c2eb8c3df144a6fa6737952aa92/cardano-node/src/Cardano/Node/Run.hs#L117)

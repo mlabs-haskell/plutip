@@ -1,7 +1,7 @@
 {-# LANGUAGE ImplicitParams #-}
 
--- 
-module DSL (
+--
+module Test.Plutip (
   BpiWallet,
   addSomeWallet,
   runContractTagged,
@@ -17,26 +17,26 @@ module DSL (
   andThen,
 ) where
 
-import BotInterface.Run (runContract, runContractTagged, runContract_)
-import BotInterface.Wallet (
+import Control.Concurrent (threadDelay)
+import Control.Monad.IO.Class (MonadIO, liftIO)
+import Control.Monad.Reader (ReaderT)
+import Data.Text.IO qualified as TIO
+import Numeric.Natural (Natural)
+import System.Console.ANSI (hSupportsANSIColor)
+import System.IO (stdout)
+import Test.Plutip.BotPlutusInterface.Run (runContract, runContractTagged, runContract_)
+import Test.Plutip.BotPlutusInterface.Wallet (
   BpiWallet,
   addSomeWallet,
   cardanoMainnetAddress,
   ledgerPaymentPkh,
   mkMainnetAddress,
  )
-import Control.Concurrent (threadDelay)
-import Control.Monad.IO.Class (MonadIO, liftIO)
-import Control.Monad.Reader (ReaderT)
-import Data.Text.IO qualified as TIO
-import LocalCluster.Cluster (runUsingCluster)
-import LocalCluster.Types (ClusterEnv, RunResult, isSuccess, prettyResult)
-import Numeric.Natural (Natural)
-import System.Console.ANSI (hSupportsANSIColor)
-import System.IO (stdout)
+import Test.Plutip.LocalCluster.Cluster (runUsingCluster)
+import Test.Plutip.LocalCluster.Types (ClusterEnv, RunResult, isSuccess, prettyResult)
+import Test.Plutip.Tools (ada)
 import Test.Tasty.Ingredients.ConsoleReporter (withConsoleFormat)
 import Test.Tasty.Providers.ConsoleFormat (failFormat, okFormat)
-import Utils (ada)
 
 -- | Print contract execution result to terminal
 report :: (Show a, Show w, Show e, MonadIO m) => RunResult w e a -> m ()

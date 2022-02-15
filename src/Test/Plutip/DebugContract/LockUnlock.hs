@@ -1,4 +1,4 @@
-module DebugContract.LockUnlockValidationFail (
+module Test.Plutip.DebugContract.LockUnlock (
   lockAtScript,
   spendFromScript,
   lockThenSpend,
@@ -20,7 +20,12 @@ import PlutusTx.Prelude qualified as PP
 {-# INLINEABLE mkValidator #-}
 mkValidator :: () -> () -> ScriptContext -> Bool
 mkValidator _ _ _ =
-  PP.traceIfFalse "Some error message" False
+  PP.traceIfFalse "Some error message" check
+  where
+    -- cpu budget was overspent
+    check =
+      let l :: [Integer] = 1 : l
+       in PP.length (PP.take 1_000_000_000 l) PP.== 0
 
 data TestLock
 

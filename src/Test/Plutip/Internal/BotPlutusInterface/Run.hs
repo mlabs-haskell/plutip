@@ -13,6 +13,7 @@ import BotPlutusInterface.Types (
     pcChainIndexUrl,
     pcCliLocation,
     pcDryRun,
+    pcEnableTxEndpoint,
     pcLogLevel,
     pcNetwork,
     pcOwnPubKeyHash,
@@ -112,6 +113,7 @@ runContractTagged' contractTag bpiWallet contract =
               , pcLogLevel = Info
               , pcOwnPubKeyHash = ledgerPkh bpiWallet
               , pcPort = 9080
+              , pcEnableTxEndpoint = False
               }
           contractEnv =
             ContractEnvironment

@@ -20,7 +20,7 @@ import Test.Plutip (
   cardanoMainnetAddress,
   ledgerPaymentPkh,
   runContract,
-  runUsingCluster,
+  -- runUsingCluster,
   waitSeconds,
   ledgerPaymentPkh,
  )

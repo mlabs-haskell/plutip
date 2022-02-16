@@ -29,6 +29,7 @@ common common-imports
     , contra-tracer
     , data-default
     , directory
+    , either
     , exceptions
     , filepath
     , http-client
@@ -51,6 +52,7 @@ common common-imports
     , row-types
     , servant-client
     , stm
+    , tagged
     , tasty
     , text
     , text-class
@@ -151,6 +153,7 @@ executable plutip-example
     , plutus-pab
     , plutus-tx
     , plutus-tx-plugin
+    , tasty
     , text
 
 test-suite plutip-tests

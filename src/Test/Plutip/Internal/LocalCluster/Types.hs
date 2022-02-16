@@ -1,11 +1,9 @@
 module Test.Plutip.Internal.LocalCluster.Types (
   ClusterEnv (..),
-  RunResult (..),
   Outcome (..),
   FailReason (..),
   nodeSocket,
   isSuccess,
-  prettyResult,
 ) where
 
 import BotPlutusInterface.Types (ContractState)
@@ -32,15 +30,6 @@ data ClusterEnv = ClusterEnv
 nodeSocket :: ClusterEnv -> CardanoNodeConn
 nodeSocket (ClusterEnv (RunningNode sp _ _) _ _ _ _) = sp
 
--- | Result of `Contract` execution
-data RunResult w e a = RunResult
-  { -- | optional text tag
-    contractTag :: Maybe Text
-  , -- | outcome of running contract (success or failure)
-    outcome :: Outcome w e a
-  }
-  deriving stock (Show)
-
 -- | Outcome of running contract
 data Outcome w e a
   = Success
@@ -65,22 +54,22 @@ data FailReason e
   deriving stock (Show)
 
 -- | Check if outcome of contract execution result is `Success`
-isSuccess :: RunResult w e a -> Bool
+isSuccess :: Outcome w e a -> Bool
 isSuccess = \case
-  RunResult _ (Success _ _) -> True
-  RunResult _ (Fail _) -> False
+  Success _ _ -> True
+  Fail _ -> False
 
--- | Pretty print (temporary impl)
-prettyResult :: (Show a, Show w, Show e) => RunResult w e a -> Text
-prettyResult res@(RunResult tag outc) =
-  intercalate "\n" [header, prettyOut outc, ""]
-  where
-    header =
-      mconcat
-        [ maybe "Contract" (\t -> "\'" <> t <> "\'") tag
-        , " execution "
-        , if isSuccess res then "succeeded" else "failed"
-        ]
+-- -- | Pretty print (temporary impl)
+-- prettyResult :: (Show a, Show w, Show e) => Outcome w e a -> Text
+-- prettyResult res@(RunResult tag outc) =
+--   intercalate "\n" [header, prettyOut outc, ""]
+--   where
+--     header =
+--       mconcat
+--         [ maybe "Contract" (\t -> "\'" <> t <> "\'") tag
+--         , " execution "
+--         , if isSuccess res then "succeeded" else "failed"
+--         ]
 
 prettyOut :: (Show a, Show w, Show e) => Outcome w e a -> Text
 prettyOut = \case

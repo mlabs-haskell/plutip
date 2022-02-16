@@ -28,12 +28,19 @@ import BotPlutusInterface.Types (
   ceContractState,
   cePABConfig,
  )
-import Cardano.Api.ProtocolParameters (ProtocolParameters)
 import Control.Concurrent.STM (newTVarIO, readTVarIO)
+import Control.Exception (SomeException)
 import Control.Monad (void)
-import Control.Monad.Catch (MonadCatch, handleAll)
+import Control.Monad.Catch (MonadCatch)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Reader (MonadReader (ask), ReaderT)
+import Control.Monad.Trans.Except.Extra (
+  firstExceptT,
+  handleExceptT,
+  hoistEither,
+  newExceptT,
+  runExceptT,
+ )
 import Data.Aeson (ToJSON, eitherDecodeFileStrict')
 import Data.Default (def)
 import Data.Kind (Type)
@@ -74,6 +81,7 @@ runContractTagged ::
   ReaderT ClusterEnv m (RunResult w e a)
 runContractTagged = runContractTagged' . Just
 
+-- | Run `Contract` using `bot-plutus-interface`
 runContractTagged' ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (m :: Type -> Type).
   (ToJSON w, Monoid w, MonadIO m, MonadCatch m) =>
@@ -81,22 +89,23 @@ runContractTagged' ::
   BpiWallet ->
   Contract w s e a ->
   ReaderT ClusterEnv m (RunResult w e a)
-runContractTagged' contractTag bpiWallet contract =
-  ask
-    >>= readProtocolParams
-    >>= either
-      (return . taggedFail . OtherErr . pack)
-      (handleAll handleErr . runContract')
+runContractTagged' contractTag bpiWallet contract = do
+  contractState <- liftIO $ newTVarIO (ContractState Active (mempty :: w))
+  result <-
+    runExceptT $
+      runContract' contractState
+        >>= firstExceptT ContractExecutionError . hoistEither
+  currentState <- liftIO (readTVarIO contractState)
+  return $
+    RunResult
+      contractTag
+      (either Fail Success result)
+      currentState
   where
-    taggedRes = RunResult contractTag
-    taggedFail = taggedRes . Fail
-    readProtocolParams = liftIO . eitherDecodeFileStrict' . BIS.pParamsFile
-    handleErr = return . taggedFail . CaughtException
-    runContract' :: ProtocolParameters -> ReaderT ClusterEnv m (RunResult w e a)
-    runContract' pparams = do
-      cEnv <- ask
+    runContract' contractState = do
       contractInstanceID <- liftIO $ ContractInstanceId <$> UUID.nextRandom
-      contractState <- liftIO $ newTVarIO (ContractState Active (mempty :: w))
+      cEnv <- ask
+      pparams <- readProtocolParams cEnv
       let pabConf =
             PABConfig
               { pcCliLocation = Local
@@ -119,7 +128,10 @@ runContractTagged' contractTag bpiWallet contract =
               , ceContractState = contractState
               , ceContractInstanceId = contractInstanceID
               }
-      res <- liftIO $ BIC.runContract contractEnv contract
-      case res of
-        Left e -> return $ taggedFail (ContractExecutionError e)
-        Right a -> taggedRes . Success a <$> liftIO (readTVarIO contractState)
+      handleExceptT
+        (\(e :: SomeException) -> CaughtException e)
+        (liftIO $ BIC.runContract contractEnv contract)
+
+    readProtocolParams env =
+      firstExceptT (OtherErr . pack) $
+        newExceptT (liftIO $ eitherDecodeFileStrict' $ BIS.pParamsFile env)

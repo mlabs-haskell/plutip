@@ -23,7 +23,7 @@ import Test.Plutip (
   runUsingCluster,
   waitSeconds,
  )
-import Test.Plutip.Internal.LocalCluster.Types (isSuccess)
+import Test.Plutip.Internal.LocalCluster.Types (isContractError, isException, isSuccess)
 import Test.Plutip.Tools.CardanoApi (utxosAtAddress)
 import Test.Tasty (TestTree)
 import Test.Tasty.HUnit (assertBool, assertFailure, testCase, (@?=))
@@ -43,10 +43,10 @@ test = do
       assertSucceeds
         "Get utxos"
         (runContract w1 getUtxos)
-      assertFails
+      assertContractError
         "Get utxos throwing error"
         (runContract w1 getUtxosThrowsErr)
-      assertFails
+      assertException
         "Get utxos throwing exception"
         (runContract w1 getUtxosThrowsEx)
       assertFails
@@ -69,6 +69,12 @@ test = do
 
     assertFails tag act = do
       act >>= liftIO . assertBool (tag <> " did not fail") . not . isSuccess
+
+    assertContractError tag act = do
+      act >>= liftIO . assertBool (tag <> " did not throw Contract error") . isContractError
+
+    assertException tag act = do
+      act >>= liftIO . assertBool (tag <> " did not throw exception") . isException
 
     checkAdaTxFromTo w1 w2 = do
       res <- runContract w1 (payTo (ledgerPaymentPkh w2) 10_000_000)

@@ -13,24 +13,18 @@ common common-imports
     , ansi-terminal
     , async
     , base
-    , base58-bytestring
-    , bech32
-    , bech32-th
     , bot-plutus-interface
     , bytestring
     , cardano-addresses
     , cardano-api
     , cardano-crypto
     , cardano-crypto-wrapper
-    , cardano-ledger-byron
     , cardano-slotting
     , cardano-wallet
     , cardano-wallet-cli
     , cardano-wallet-core
     , cardano-wallet-core-integration
     , cardano-wallet-launcher
-    , cardano-wallet-test-utils
-    , cborg
     , containers
     , contra-tracer
     , data-default
@@ -55,7 +49,6 @@ common common-imports
     , plutus-pab
     , plutus-tx
     , plutus-tx-plugin
-    , retry
     , row-types
     , servant-client
     , stm
@@ -63,14 +56,9 @@ common common-imports
     , tasty
     , text
     , text-class
-    , time
-    , transformers
     , typed-process
     , unliftio
-    , unordered-containers
     , uuid
-    , vector
-    , yaml
 
 common common-language
   default-extensions:
@@ -137,7 +125,6 @@ library
     Test.Plutip.Internal.BotPlutusInterface.Wallet
     Test.Plutip.Internal.LocalCluster
     Test.Plutip.Internal.LocalCluster.Types
-    Test.Plutip.LocalCluster
     Test.Plutip.Tools
     Test.Plutip.Tools.Address
     Test.Plutip.Tools.CardanoApi

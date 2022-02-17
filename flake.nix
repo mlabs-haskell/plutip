@@ -147,7 +147,8 @@
       check = perSystem (system:
         (nixpkgsFor system).runCommand "combined-check" {
           nativeBuildInputs = builtins.attrValues self.checks.${system}
-            ++ builtins.attrValues self.flake.${system}.packages;
+            ++ builtins.attrValues self.flake.${system}.packages
+            ++ [ self.devShell.${system}.inputDerivation ];
         } "touch $out");
 
       # NOTE `nix flake check` will not work at the moment due to use of

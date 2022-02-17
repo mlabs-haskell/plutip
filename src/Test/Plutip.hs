@@ -34,8 +34,8 @@ import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   ledgerPaymentPkh,
   mkMainnetAddress,
  )
-import Test.Plutip.Internal.LocalCluster.Cluster (runUsingCluster)
 import Test.Plutip.Internal.LocalCluster.Types (ClusterEnv, isSuccess)
+import Test.Plutip.LocalCluster (runUsingCluster)
 import Test.Plutip.Tools (ada)
 import Test.Tasty (testGroup, withResource)
 import Test.Tasty.Providers (IsTest (run, testOptions), TestTree, singleTest, testFailed, testPassed)

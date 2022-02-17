@@ -2,6 +2,7 @@ module Test.Plutip.Internal.LocalCluster.Types (
   ClusterEnv (..),
   Outcome (..),
   FailReason (..),
+  RunningNode (..),
   nodeSocket,
   isSuccess,
 ) where
@@ -10,9 +11,10 @@ import BotPlutusInterface.Types (ContractState)
 import Cardano.Api (NetworkId)
 import Cardano.BM.Tracing (Trace)
 import Cardano.Launcher.Node (CardanoNodeConn)
-import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (RunningNode))
+import Cardano.Wallet.Primitive.Types (Block, NetworkParameters)
 import Control.Exception (SomeException)
 import Data.Text (Text, intercalate, pack)
+import Ouroboros.Network.NodeToClient (NodeToClientVersionData)
 import Servant.Client (BaseUrl)
 
 -- | Environment for actions that use local cluster
@@ -25,6 +27,15 @@ data ClusterEnv = ClusterEnv
     supportDir :: FilePath
   , tracer :: Trace IO Text -- not really used anywhere now
   }
+
+-- | Information about a launched node.
+data RunningNode
+  = RunningNode
+      CardanoNodeConn
+      -- ^ Socket path
+      Block
+      -- ^ Genesis block
+      (NetworkParameters, NodeToClientVersionData)
 
 -- | Helper function to get socket path from
 nodeSocket :: ClusterEnv -> CardanoNodeConn

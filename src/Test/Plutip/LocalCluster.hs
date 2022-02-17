@@ -3,7 +3,7 @@
 -- temporary measure while module under development
 {-# OPTIONS_GHC -Wno-unused-imports #-}
 
-module Test.Plutip.Internal.LocalCluster.Cluster (runUsingCluster, runUsingCluster') where
+module Test.Plutip.LocalCluster (runUsingCluster, runUsingCluster') where
 
 import Cardano.Api qualified as CAPI
 import Cardano.BM.Data.Severity (Severity (..))
@@ -22,22 +22,6 @@ import Cardano.Wallet.Shelley (
   tracerSeverities,
  )
 import Cardano.Wallet.Shelley.Launch (withSystemTempDir)
-import Cardano.Wallet.Shelley.Launch.Cluster (
-  ClusterLog (..),
-  Credential (..),
-  RunningNode (..),
-  localClusterConfigFromEnv,
-  moveInstantaneousRewardsTo,
-  nodeMinSeverityFromEnv,
-  oneMillionAda,
-  sendFaucetAssetsTo,
-  sendFaucetFundsTo,
-  testMinSeverityFromEnv,
-  tokenMetadataServerFromEnv,
-  walletListenFromEnv,
-  walletMinSeverityFromEnv,
-  withCluster,
- )
 import Control.Arrow (first)
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (async)
@@ -67,7 +51,22 @@ import Test.Integration.Faucet (
   shelleyIntegrationTestFunds,
  )
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BotSetup
-import Test.Plutip.Internal.LocalCluster.Types
+import Test.Plutip.Internal.LocalCluster (
+  ClusterLog (..),
+  Credential (..),
+  localClusterConfigFromEnv,
+  moveInstantaneousRewardsTo,
+  nodeMinSeverityFromEnv,
+  oneMillionAda,
+  sendFaucetAssetsTo,
+  sendFaucetFundsTo,
+  testMinSeverityFromEnv,
+  tokenMetadataServerFromEnv,
+  walletListenFromEnv,
+  walletMinSeverityFromEnv,
+  withCluster,
+ )
+import Test.Plutip.Internal.LocalCluster.Types (ClusterEnv (..), RunningNode (RunningNode))
 
 {- | Start cluster and run action using provided `CalusterEnv`
  under development (mostly borrowed from `cardano-wallet`)

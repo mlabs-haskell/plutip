@@ -23,8 +23,8 @@ import Test.Plutip (
  )
 
 import Data.Default (def)
-import Test.Plutip.Internal.LocalCluster.Config (relayNodeLogs)
 import Test.Plutip.Internal.LocalCluster.Cluster (runUsingClusterConf)
+import Test.Plutip.Internal.LocalCluster.Config (relayNodeLogs)
 
 main :: IO ()
 main = do

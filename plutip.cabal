@@ -7,6 +7,17 @@ maintainer:         TODO
 build-type:         Simple
 extra-source-files: CHANGELOG.md
 
+data-files: cluster-data/*.yaml
+            cluster-data/*.cert
+            cluster-data/*.skey
+            cluster-data/*.counter
+            cluster-data/*.vkey
+            cluster-data/*.opcert
+            cluster-data/*.sh
+            cluster-data/*.config
+            cluster-data/faucet-addrs/*.addr
+            cluster-data/faucet-addrs/*.key
+
 common common-imports
   build-depends:
     , aeson
@@ -133,6 +144,8 @@ library
     Test.Plutip.Tools.CardanoApi
     Test.Plutip.Tools.ChainIndex
     Test.Plutip.Tools.DebugCli
+  other-modules:
+    Paths_plutip
 
 executable plutip-example
   import:         common-language

@@ -1,20 +1,18 @@
 module Test.Plutip.Internal.LocalCluster.Config (
-  Config (..)
-  ) where
+  Config (..),
+) where
 
-import GHC.Generics (Generic)
 import Data.Default (Default, def)
+import GHC.Generics (Generic)
 import GHC.Natural (Natural)
 
-data Config = Config 
-  { clusterDataDir :: Maybe FilePath 
-  , relayNodeLogs :: Maybe FilePath 
+data Config = Config
+  { clusterDataDir :: Maybe FilePath
+  , relayNodeLogs :: Maybe FilePath
   , chainIndexPort :: Maybe Natural
   -- , slotLength :: TBD
-
   }
   deriving stock (Generic)
 
 instance Default Config where
   def = Config Nothing Nothing Nothing
-  

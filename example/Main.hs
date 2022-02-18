@@ -9,6 +9,7 @@ import Test.Plutip (
   ada,
   -- ledgerPaymentPkh,
   shouldSucceed,
+  shouldFail,
   withCluster,
  )
 import Test.Tasty (TestTree, defaultMain)
@@ -23,13 +24,13 @@ tests =
     [ada 101, ada 202]
     [ -- 1 successful and 2 failing scenarios
       shouldSucceed "Get utxos" 1 GetUtxos.getUtxos
-    , shouldSucceed "Throws Contract error" 1 GetUtxos.getUtxosThrowsErr
-    , shouldSucceed "Throws Exception" 1 GetUtxos.getUtxosThrowsEx
+    , shouldFail "Throws Contract error" 1 GetUtxos.getUtxosThrowsErr
+    , shouldFail "Throws Exception" 1 GetUtxos.getUtxosThrowsEx
     , -- , -- successful wallet to wallet transaction
       --   shouldSucceed "Pay wallet-to-wallet" testW1 $
       --     PayToWallet.payTo (ledgerPaymentPkh testW2) 10_000_000
       -- budget overspend script
-      shouldSucceed "Lock at script then spend - budget overspend" 1 LockUnlock.lockThenSpend
+      shouldFail "Lock at script then spend - budget overspend" 1 LockUnlock.lockThenSpend
     , -- validation fail script
-      shouldSucceed "Lock at script then spend - validation fail" 1 LockUnlockValidationFail.lockThenSpend
+      shouldFail "Lock at script then spend - validation fail" 1 LockUnlockValidationFail.lockThenSpend
     ]

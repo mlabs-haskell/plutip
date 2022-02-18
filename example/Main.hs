@@ -3,16 +3,15 @@ module Main (main) where
 import DebugContract.GetUtxos qualified as GetUtxos
 import DebugContract.LockUnlock qualified as LockUnlock
 import DebugContract.LockUnlockValidationFail qualified as LockUnlockValidationFail
-
--- import DebugContract.PayToWallet qualified as PayToWallet
-import Test.Plutip (
+import Test.Plutip.Contract (
   ada,
   -- ledgerPaymentPkh,
   shouldSucceed,
   shouldFail,
-  withCluster,
  )
+import Test.Plutip.LocalCluster (withCluster)
 import Test.Tasty (TestTree, defaultMain)
+-- import DebugContract.PayToWallet qualified as PayToWallet
 
 main :: IO ()
 main = defaultMain tests

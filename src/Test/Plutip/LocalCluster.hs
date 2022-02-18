@@ -2,13 +2,9 @@
 {-# LANGUAGE NamedFieldPuns #-}
 
 --
-module Test.Plutip (
+module Test.Plutip.LocalCluster (
   BpiWallet,
   addSomeWallet,
-  shouldSucceed,
-  shouldFail,
-  runContract,
-  runContract_,
   ada,
   waitSeconds,
   mkMainnetAddress,
@@ -62,26 +58,6 @@ withCluster name walletAmts testCases =
       wallets <- traverse addSomeWallet walletAmts
       waitSeconds 2 -- wait for transactions to submit
       pure (env, wallets)
-
-shouldSucceed ::
-  (ToJSON w, Monoid w, Show w, Show e, Show a, Typeable s, Typeable w, Typeable e, Typeable a) =>
-  String ->
-  Int ->
-  Contract w s e a ->
-  IO (ClusterEnv, [BpiWallet]) ->
-  TestTree
-shouldSucceed t walletIdx c =
-  singleTest t . TestContract walletIdx c (Success Nothing Nothing)
-
-shouldFail ::
-  (ToJSON w, Monoid w, Show w, Show e, Show a, Typeable s, Typeable w, Typeable e, Typeable a) =>
-  String ->
-  Int ->
-  Contract w s e a ->
-  IO (ClusterEnv, [BpiWallet]) ->
-  TestTree
-shouldFail t walletIdx c =
-  singleTest t . TestContract walletIdx c (Fail Nothing)
 
 data TestContract (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) = TestContract
   { tcWallet :: Int

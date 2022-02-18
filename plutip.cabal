@@ -117,7 +117,7 @@ library
 
   hs-source-dirs:  src/
   exposed-modules:
-    Test.Plutip
+    Test.Plutip.Contract
     Test.Plutip.Internal.BotPlutusInterface.Keys
     Test.Plutip.Internal.BotPlutusInterface.Run
     Test.Plutip.Internal.BotPlutusInterface.Setup
@@ -125,6 +125,7 @@ library
     Test.Plutip.Internal.BotPlutusInterface.Wallet
     Test.Plutip.Internal.LocalCluster
     Test.Plutip.Internal.LocalCluster.Types
+    Test.Plutip.LocalCluster
     Test.Plutip.Tools
     Test.Plutip.Tools.Address
     Test.Plutip.Tools.CardanoApi

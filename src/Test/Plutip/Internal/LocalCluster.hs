@@ -3,7 +3,7 @@
 -- temporary measure while module under development
 {-# OPTIONS_GHC -Wno-unused-imports #-}
 
-module Test.Plutip.Internal.LocalCluster (runUsingCluster, runUsingCluster', startCluster, stopCluster) where
+module Test.Plutip.Internal.LocalCluster (startCluster, stopCluster) where
 
 import Cardano.Api qualified as CAPI
 import Cardano.BM.Data.Severity (Severity (..))
@@ -71,18 +71,12 @@ import Test.Plutip.Internal.LocalCluster.Types (ClusterEnv (..), RunningNode (Ru
 import UnliftIO.Concurrent (forkFinally)
 import UnliftIO.STM (TVar, atomically, newTVarIO, readTVar, retrySTM, writeTVar)
 
-{- | Start cluster and run action using provided `CalusterEnv`
- under development (mostly borrowed from `cardano-wallet`)
--}
-runUsingCluster :: forall (a :: Type). ReaderT ClusterEnv IO a -> IO (TVar (ClusterStatus a), a)
-runUsingCluster act = runUsingCluster' (runReaderT act)
-
 {- Examples:
    `plutus-apps` local cluster: https://github.com/input-output-hk/plutus-apps/blob/75a581c6eb98d36192ce3d3f86ea60a04bc4a52a/plutus-pab/src/Plutus/PAB/LocalCluster/Run.hs
    `cardano-wallet` local cluster: https://github.com/input-output-hk/cardano-wallet/blob/99b13e50f092ffca803fd38b9e435c24dae05c91/lib/shelley/exe/local-cluster.hs
 -}
-runUsingCluster' :: forall (a :: Type). (ClusterEnv -> IO a) -> IO (TVar (ClusterStatus a), a)
-runUsingCluster' action = do
+withPlutusInterface :: forall (a :: Type). (ClusterEnv -> IO a) -> IO a
+withPlutusInterface action = do
   -- current setup requires `cardano-node` and `cardano-cli` as external processes
   checkProcessesAvailable ["cardano-node", "cardano-cli"]
 
@@ -90,7 +84,7 @@ runUsingCluster' action = do
     withLoggingNamed "cluster" clusterLogs $ \(_, (_, trCluster)) -> do
       let tr' = contramap MsgCluster $ trMessageText trCluster
       clusterCfg <- localClusterConfigFromEnv
-      startCluster
+      withCluster
         tr'
         dir
         clusterCfg
@@ -225,25 +219,19 @@ data ClusterStatus (a :: Type)
   | ClusterClosing
   | ClusterClosed
 
-startCluster ::
-  forall (a :: Type).
-  -- | Trace for subprocess control logging.
-  Tracer IO ClusterLog ->
-  -- | Temporary directory to create config files in.
-  FilePath ->
-  -- | The configurations of pools to spawn.
-  LocalClusterConfig ->
-  -- | Setup action to run using the BFT node.
-  (RunningNode -> IO ()) ->
-  -- | Action to run once when the stake pools are setup.
-  (RunningNode -> IO a) ->
-  IO (TVar (ClusterStatus a), a)
-startCluster tr dir conf onSetup onClusterStart = do
+{- | Starting a cluster with a setup action
+ We're heavily depending on cardano-wallet local cluster tooling, however they don't allow the
+ start and stop actions to be two separate processes, which is needed for tasty integration.
+ Instead of rewriting and maintaining these, I introduced a semaphore mechanism to keep the
+ cluster alive until the ClusterClosing action is called.
+-}
+startCluster :: forall (a :: Type). (ReaderT ClusterEnv IO a) -> IO (TVar (ClusterStatus a), a)
+startCluster onClusterStart = do
   status <- newTVarIO ClusterStarting
   void $
     forkFinally
-      ( withCluster tr dir conf onSetup $ \runningNode -> do
-          res <- onClusterStart runningNode
+      ( withPlutusInterface $ \clusterEnv -> do
+          res <- runReaderT onClusterStart clusterEnv
           atomically $ writeTVar status (ClusterStarted res)
           atomically $ readTVar status >>= \case ClusterClosing -> pure (); _ -> retrySTM
       )
@@ -252,6 +240,7 @@ startCluster tr dir conf onSetup onClusterStart = do
   setupRes <- atomically $ readTVar status >>= \case ClusterStarted v -> pure v; _ -> retrySTM
   pure (status, setupRes)
 
+--- | Send a shutdown signal to the cluster and wait for it
 stopCluster :: TVar (ClusterStatus a) -> IO ()
 stopCluster status = do
   atomically $ writeTVar status ClusterClosing

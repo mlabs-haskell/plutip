@@ -34,7 +34,7 @@ import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   ledgerPaymentPkh,
   mkMainnetAddress,
  )
-import Test.Plutip.Internal.LocalCluster (runUsingCluster, stopCluster)
+import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)
 import Test.Plutip.Internal.LocalCluster.Types (ClusterEnv, isSuccess)
 import Test.Plutip.Tools (ada)
 import Test.Tasty (testGroup, withResource)
@@ -51,7 +51,7 @@ withCluster ::
   [IO (ClusterEnv, [BpiWallet]) -> TestTree] ->
   TestTree
 withCluster name walletAmts testCases =
-  withResource (runUsingCluster setup) (stopCluster . fst) $
+  withResource (startCluster setup) (stopCluster . fst) $
     \getResource -> testGroup name $ map (\t -> t (snd <$> getResource)) testCases
   where
     setup :: ReaderT ClusterEnv IO (ClusterEnv, [BpiWallet])

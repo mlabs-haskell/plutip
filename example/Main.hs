@@ -2,16 +2,18 @@ module Main (main) where
 
 import DebugContract.GetUtxos qualified as GetUtxos
 import DebugContract.LockUnlock qualified as LockUnlock
+import Data.List.NonEmpty ((:|))
 import DebugContract.LockUnlockValidationFail qualified as LockUnlockValidationFail
 import Test.Plutip.Contract (
   ada,
-  -- ledgerPaymentPkh,
+
+  ledgerPaymentPkh,
   shouldSucceed,
   shouldFail,
  )
 import Test.Plutip.LocalCluster (withCluster)
 import Test.Tasty (TestTree, defaultMain)
--- import DebugContract.PayToWallet qualified as PayToWallet
+import DebugContract.PayToWallet qualified as PayToWallet
 
 main :: IO ()
 main = defaultMain tests
@@ -20,16 +22,14 @@ tests :: TestTree
 tests =
   withCluster
     "Integration tests"
-    [ada 101, ada 202]
-    [ -- 1 successful and 2 failing scenarios
-      shouldSucceed "Get utxos" 1 GetUtxos.getUtxos
-    , shouldFail "Throws Contract error" 1 GetUtxos.getUtxosThrowsErr
-    , shouldFail "Throws Exception" 1 GetUtxos.getUtxosThrowsEx
-    , -- , -- successful wallet to wallet transaction
-      --   shouldSucceed "Pay wallet-to-wallet" testW1 $
-      --     PayToWallet.payTo (ledgerPaymentPkh testW2) 10_000_000
-      -- budget overspend script
-      shouldFail "Lock at script then spend - budget overspend" 1 LockUnlock.lockThenSpend
-    , -- validation fail script
-      shouldFail "Lock at script then spend - validation fail" 1 LockUnlockValidationFail.lockThenSpend
+    [ shouldSucceed "Get utxos" (ada 100) $ \_ -> GetUtxos.getUtxos
+    , shouldFail "Throws Contract error" (ada 100) $ \_ -> GetUtxos.getUtxosThrowsErr
+    , shouldFail "Throws Exception" (ada 100) $ \_ -> GetUtxos.getUtxosThrowsEx
+    , shouldSucceed "Pay wallet-to-wallet" (ada 100 <> ada 200) $ \[pkh1] ->
+          PayToWallet.payTo pkh1 10_000_000
+      
+    , shouldFail "Lock at script then spend - budget overspend" (ada 100) 
+              $ \_ -> LockUnlock.lockThenSpend
+    , 
+      shouldFail "Lock at script then spend - validation fail" (ada 100) $ \_ -> LockUnlockValidationFail.lockThenSpend
     ]

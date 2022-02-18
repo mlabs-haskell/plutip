@@ -67,7 +67,7 @@ import Test.Integration.Faucet (
   shelleyIntegrationTestFunds,
  )
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BotSetup
-import Test.Plutip.Internal.LocalCluster.Types (ClusterEnv (..), RunningNode (RunningNode))
+import Test.Plutip.Internal.Types (ClusterEnv (..), RunningNode (RunningNode))
 import UnliftIO.Concurrent (forkFinally)
 import UnliftIO.STM (TVar, atomically, newTVarIO, readTVar, retrySTM, writeTVar)
 

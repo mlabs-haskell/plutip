@@ -48,7 +48,7 @@ import Plutus.Contract (Contract)
 import Plutus.PAB.Core.ContractInstance.STM (Activity (Active))
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BIS
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet, ledgerPkh)
-import Test.Plutip.Internal.LocalCluster.Types (ClusterEnv (chainIndexUrl, networkId), FailReason (CaughtException, ContractExecutionError, OtherErr), Outcome (Fail, Success))
+import Test.Plutip.Internal.Types (ClusterEnv (chainIndexUrl, networkId), FailureReason (CaughtException, ContractExecutionError, OtherErr), Outcome (Failure, Success))
 import Wallet.Types (ContractInstanceId (ContractInstanceId))
 
 runContract_ ::
@@ -72,7 +72,7 @@ runContract cEnv bpiWallet contract = do
     fromRight (error "Could not read protocol parameters file.")
       <$> liftIO (eitherDecodeFileStrict' (BIS.pParamsFile cEnv))
 
-  runContract' pparams `catchAll` (pure . Fail . CaughtException)
+  runContract' pparams `catchAll` (pure . Failure . CaughtException)
   where
     runContract' :: ProtocolParameters -> m (Outcome w e a)
     runContract' pparams = do
@@ -103,5 +103,5 @@ runContract cEnv bpiWallet contract = do
               }
       res <- liftIO $ BIC.runContract contractEnv contract
       case res of
-        Left e -> pure $ Fail (ContractExecutionError e)
+        Left e -> pure $ Failure (ContractExecutionError e)
         Right a -> Success a <$> liftIO (readTVarIO contractState)

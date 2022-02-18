@@ -1,7 +1,7 @@
-module Test.Plutip.Internal.LocalCluster.Types (
+module Test.Plutip.Internal.Types (
   ClusterEnv (..),
   Outcome (..),
-  FailReason (..),
+  FailureReason (..),
   RunningNode (..),
   nodeSocket,
   isSuccess,
@@ -39,14 +39,14 @@ data Outcome w e a
       , -- | `Contract` state after execution
         contractState :: ContractState w
       }
-  | Fail
+  | Failure
       { -- | reason of `Contract` execution failure
-        reason :: FailReason e
+        reason :: FailureReason e
       }
   deriving stock (Show)
 
 -- | Reason of `Contract` execution failure
-data FailReason e
+data FailureReason e
   = -- | error thrown by `Contract` (via `throwError`)
     ContractExecutionError e
   | -- | exception caught during contract run
@@ -58,7 +58,7 @@ data FailReason e
 isSuccess :: Outcome w e a -> Bool
 isSuccess = \case
   Success _ _ -> True
-  Fail _ -> False
+  Failure _ -> False
 
 -- -- | Pretty print (temporary impl)
 -- prettyResult :: (Show a, Show w, Show e) => Outcome w e a -> Text
@@ -80,7 +80,7 @@ prettyOut = \case
       [ " Contract returned: " <> toText cRes
       , " Contract state: " <> toText cState
       ]
-  (Fail e) -> " The error is: " <> toText e
+  (Failure e) -> " The error is: " <> toText e
 
 toText :: Show a => a -> Text
 toText = pack . show

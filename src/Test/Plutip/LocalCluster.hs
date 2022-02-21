@@ -37,6 +37,11 @@ import Test.Tasty.Providers (TestTree)
 waitSeconds :: Natural -> ReaderT ClusterEnv IO ()
 waitSeconds n = liftIO $ threadDelay (fromEnum n * 1_000_000)
 
+{- | Spin up a local cluster and run multiple contracts inside.
+ Each contract had its own set of wallets, so they don't depend on each other.
+
+ @since 0.2
+-}
 withCluster ::
   String ->
   [(TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)] ->

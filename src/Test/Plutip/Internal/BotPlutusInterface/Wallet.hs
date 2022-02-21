@@ -21,7 +21,7 @@ import Data.Aeson.Extras (encodeByteString)
 import Data.Bool (bool)
 import Data.Text qualified as Text
 import GHC.Natural (Natural)
-import Ledger (PaymentPubKeyHash (PaymentPubKeyHash), PubKey (PubKey), PubKeyHash (PubKeyHash), pubKeyHash)
+import Ledger (PaymentPubKeyHash (PaymentPubKeyHash), PubKeyHash (PubKeyHash))
 import Plutus.V1.Ledger.Api qualified as LAPI
 import PlutusTx.Builtins (fromBuiltin, toBuiltin)
 import System.FilePath ((<.>), (</>))

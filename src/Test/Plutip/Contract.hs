@@ -2,7 +2,7 @@
 {-# LANGUAGE NamedFieldPuns #-}
 
 module Test.Plutip.Contract (
-  -- Assertinos
+  -- Assertions
   shouldSucceed,
   shouldFail,
   shouldYield,
@@ -56,7 +56,10 @@ type TestContractConstraints (w :: Type) (s :: Row Type) (e :: Type) (a :: Type)
   , AsContractError e
   )
 
--- | Assert that a contract is valid
+{- | Assert that a contract is valid
+
+ @since 0.2
+-}
 shouldSucceed ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
   TestContractConstraints w s e a =>
@@ -72,7 +75,10 @@ shouldSucceed tag testWallets toContract =
         (ExpectSuccess (const True) (const True) (twExpected <$> unTestWallets testWallets))
   )
 
--- | Assert that a contract should NOT validate
+{- | Assert that a contract should NOT validate
+
+ @since 0.2
+-}
 shouldFail ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
   TestContractConstraints w s e a =>
@@ -88,7 +94,10 @@ shouldFail tag testWallets toContract =
         (ExpectFailure (const True))
   )
 
--- | Assert the return value of the contract with a custom preficate
+{- | Assert the return value of the contract with a custom preficate
+
+ @since 0.2
+-}
 assertYieldedResultWith ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
   TestContractConstraints w s e a =>
@@ -105,7 +114,10 @@ assertYieldedResultWith tag testWallets predicate toContract =
         (ExpectSuccess predicate (const True) (twExpected <$> unTestWallets testWallets))
   )
 
--- | Check if the return value of the contract equals to some expected value
+{- | Check if the return value of the contract equals to some expected value
+
+ @since 0.2
+-}
 shouldYield ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
   (TestContractConstraints w s e a, Eq a) =>
@@ -117,7 +129,10 @@ shouldYield ::
 shouldYield tag testWallets expected =
   assertYieldedResultWith tag testWallets (== expected)
 
--- | Assert the observable state of the contract with a custom preficate
+{- | Assert the observable state of the contract with a custom preficate
+
+ @since 0.2
+-}
 assertObservableStateWith ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
   TestContractConstraints w s e a =>
@@ -134,7 +149,10 @@ assertObservableStateWith tag testWallets predicate toContract =
         (ExpectSuccess (const True) predicate (twExpected <$> unTestWallets testWallets))
   )
 
--- | Check if the observable state of the contract equals to some expected value
+{- | Check if the observable state of the contract equals to some expected value
+
+ @since 0.2
+-}
 shouldHaveObservableState ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
   (TestContractConstraints w s e a, Eq w) =>
@@ -166,7 +184,10 @@ data TestContract (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) = TestCont
   }
   deriving stock (Typeable)
 
--- | Expected outcome of running contract
+{- | Expected outcome of running contract
+
+ @since 0.2
+-}
 data ExpectedOutcome w e a
   = ExpectSuccess (a -> Bool) (w -> Bool) (NonEmpty (Maybe Value))
   | ExpectFailure (FailureReason e -> Bool)
@@ -195,6 +216,8 @@ instance
 
 {- | Wrap test contracts to wait for transaction submission and
  to get the utxo amount at test wallets and wait for transaction
+
+ @since 0.2
 -}
 wrapContract ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
@@ -224,28 +247,40 @@ data TestWallet = TestWallet
   , twExpected :: Maybe Value
   }
 
--- | Create a wallet with the given amount of lovelace
+{- | Create a wallet with the given amount of lovelace
+
+ @since 0.2
+-}
 initLovelace :: Natural -> TestWallets
 initLovelace initial = TestWallets $ TestWallet initial Nothing :| []
 
--- | Create a wallet with the given amount of Ada
+{- | Create a wallet with the given amount of Ada
+
+ @since 0.2
+-}
 initAda :: Natural -> TestWallets
 initAda initial = initLovelace (initial * 1_000_000)
 
 {- | Create a wallet with the given amount of lovelace,
  and assert values at the wallet address after contract execution
+
+ @since 0.2
 -}
 initLovelaceAssertValue :: Natural -> Value -> TestWallets
 initLovelaceAssertValue initial expect = TestWallets $ TestWallet initial (Just expect) :| []
 
 {- | Create a wallet with the given amount of Ada
  and assert values at the wallet address after contract execution
+
+ @since 0.2
 -}
 initAdaAssertValue :: Natural -> Natural -> TestWallets
 initAdaAssertValue initial = initAndAssertLovelace (initial * 1_000_000)
 
 {- | Create a wallet with the given amount of lovelace
  and assert the amount lovelace at the wallet address after contract execution
+
+ @since 0.2
 -}
 initAndAssertLovelace :: Natural -> Natural -> TestWallets
 initAndAssertLovelace initial expect =
@@ -253,6 +288,8 @@ initAndAssertLovelace initial expect =
 
 {- | Create a wallet with the given amount of Ada
  and assert the amount of Ada at the wallet address after contract execution
+
+ @since 0.2
 -}
 initAndAssertAda :: Natural -> Natural -> TestWallets
 initAndAssertAda initial expect =

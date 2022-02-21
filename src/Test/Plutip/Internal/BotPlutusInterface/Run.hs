@@ -6,7 +6,7 @@ import BotPlutusInterface.Contract qualified as BIC
 import BotPlutusInterface.Types (
   CLILocation (Local),
   ContractEnvironment (ContractEnvironment),
-  ContractState (ContractState),
+  ContractState (ContractState, csObservableState),
   LogLevel (Info),
   PABConfig (
     PABConfig,
@@ -101,4 +101,4 @@ runContract cEnv bpiWallet contract = do
       res <- liftIO $ BIC.runContract contractEnv contract
       case res of
         Left e -> pure $ Failure (ContractExecutionError e)
-        Right a -> Success a <$> liftIO (readTVarIO contractState)
+        Right a -> Success a . csObservableState <$> liftIO (readTVarIO contractState)

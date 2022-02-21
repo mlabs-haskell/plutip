@@ -21,9 +21,9 @@ import Data.Aeson.Extras (encodeByteString)
 import Data.Bool (bool)
 import Data.Text qualified as Text
 import GHC.Natural (Natural)
-import Ledger (PaymentPubKeyHash (PaymentPubKeyHash), PubKey (PubKey), PubKeyHash, pubKeyHash)
+import Ledger (PaymentPubKeyHash (PaymentPubKeyHash), PubKey (PubKey), PubKeyHash (PubKeyHash), pubKeyHash)
 import Plutus.V1.Ledger.Api qualified as LAPI
-import PlutusTx.Builtins (fromBuiltin)
+import PlutusTx.Builtins (fromBuiltin, toBuiltin)
 import System.FilePath ((<.>), (</>))
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as Setup
 import Test.Plutip.Internal.BotPlutusInterface.Types (BpiError (BotInterfaceDirMissing, SignKeySaveError))
@@ -79,9 +79,8 @@ createWallet = do
   return $ BpiWallet (toPkh vKey) vKey sKey
   where
     toPkh =
-      pubKeyHash
-        . PubKey
-        . LAPI.fromBytes
+      PubKeyHash
+        . toBuiltin
         . CAPI.serialiseToRawBytes
         . CAPI.verificationKeyHash
 

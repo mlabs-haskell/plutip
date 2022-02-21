@@ -19,7 +19,7 @@ import Control.Monad.Reader (ReaderT, ask)
 import Data.Bifunctor (second)
 import Data.List.NonEmpty (NonEmpty)
 import Numeric.Natural (Natural)
-import Test.Plutip.Contract (InitValue (unInitValue))
+import Test.Plutip.Contract (TestWallet (twInitDistribuition), TestWallets (unTestWallets))
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   BpiWallet,
   addSomeWallet,
@@ -39,7 +39,7 @@ waitSeconds n = liftIO $ threadDelay (fromEnum n * 1_000_000)
 
 withCluster ::
   String ->
-  [(InitValue, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)] ->
+  [(TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)] ->
   TestTree
 withCluster name testCases =
   withResource (startCluster setup) (stopCluster . fst) $
@@ -53,8 +53,10 @@ withCluster name testCases =
     setup = do
       env <- ask
 
-      let amounts = map (unInitValue . fst) testCases
-      wallets <- traverse (traverse addSomeWallet) amounts
+      wallets <-
+        traverse
+          (traverse addSomeWallet . fmap twInitDistribuition . unTestWallets . fst)
+          testCases
       waitSeconds 2 -- wait for transactions to submit
       pure (env, wallets)
 

@@ -10,7 +10,7 @@ import Ledger.Constraints qualified as Constraints
 import Plutus.Contract (Contract, ownPaymentPubKeyHash, submitTx, utxosAt, waitNSlots)
 import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
-import Test.Plutip.Contract (ada, ledgerPaymentPkh, shouldFail, shouldSucceed)
+import Test.Plutip.Contract (initAda, ledgerPaymentPkh, shouldFail, shouldSucceed)
 import Test.Plutip.LocalCluster (withCluster)
 import Test.Tasty (TestTree)
 import Text.Printf (printf)
@@ -21,10 +21,10 @@ test :: TestTree
 test =
   withCluster
     "Basic integration: launch, add wallet, tx from wallet to wallet"
-    [ shouldSucceed "Get utxos" (ada 100) $ const getUtxos
-    , shouldFail "Get utxos throwing error" (ada 100) $ const getUtxosThrowsErr
-    , shouldFail "Get utxos throwing exception" (ada 100) $ const getUtxosThrowsEx
-    , shouldFail "Pay negative amount" (ada 300 <> ada 200) $ \[w1] ->
+    [ shouldSucceed "Get utxos" (initAda 100) $ const getUtxos
+    , shouldFail "Get utxos throwing error" (initAda 100) $ const getUtxosThrowsErr
+    , shouldFail "Get utxos throwing exception" (initAda 100) $ const getUtxosThrowsEx
+    , shouldFail "Pay negative amount" (initAda 300 <> initAda 200) $ \[w1] ->
         payTo (ledgerPaymentPkh w1) (-10_000_000)
     ]
 
@@ -36,7 +36,7 @@ test =
 --       liftIO $ do
 --         res <- utxosAtAddress cEnv (cardanoMainnetAddress wallet')
 --         let resultValue = toCombinedFlatValue <$> res
---         resultValue @?= Right [(AdaAssetId, Quantity expectedAmt')]
+--         resultValue @?= Right [(initAda, Quantity expectedAmt')]
 
 --   checkAdaTxFromTo w1 w2 = do
 --     res <- wiithPlutusInterface w1 (payTo (ledgerPaymentPkh w2) 10_000_000)

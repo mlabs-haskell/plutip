@@ -7,7 +7,6 @@ module Test.Plutip.Internal.Types (
   isSuccess,
 ) where
 
-import BotPlutusInterface.Types (ContractState)
 import Cardano.Api (NetworkId)
 import Cardano.BM.Tracing (Trace)
 import Cardano.Launcher.Node (CardanoNodeConn)
@@ -36,8 +35,8 @@ data Outcome w e a
   = Success
       { -- | return value of `Contract`
         contractResult :: a
-      , -- | `Contract` state after execution
-        contractState :: ContractState w
+      , -- | `Contract` observable state after execution
+        contractState :: w
       }
   | Failure
       { -- | reason of `Contract` execution failure

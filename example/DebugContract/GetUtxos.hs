@@ -8,10 +8,11 @@ import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
 import Text.Printf (printf)
 
-getUtxos :: Contract () EmptySchema Text (Map TxOutRef ChainIndexTxOut)
+getUtxos :: Contract String EmptySchema Text (Map TxOutRef ChainIndexTxOut)
 getUtxos = do
   pkh <- Contract.ownPaymentPubKeyHash
   Contract.logInfo @String $ printf "Own PKH: %s" (show pkh)
+  Contract.tell $ show pkh
   utxosAt $ pubKeyHashAddress pkh Nothing
 
 getUtxosThrowsErr :: Contract () EmptySchema Text (Map TxOutRef ChainIndexTxOut)

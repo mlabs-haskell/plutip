@@ -5,7 +5,9 @@
 module Test.Plutip.Contract (
   shouldSucceed,
   shouldFail,
+  InitValue (InitValue, unInitValue),
   ada,
+  lovelace,
   mkMainnetAddress,
   cardanoMainnetAddress,
   ledgerPaymentPkh,
@@ -16,8 +18,10 @@ import Control.Monad.Reader (runReaderT)
 import Data.Aeson (ToJSON)
 import Data.Dynamic (Typeable)
 import Data.Kind (Type)
+import Data.List.NonEmpty (NonEmpty ((:|)))
 import Data.Row (Row)
 import Data.Tagged (Tagged (Tagged))
+import Numeric.Natural (Natural)
 import Plutus.Contract (Contract)
 import Test.Plutip.Internal.BotPlutusInterface.Run (runContract)
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (
@@ -27,34 +31,30 @@ import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   mkMainnetAddress,
  )
 import Test.Plutip.Internal.Types (ClusterEnv, FailureReason, Outcome (Failure, Success))
-import Test.Plutip.Tools (ada)
 import Test.Tasty.Providers (IsTest (run, testOptions), TestTree, singleTest, testFailed, testPassed)
 
 shouldSucceed ::
   (ToJSON w, Monoid w, Show w, Show e, Show a, Typeable s, Typeable w, Typeable e, Typeable a) =>
   String ->
-  Int ->
-  Contract w s e a ->
-  IO (ClusterEnv, [BpiWallet]) ->
-  TestTree
-shouldSucceed t walletIdx c =
-  singleTest t . TestContract walletIdx c (ExpectSuccess Nothing Nothing)
+  InitValue ->
+  ([BpiWallet] -> Contract w s e a) ->
+  (InitValue, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
+shouldSucceed tag initAmt toContract =
+  (initAmt, singleTest tag . TestContract toContract (ExpectSuccess Nothing Nothing))
 
 shouldFail ::
   (ToJSON w, Monoid w, Show w, Show e, Show a, Typeable s, Typeable w, Typeable e, Typeable a) =>
   String ->
-  Int ->
-  Contract w s e a ->
-  IO (ClusterEnv, [BpiWallet]) ->
-  TestTree
-shouldFail t walletIdx c =
-  singleTest t . TestContract walletIdx c (ExpectFailure Nothing)
+  InitValue ->
+  ([BpiWallet] -> Contract w s e a) ->
+  (InitValue, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
+shouldFail tag initAmt toContract =
+  (initAmt, singleTest tag . TestContract toContract (ExpectFailure Nothing))
 
 data TestContract (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) = TestContract
-  { tcWallet :: Int
-  , tcContract :: (ToJSON w, Monoid w, Show w, Show e, Show a) => Contract w s e a
+  { tcContract :: (ToJSON w, Monoid w, Show w, Show e, Show a) => [BpiWallet] -> Contract w s e a
   , tcExpected :: ExpectedOutcome w e a
-  , tcSetup :: IO (ClusterEnv, [BpiWallet])
+  , tcSetup :: IO (ClusterEnv, NonEmpty BpiWallet)
   }
   deriving stock (Typeable)
 
@@ -76,11 +76,9 @@ instance
   (ToJSON w, Monoid w, Show w, Show e, Show a, Typeable s, Typeable w, Typeable e, Typeable a) =>
   IsTest (TestContract w s e a)
   where
-  run _ TestContract {tcWallet, tcContract, tcSetup, tcExpected} _ = do
-    (cEnv, wallets) <- tcSetup
-    -- TODO: this is unsafe
-    let wallet = wallets !! tcWallet
-    result <- runReaderT (runContract cEnv wallet tcContract) cEnv
+  run _ TestContract {tcContract, tcSetup, tcExpected} _ = do
+    (cEnv, ownWallet :| otherWallets) <- tcSetup
+    result <- runReaderT (runContract cEnv ownWallet (tcContract otherWallets)) cEnv
 
     pure $ case (tcExpected, result) of
       (ExpectSuccess _ _, Success _ _) -> testPassed $ show result
@@ -88,3 +86,16 @@ instance
       _ -> testFailed $ show result
 
   testOptions = Tagged []
+
+newtype InitValue = InitValue {unInitValue :: NonEmpty Natural}
+
+-- | Create a wallet with the given amount of Ada
+ada :: Natural -> InitValue
+ada x = InitValue $ x * 1_000_000 :| []
+
+-- | Create a wallet with the given amount of lovelace
+lovelace :: Natural -> InitValue
+lovelace x = InitValue $ x :| []
+
+instance Semigroup InitValue where
+  InitValue (x :| xs) <> InitValue (y :| ys) = InitValue (x :| y : ys)

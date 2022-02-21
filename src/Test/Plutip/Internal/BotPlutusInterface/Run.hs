@@ -30,25 +30,22 @@ import BotPlutusInterface.Types (
   cePABConfig,
  )
 import Cardano.Api.ProtocolParameters (ProtocolParameters)
-import Cardano.Api.Shelley (ProtocolParameters (ProtocolParameters))
 import Control.Concurrent.STM (newTVarIO, readTVarIO)
 import Control.Monad (void)
 import Control.Monad.Catch (MonadCatch, catchAll)
 import Control.Monad.IO.Class (MonadIO, liftIO)
-import Control.Monad.Reader (MonadReader (ask), ReaderT)
 import Data.Aeson (ToJSON, eitherDecodeFileStrict')
 import Data.Default (def)
 import Data.Either.Combinators (fromRight)
 import Data.Kind (Type)
 import Data.Row (Row)
-import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.UUID.V4 qualified as UUID
 import Plutus.Contract (Contract)
 import Plutus.PAB.Core.ContractInstance.STM (Activity (Active))
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BIS
-import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet, ledgerPkh)
-import Test.Plutip.Internal.Types (ClusterEnv (chainIndexUrl, networkId), FailureReason (CaughtException, ContractExecutionError, OtherErr), Outcome (Failure, Success))
+import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet (walletPkh))
+import Test.Plutip.Internal.Types (ClusterEnv (chainIndexUrl, networkId), FailureReason (CaughtException, ContractExecutionError), Outcome (Failure, Success))
 import Wallet.Types (ContractInstanceId (ContractInstanceId))
 
 runContract_ ::
@@ -91,7 +88,7 @@ runContract cEnv bpiWallet contract = do
               , pcDryRun = False
               , pcProtocolParamsFile = Text.pack $ BIS.pParamsFile cEnv
               , pcLogLevel = Info
-              , pcOwnPubKeyHash = ledgerPkh bpiWallet
+              , pcOwnPubKeyHash = walletPkh bpiWallet
               , pcPort = 9080
               , pcEnableTxEndpoint = False
               }

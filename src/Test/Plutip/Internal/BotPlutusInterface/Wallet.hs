@@ -4,7 +4,6 @@ module Test.Plutip.Internal.BotPlutusInterface.Wallet (
   eitherAddSomeWallet,
   mkMainnetAddress,
   cardanoMainnetAddress,
-  ledgerPkh,
   ledgerPaymentPkh,
 ) where
 
@@ -18,11 +17,13 @@ import Cardano.Wallet.Shelley.Launch.Cluster (
 import Control.Arrow (ArrowChoice (left))
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Reader (ReaderT, ask)
+import Data.Aeson.Extras (encodeByteString)
 import Data.Bool (bool)
-import Data.Text (Text, pack, unpack)
+import Data.Text qualified as Text
 import GHC.Natural (Natural)
 import Ledger (PaymentPubKeyHash (PaymentPubKeyHash), PubKey (PubKey), PubKeyHash, pubKeyHash)
 import Plutus.V1.Ledger.Api qualified as LAPI
+import PlutusTx.Builtins (fromBuiltin)
 import System.FilePath ((<.>), (</>))
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as Setup
 import Test.Plutip.Internal.BotPlutusInterface.Types (BpiError (BotInterfaceDirMissing, SignKeySaveError))
@@ -32,7 +33,7 @@ import Test.Plutip.Internal.Types (ClusterEnv, nodeSocket, supportDir)
   backed by `.skey` file when added to cluster with `addSomeWallet`
 -}
 data BpiWallet = BpiWallet
-  { walletPkh :: !Text -- ? maybe `PubKeyHash` here will be better
+  { walletPkh :: !PubKeyHash
   , vrfKey :: VerificationKey PaymentKey
   , signKey :: SigningKey PaymentKey
   -- todo: do we need something else?
@@ -75,9 +76,14 @@ createWallet :: MonadIO m => m BpiWallet
 createWallet = do
   sKey <- liftIO $ CAPI.generateSigningKey CAPI.AsPaymentKey
   let vKey = CAPI.getVerificationKey sKey
-  return $ BpiWallet (textHash vKey) vKey sKey
+  return $ BpiWallet (toPkh vKey) vKey sKey
   where
-    textHash = pack . filter (/= '"') . show . CAPI.verificationKeyHash
+    toPkh =
+      pubKeyHash
+        . PubKey
+        . LAPI.fromBytes
+        . CAPI.serialiseToRawBytes
+        . CAPI.verificationKeyHash
 
 saveWallet :: MonadIO m => BpiWallet -> ReaderT ClusterEnv m (Either BpiError ())
 saveWallet (BpiWallet pkh _ sk) = do
@@ -86,7 +92,8 @@ saveWallet (BpiWallet pkh _ sk) = do
     >>= bool (return $ Left BotInterfaceDirMissing) (save cEnv sk)
   where
     save cEnv key = do
-      let path = Setup.keysDir cEnv </> "signing-key-" ++ unpack pkh <.> "skey"
+      let pkhStr = Text.unpack (encodeByteString (fromBuiltin (LAPI.getPubKeyHash pkh)))
+          path = Setup.keysDir cEnv </> "signing-key-" ++ pkhStr <.> "skey"
       res <- liftIO $ CAPI.writeFileTextEnvelope path (Just "Payment Signing Key") key
       return $ left (SignKeySaveError . show) res --todo: better error handling
 
@@ -102,17 +109,9 @@ cardanoMainnetAddress (BpiWallet _ vk _) =
 -- | Get `String` representation of address on mainnet
 mkMainnetAddress :: BpiWallet -> String
 mkMainnetAddress bw =
-  unpack
+  Text.unpack
     . CAPI.serialiseAddress
     $ cardanoMainnetAddress bw
 
-ledgerPkh :: BpiWallet -> PubKeyHash
-ledgerPkh =
-  pubKeyHash
-    . PubKey
-    . LAPI.fromBytes
-    . CAPI.serialiseToRawBytes
-    . vrfKey
-
 ledgerPaymentPkh :: BpiWallet -> PaymentPubKeyHash
-ledgerPaymentPkh = PaymentPubKeyHash . ledgerPkh
+ledgerPaymentPkh = PaymentPubKeyHash . walletPkh

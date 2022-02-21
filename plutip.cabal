@@ -50,8 +50,10 @@ common common-imports
     , plutus-tx-plugin
     , retry
     , row-types
+    , safe-exceptions
     , servant-client
     , stm
+    , tagged
     , tasty
     , text
     , text-class
@@ -123,7 +125,9 @@ library
     Test.Plutip.Internal.BotPlutusInterface.Types
     Test.Plutip.Internal.BotPlutusInterface.Wallet
     Test.Plutip.Internal.LocalCluster.Cluster
+    Test.Plutip.Internal.LocalCluster.Config
     Test.Plutip.Internal.LocalCluster.Types
+    Test.Plutip.Options
     Test.Plutip.Tools
     Test.Plutip.Tools.Address
     Test.Plutip.Tools.CardanoApi
@@ -155,6 +159,7 @@ executable plutip-example
     , plutus-tx
     , plutus-tx-plugin
     , text
+    , data-default
 
 test-suite plutip-tests
   import:             common-imports

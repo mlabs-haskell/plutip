@@ -22,9 +22,14 @@ import Test.Plutip (
   waitSeconds,
  )
 
+import Data.Default (def)
+import Test.Plutip.Internal.LocalCluster.Config (relayNodeLogs)
+import Test.Plutip.Internal.LocalCluster.Cluster (runUsingClusterConf)
+
 main :: IO ()
 main = do
-  runUsingCluster $ do
+  let conf = def {relayNodeLogs = Just "example/relay-node.log"}
+  runUsingClusterConf conf $ do
     testW1 <- addSomeWallet (ada 101)
     testW2 <- addSomeWallet (ada 202)
     waitSeconds 2 -- wait for transactions to submit

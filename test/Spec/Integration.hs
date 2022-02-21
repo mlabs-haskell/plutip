@@ -10,7 +10,7 @@ import Ledger.Constraints qualified as Constraints
 import Plutus.Contract (Contract, ownPaymentPubKeyHash, submitTx, utxosAt, waitNSlots)
 import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
-import Test.Plutip.Contract (initAda, ledgerPaymentPkh, shouldFail, shouldSucceed)
+import Test.Plutip.Contract (initAda, initAndAssertAda, ledgerPaymentPkh, shouldFail, shouldSucceed)
 import Test.Plutip.LocalCluster (withCluster)
 import Test.Tasty (TestTree)
 import Text.Printf (printf)
@@ -26,32 +26,9 @@ test =
     , shouldFail "Get utxos throwing exception" (initAda 100) $ const getUtxosThrowsEx
     , shouldFail "Pay negative amount" (initAda 300 <> initAda 200) $ \[w1] ->
         payTo (ledgerPaymentPkh w1) (-10_000_000)
+    , shouldSucceed "Pay from wallet to wallet" (initAda 100 <> initAndAssertAda 100 110) $
+        \[w1] -> payTo (ledgerPaymentPkh w1) 10_000_000
     ]
-
--- where
---   checkFunds wallet' expectedAmt = do
---     let expectedAmt' = toInteger expectedAmt
---     ask >>= \cEnv -> do
---       waitSeconds 2
---       liftIO $ do
---         res <- utxosAtAddress cEnv (cardanoMainnetAddress wallet')
---         let resultValue = toCombinedFlatValue <$> res
---         resultValue @?= Right [(initAda, Quantity expectedAmt')]
-
---   checkAdaTxFromTo w1 w2 = do
---     res <- wiithPlutusInterface w1 (payTo (ledgerPaymentPkh w2) 10_000_000)
---     cEnv <- ask
---     liftIO $ do
---       assertBool ("Wallet to wallet tx failed: " <> show res) (isSuccess res)
---       utxosAtAddress cEnv (cardanoMainnetAddress w2)
---         >>= \case
---           Left e ->
---             assertFailure $ "Failed ot get wallet UTxO: " <> show e
---           Right (UTxO utxo) ->
---             let utxoCnt = Map.size utxo
---              in assertBool
---                   ("Should be 2 UTxO at destination wallet, but request returned " <> show utxoCnt)
---                   (utxoCnt == 2)
 
 getUtxos :: Contract () EmptySchema Text (Map TxOutRef ChainIndexTxOut)
 getUtxos = do

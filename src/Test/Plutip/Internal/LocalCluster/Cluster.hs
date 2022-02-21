@@ -1,42 +1,41 @@
-module Test.Plutip.Internal.LocalCluster.Cluster
-  ( runUsingCluster,
-    runUsingCluster',
-    runUsingClusterConf,
-  )
-where
+module Test.Plutip.Internal.LocalCluster.Cluster (
+  runUsingCluster,
+  runUsingCluster',
+  runUsingClusterConf,
+) where
 
 import Cardano.Api qualified as CAPI
 import Cardano.BM.Data.Severity qualified as Severity
-import Cardano.BM.Data.Tracer
-  ( HasPrivacyAnnotation,
-    HasSeverityAnnotation,
-    Tracer,
-    contramap,
-    getSeverityAnnotation,
-    traceWith,
-  )
+import Cardano.BM.Data.Tracer (
+  HasPrivacyAnnotation,
+  HasSeverityAnnotation,
+  Tracer,
+  contramap,
+  getSeverityAnnotation,
+  traceWith,
+ )
 import Cardano.CLI (LogOutput (LogToFile, LogToStdStreams), withLoggingNamed)
 import Cardano.Launcher.Node (nodeSocketFile)
-import Cardano.Startup
-  ( installSignalHandlers,
-    setDefaultFilePermissions,
-    withUtf8Encoding,
-  )
-import Cardano.Wallet.Logging
-  ( stdoutTextTracer,
-    trMessageText,
-  )
-import Cardano.Wallet.Shelley.Launch
-  ( withSystemTempDir,
-  )
-import Cardano.Wallet.Shelley.Launch.Cluster
-  ( ClusterLog,
-    RunningNode (RunningNode),
-    localClusterConfigFromEnv,
-    testMinSeverityFromEnv,
-    walletMinSeverityFromEnv,
-    withCluster,
-  )
+import Cardano.Startup (
+  installSignalHandlers,
+  setDefaultFilePermissions,
+  withUtf8Encoding,
+ )
+import Cardano.Wallet.Logging (
+  stdoutTextTracer,
+  trMessageText,
+ )
+import Cardano.Wallet.Shelley.Launch (
+  withSystemTempDir,
+ )
+import Cardano.Wallet.Shelley.Launch.Cluster (
+  ClusterLog,
+  RunningNode (RunningNode),
+  localClusterConfigFromEnv,
+  testMinSeverityFromEnv,
+  walletMinSeverityFromEnv,
+  withCluster,
+ )
 import Control.Concurrent.Async (async)
 import Control.Exception.Safe (IOException, catchIO, throw, throwIO)
 import Control.Monad (unless, void)
@@ -46,34 +45,36 @@ import Control.Retry (constantDelay, limitRetries, recoverAll)
 import Data.Default (def)
 import Data.Foldable (for_)
 import Data.Maybe (catMaybes, fromMaybe, isJust)
-import Data.Text
-  ( Text,
-    pack,
-  )
+import Data.Text (
+  Text,
+  pack,
+ )
 import Data.Text.Class (ToText (toText))
 import GHC.Stack (HasCallStack)
+import Paths_plutip (getDataFileName)
 import Plutus.ChainIndex.App qualified as ChainIndex
 import Plutus.ChainIndex.Config (ChainIndexConfig (cicNetworkId, cicPort), cicDbPath, cicSocketPath)
 import Plutus.ChainIndex.Config qualified as CI
 import Plutus.ChainIndex.Logging qualified as ChainIndex.Logging
 import Servant.Client (BaseUrl (BaseUrl), Scheme (Http))
-import System.Directory
-  ( copyFile,
-    findExecutable,
-  )
+import System.Directory (
+  copyFile,
+  findExecutable,
+ )
 import System.Environment (setEnv)
 import System.Exit (die)
-import System.FilePath
-  ( (</>),
-  )
+import System.FilePath (
+  (</>),
+ )
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BotSetup
 import Test.Plutip.Internal.LocalCluster.Config (Config (clusterDataDir, relayNodeLogs))
 import Test.Plutip.Internal.LocalCluster.Types (ClusterEnv (ClusterEnv, chainIndexUrl, networkId, runningNode, supportDir, tracer))
 import Test.Plutip.Tools.CardanoApi qualified as Tools
 import Text.Printf (printf)
 
--- | Start cluster and run action using provided `CalusterEnv`
--- under development
+{- | Start cluster and run action using provided `CalusterEnv`
+ under development
+-}
 runUsingCluster :: ReaderT ClusterEnv IO () -> IO ()
 runUsingCluster = runUsingClusterConf def
 
@@ -112,11 +113,11 @@ runUsingCluster' conf action = do
       traceWith tracer' (ChaiIndexStartedAt ciPort)
       let cEnv =
             ClusterEnv
-              { runningNode = rn,
-                chainIndexUrl = BaseUrl Http "localhost" ciPort mempty,
-                networkId = CAPI.Mainnet,
-                supportDir = dir,
-                tracer = trCluster
+              { runningNode = rn
+              , chainIndexUrl = BaseUrl Http "localhost" ciPort mempty
+              , networkId = CAPI.Mainnet
+              , supportDir = dir
+              , tracer = trCluster
               }
 
       BotSetup.runSetup cEnv -- run preparations to use `bot-plutus-interface`
@@ -145,7 +146,8 @@ withLocalClusterSetup ::
 withLocalClusterSetup conf action = do
   -- Setting required environment variables
   setEnv "NO_POOLS" "1"
-  setClusterDataDir
+  defaultClusterDataDir <- getDataFileName "cluster-data"
+  setClusterDataDir defaultClusterDataDir
 
   -- Handle SIGTERM properly
   installSignalHandlers (putStrLn "Terminated")
@@ -159,8 +161,8 @@ withLocalClusterSetup conf action = do
     -- produced by the local test cluster.
     withSystemTempDir stdoutTextTracer "test-cluster" $ \dir -> do
       let logOutputs name minSev =
-            [ LogToFile (dir </> name) (min minSev Severity.Info),
-              LogToStdStreams minSev
+            [ LogToFile (dir </> name) (min minSev Severity.Info)
+            , LogToStdStreams minSev
             ]
 
       clusterLogs <- logOutputs "cluster.log" <$> testMinSeverityFromEnv
@@ -168,9 +170,9 @@ withLocalClusterSetup conf action = do
 
       action dir clusterLogs walletLogs
   where
-    setClusterDataDir =
+    setClusterDataDir defaultDir =
       setEnv "SHELLEY_TEST_DATA" $
-        fromMaybe "./cluster-data" (clusterDataDir conf)
+        fromMaybe defaultDir (clusterDataDir conf)
 
 checkProcessesAvailable :: [String] -> IO ()
 checkProcessesAvailable requiredProcesses = do
@@ -196,12 +198,12 @@ instance ToText TestsLog where
   toText = \case
     MsgBaseUrl walletUrl ekgUrl prometheusUrl ->
       mconcat
-        [ "Wallet url: ",
-          walletUrl,
-          ", EKG url: ",
-          ekgUrl,
-          ", Prometheus url:",
-          prometheusUrl
+        [ "Wallet url: "
+        , walletUrl
+        , ", EKG url: "
+        , ekgUrl
+        , ", Prometheus url:"
+        , prometheusUrl
         ]
     MsgSettingUpFaucet -> "Setting up faucet..."
     MsgCluster msg -> toText msg
@@ -226,17 +228,18 @@ waitForRelayNode trCluster rn = do
     getTip = trace >> void (Tools.queryTip rn)
     trace = traceWith trCluster WaitingRelayNode
 
--- | Launch the chain index in a separate thread.
--- TODO: add ability to set custom port (if needed)
+{- | Launch the chain index in a separate thread.
+ TODO: add ability to set custom port (if needed)
+-}
 launchChainIndex :: RunningNode -> FilePath -> IO Int
 launchChainIndex (RunningNode sp _block0 (_gp, _vData)) dir = do
   config <- ChainIndex.Logging.defaultConfig
   let dbPath = dir </> "chain-index.db"
       chainIndexConfig =
         CI.defaultConfig
-          { cicSocketPath = nodeSocketFile sp,
-            cicDbPath = dbPath,
-            cicNetworkId = CAPI.Mainnet
+          { cicSocketPath = nodeSocketFile sp
+          , cicDbPath = dbPath
+          , cicNetworkId = CAPI.Mainnet
           }
   void . async $ void $ ChainIndex.runMain config chainIndexConfig
   return $ cicPort chainIndexConfig

@@ -138,6 +138,7 @@ executable plutip-example
     DebugContract.PayToWallet
 
   hs-source-dirs: example/
+  ghc-options:    -Wall -threaded -rtsopts
   build-depends:
     , base
     , containers

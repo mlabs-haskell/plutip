@@ -23,8 +23,8 @@ tests =
     [ shouldSucceed "Get utxos" (ada 100) $ const GetUtxos.getUtxos
     , shouldFail "Throws Contract error" (ada 100) $ const GetUtxos.getUtxosThrowsErr
     , shouldFail "Throws Exception" (ada 100) $ const GetUtxos.getUtxosThrowsEx
-    , shouldSucceed "Pay wallet-to-wallet" (ada 300 <> ada 200) $ \[pkh1] ->
-        PayToWallet.payTo (ledgerPaymentPkh pkh1) 10_000_000
+    , shouldSucceed "Pay wallet-to-wallet" (ada 300 <> ada 200) $ \[w1] ->
+        PayToWallet.payTo (ledgerPaymentPkh w1) 10_000_000
     , shouldFail "Lock at script then spend - budget overspend" (ada 100) $
         const LockUnlock.lockThenSpend
     , shouldFail "Lock at script then spend - validation fail" (ada 100) $ const LockUnlockValidationFail.lockThenSpend

@@ -11,14 +11,14 @@ import Network.HTTP.Client (
  )
 import Network.HTTP.Types.Status (status200)
 import System.Directory (doesDirectoryExist, doesFileExist)
-import Test.Plutip (runUsingCluster)
 import Test.Plutip.Internal.BotPlutusInterface.Setup (keysDir, pParamsFile)
+import Test.Plutip.Internal.LocalCluster (withPlutusInterface)
 import Test.Tasty (TestTree)
 import Test.Tasty.HUnit (assertBool, testCase)
 
 test :: TestTree
 test = testCase "Bot interface integration" $ do
-  runUsingCluster $ do
+  withPlutusInterface $ do
     cEnv <- ask
     liftIO $
       doesDirectoryExist (keysDir cEnv)

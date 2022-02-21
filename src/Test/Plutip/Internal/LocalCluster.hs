@@ -3,7 +3,12 @@
 -- temporary measure while module under development
 {-# OPTIONS_GHC -Wno-unused-imports #-}
 
-module Test.Plutip.Internal.LocalCluster (startCluster, stopCluster) where
+module Test.Plutip.Internal.LocalCluster (
+  startCluster,
+  stopCluster,
+  withPlutusInterface,
+  withPlutusInterface',
+) where
 
 import Cardano.Api qualified as CAPI
 import Cardano.BM.Data.Severity (Severity (..))
@@ -71,12 +76,15 @@ import Test.Plutip.Internal.Types (ClusterEnv (..), RunningNode (RunningNode))
 import UnliftIO.Concurrent (forkFinally)
 import UnliftIO.STM (TVar, atomically, newTVarIO, readTVar, retrySTM, writeTVar)
 
+withPlutusInterface :: forall (a :: Type). ReaderT ClusterEnv IO a -> IO a
+withPlutusInterface action = withPlutusInterface' (runReaderT action)
+
 {- Examples:
    `plutus-apps` local cluster: https://github.com/input-output-hk/plutus-apps/blob/75a581c6eb98d36192ce3d3f86ea60a04bc4a52a/plutus-pab/src/Plutus/PAB/LocalCluster/Run.hs
    `cardano-wallet` local cluster: https://github.com/input-output-hk/cardano-wallet/blob/99b13e50f092ffca803fd38b9e435c24dae05c91/lib/shelley/exe/local-cluster.hs
 -}
-withPlutusInterface :: forall (a :: Type). (ClusterEnv -> IO a) -> IO a
-withPlutusInterface action = do
+withPlutusInterface' :: forall (a :: Type). (ClusterEnv -> IO a) -> IO a
+withPlutusInterface' action = do
   -- current setup requires `cardano-node` and `cardano-cli` as external processes
   checkProcessesAvailable ["cardano-node", "cardano-cli"]
 
@@ -225,12 +233,12 @@ data ClusterStatus (a :: Type)
  Instead of rewriting and maintaining these, I introduced a semaphore mechanism to keep the
  cluster alive until the ClusterClosing action is called.
 -}
-startCluster :: forall (a :: Type). (ReaderT ClusterEnv IO a) -> IO (TVar (ClusterStatus a), a)
+startCluster :: forall (a :: Type). ReaderT ClusterEnv IO a -> IO (TVar (ClusterStatus a), a)
 startCluster onClusterStart = do
   status <- newTVarIO ClusterStarting
   void $
     forkFinally
-      ( withPlutusInterface $ \clusterEnv -> do
+      ( withPlutusInterface' $ \clusterEnv -> do
           res <- runReaderT onClusterStart clusterEnv
           atomically $ writeTVar status (ClusterStarted res)
           atomically $ readTVar status >>= \case ClusterClosing -> pure (); _ -> retrySTM

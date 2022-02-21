@@ -55,7 +55,7 @@ withCluster name testCases =
 
       let amounts = map (unInitValue . fst) testCases
       wallets <- traverse (traverse addSomeWallet) amounts
-      waitSeconds 10 -- wait for transactions to submit
+      waitSeconds 2 -- wait for transactions to submit
       pure (env, wallets)
 
 imap :: (Int -> a -> b) -> [a] -> [b]

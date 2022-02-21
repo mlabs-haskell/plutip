@@ -19,8 +19,6 @@ module Test.Plutip.Contract (
   initAdaAssertValue,
   initLovelaceAssertValue,
   -- Helpers
-  mkMainnetAddress,
-  cardanoMainnetAddress,
   ledgerPaymentPkh,
 ) where
 
@@ -41,19 +39,12 @@ import Ledger.Value (Value)
 import Numeric.Natural (Natural)
 import Plutus.Contract (AsContractError, Contract, utxosAt, waitNSlots)
 import Test.Plutip.Internal.BotPlutusInterface.Run (runContract)
-import Test.Plutip.Internal.BotPlutusInterface.Wallet (
-  BpiWallet,
-  cardanoMainnetAddress,
-  ledgerPaymentPkh,
-  mkMainnetAddress,
- )
+import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet, ledgerPaymentPkh)
 import Test.Plutip.Internal.Types (ClusterEnv, FailureReason, Outcome (Failure, Success))
 import Test.Tasty.Providers (IsTest (run, testOptions), TestTree, singleTest, testFailed, testPassed)
 
 type TestContractConstraints (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) =
-  ( Eq a
-  , Eq w
-  , ToJSON w
+  ( ToJSON w
   , Monoid w
   , Show w
   , Show e
@@ -117,7 +108,7 @@ assertYieldedResultWith tag testWallets predicate toContract =
 -- | Check if the return value of the contract equals to some expected value
 shouldYield ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
-  TestContractConstraints w s e a =>
+  (TestContractConstraints w s e a, Eq a) =>
   String ->
   TestWallets ->
   a ->
@@ -146,7 +137,7 @@ assertObservableStateWith tag testWallets predicate toContract =
 -- | Check if the observable state of the contract equals to some expected value
 shouldHaveObservableState ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
-  TestContractConstraints w s e a =>
+  (TestContractConstraints w s e a, Eq w) =>
   String ->
   TestWallets ->
   w ->

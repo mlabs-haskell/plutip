@@ -1,21 +1,27 @@
-module Test.Plutip.Options where
+module Test.Plutip.Options
+  ( DataDir (..),
+    RelayLogs (..),
+    ChainIndexPort (..),
+    toClusterConfig,
+  )
+where
 
 import Data.Default (def)
 import Data.Tagged (Tagged (Tagged))
 import Numeric.Natural (Natural)
-import Test.Plutip.Internal.LocalCluster.Config (
-  Config (Config, chainIndexPort, clusterDataDir, relayNodeLogs),
- )
-import Test.Tasty.Options (
-  IsOption,
-  OptionSet,
-  defaultValue,
-  lookupOption,
-  optionHelp,
-  optionName,
-  parseValue,
-  showDefaultValue,
- )
+import Test.Plutip.Internal.LocalCluster.Config
+  ( Config (Config, chainIndexPort, clusterDataDir, relayNodeLogs),
+  )
+import Test.Tasty.Options
+  ( IsOption,
+    OptionSet,
+    defaultValue,
+    lookupOption,
+    optionHelp,
+    optionName,
+    parseValue,
+    showDefaultValue,
+  )
 
 -- TODO: not sure if we will be able to use it with tasty integration
 -- but let it be for now, just in case
@@ -58,7 +64,7 @@ instance IsOption ChainIndexPort where
   optionHelp = Tagged "CLI PASSING NOT SUPPORTED"
   showDefaultValue = const Nothing
 
-data SlotLength -- TBD
+-- data SlotLength -- TBD
 
 toClusterConfig :: OptionSet -> Config
 toClusterConfig ops =
@@ -70,7 +76,7 @@ toClusterConfig ops =
         SomeUnused -> Nothing
         Exact port -> Just port
    in Config
-        { clusterDataDir = dir
-        , relayNodeLogs = logs
-        , chainIndexPort = cixPort
+        { clusterDataDir = dir,
+          relayNodeLogs = logs,
+          chainIndexPort = cixPort
         }

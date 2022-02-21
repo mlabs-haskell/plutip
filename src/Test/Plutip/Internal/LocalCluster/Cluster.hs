@@ -37,7 +37,7 @@ import Cardano.Wallet.Shelley.Launch.Cluster (
   withCluster,
  )
 import Control.Concurrent.Async (async)
-import Control.Exception.Safe (IOException, catchIO, throw, throwIO)
+import Control.Exception.Safe (catchIO)
 import Control.Monad (unless, void)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ReaderT (runReaderT))
@@ -53,9 +53,9 @@ import Data.Text.Class (ToText (toText))
 import GHC.Stack (HasCallStack)
 import Paths_plutip (getDataFileName)
 import Plutus.ChainIndex.App qualified as ChainIndex
+import Plutus.ChainIndex.Logging qualified as ChainIndex
 import Plutus.ChainIndex.Config (ChainIndexConfig (cicNetworkId, cicPort), cicDbPath, cicSocketPath)
 import Plutus.ChainIndex.Config qualified as CI
-import Plutus.ChainIndex.Logging qualified as ChainIndex.Logging
 import Servant.Client (BaseUrl (BaseUrl), Scheme (Http))
 import System.Directory (
   copyFile,
@@ -67,7 +67,7 @@ import System.FilePath (
   (</>),
  )
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BotSetup
-import Test.Plutip.Internal.LocalCluster.Config (Config (clusterDataDir, relayNodeLogs))
+import Test.Plutip.Internal.LocalCluster.Config (Config (clusterDataDir, relayNodeLogs, chainIndexPort))
 import Test.Plutip.Internal.LocalCluster.Types (ClusterEnv (ClusterEnv, chainIndexUrl, networkId, runningNode, supportDir, tracer))
 import Test.Plutip.Tools.CardanoApi qualified as Tools
 import Text.Printf (printf)
@@ -109,7 +109,7 @@ runUsingCluster' conf action = do
     runActionWthSetup rn dir trCluster userActon = do
       let tracer' = trMessageText trCluster
       waitForRelayNode tracer' rn
-      ciPort <- launchChainIndex rn dir
+      ciPort <- launchChainIndex conf rn dir
       traceWith tracer' (ChaiIndexStartedAt ciPort)
       let cEnv =
             ClusterEnv
@@ -231,15 +231,16 @@ waitForRelayNode trCluster rn = do
 {- | Launch the chain index in a separate thread.
  TODO: add ability to set custom port (if needed)
 -}
-launchChainIndex :: RunningNode -> FilePath -> IO Int
-launchChainIndex (RunningNode sp _block0 (_gp, _vData)) dir = do
-  config <- ChainIndex.Logging.defaultConfig
+launchChainIndex :: Config -> RunningNode -> FilePath -> IO Int
+launchChainIndex conf (RunningNode sp _block0 (_gp, _vData)) dir = do
+  config <- ChainIndex.defaultConfig
   let dbPath = dir </> "chain-index.db"
       chainIndexConfig =
         CI.defaultConfig
           { cicSocketPath = nodeSocketFile sp
           , cicDbPath = dbPath
           , cicNetworkId = CAPI.Mainnet
+          , cicPort = maybe (cicPort CI.defaultConfig) fromEnum (chainIndexPort conf)
           }
   void . async $ void $ ChainIndex.runMain config chainIndexConfig
   return $ cicPort chainIndexConfig

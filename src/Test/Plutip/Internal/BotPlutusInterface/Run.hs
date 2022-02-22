@@ -29,11 +29,16 @@ import BotPlutusInterface.Types (
   ceContractState,
   cePABConfig,
  )
-import Cardano.Api.ProtocolParameters (ProtocolParameters)
 import Control.Concurrent.STM (newTVarIO, readTVarIO)
 import Control.Monad (void)
-import Control.Monad.Catch (MonadCatch, catchAll)
+import Control.Monad.Catch (MonadCatch, SomeException)
 import Control.Monad.IO.Class (MonadIO, liftIO)
+import Control.Monad.Trans.Except.Extra (
+  firstExceptT,
+  handleExceptT,
+  hoistEither,
+  runExceptT,
+ )
 import Data.Aeson (ToJSON, eitherDecodeFileStrict')
 import Data.Default (def)
 import Data.Either.Combinators (fromRight)
@@ -45,7 +50,7 @@ import Plutus.Contract (Contract)
 import Plutus.PAB.Core.ContractInstance.STM (Activity (Active))
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BIS
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet (walletPkh))
-import Test.Plutip.Internal.Types (ClusterEnv (chainIndexUrl, networkId), FailureReason (CaughtException, ContractExecutionError), Outcome (Failure, Success))
+import Test.Plutip.Internal.Types (ClusterEnv (chainIndexUrl, networkId), ExecutionResult (ExecutionResult, contractState, outcome), FailureReason (CaughtException, ContractExecutionError), Outcome (Failure, Success))
 import Wallet.Types (ContractInstanceId (ContractInstanceId))
 
 runContract_ ::
@@ -63,18 +68,26 @@ runContract ::
   ClusterEnv ->
   BpiWallet ->
   Contract w s e a ->
-  m (Outcome w e a)
+  m (ExecutionResult w e a)
 runContract cEnv bpiWallet contract = do
   pparams <-
     fromRight (error "Could not read protocol parameters file.")
       <$> liftIO (eitherDecodeFileStrict' (BIS.pParamsFile cEnv))
-
-  runContract' pparams `catchAll` (pure . Failure . CaughtException)
+  contractState <- liftIO $ newTVarIO (ContractState Active (mempty :: w))
+  result <-
+    runExceptT $
+      runContract' pparams contractState
+        >>= firstExceptT ContractExecutionError . hoistEither
+  currentState <- liftIO (readTVarIO contractState)
+  return $
+    ExecutionResult
+      { outcome = either Failure Success result
+      , contractState = csObservableState currentState
+      }
   where
-    runContract' :: ProtocolParameters -> m (Outcome w e a)
-    runContract' pparams = do
+    -- runContract' :: ProtocolParameters -> m (Outcome w e a)
+    runContract' pparams contractState = do
       contractInstanceID <- liftIO $ ContractInstanceId <$> UUID.nextRandom
-      contractState <- liftIO $ newTVarIO (ContractState Active (mempty :: w))
       let pabConf =
             PABConfig
               { pcCliLocation = Local
@@ -98,7 +111,6 @@ runContract cEnv bpiWallet contract = do
               , ceContractState = contractState
               , ceContractInstanceId = contractInstanceID
               }
-      res <- liftIO $ BIC.runContract contractEnv contract
-      case res of
-        Left e -> pure $ Failure (ContractExecutionError e)
-        Right a -> Success a . csObservableState <$> liftIO (readTVarIO contractState)
+      handleExceptT
+        (\(e :: SomeException) -> CaughtException e)
+        (liftIO $ BIC.runContract contractEnv contract)

@@ -40,7 +40,7 @@ import Numeric.Natural (Natural)
 import Plutus.Contract (AsContractError, Contract, utxosAt, waitNSlots)
 import Test.Plutip.Internal.BotPlutusInterface.Run (runContract)
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet, ledgerPaymentPkh)
-import Test.Plutip.Internal.Types (ClusterEnv, FailureReason, Outcome (Failure, Success))
+import Test.Plutip.Internal.Types (ClusterEnv, ExecutionResult (ExecutionResult), FailureReason, Outcome (Failure, Success))
 import Test.Tasty.Providers (IsTest (run, testOptions), TestTree, singleTest, testFailed, testPassed)
 
 type TestContractConstraints (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) =
@@ -204,12 +204,12 @@ instance
     result <- runReaderT (runContract cEnv ownWallet contract) cEnv
 
     pure $ case (tcExpected, result) of
-      (ExpectSuccess assertRes assertObsSt expectedVal, Success (res, values) obsSt)
+      (ExpectSuccess assertRes assertObsSt expectedVal, ExecutionResult (Success (res, values)) obsSt)
         | assertRes res
             && assertObsSt obsSt
             && assertValues expectedVal values ->
           testPassed $ show result
-      (ExpectFailure _, Failure _) -> testPassed ""
+      (ExpectFailure _, ExecutionResult (Failure _) _) -> testPassed ""
       _ -> testFailed $ show result
 
   testOptions = Tagged []

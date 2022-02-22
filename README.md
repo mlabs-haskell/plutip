@@ -11,33 +11,29 @@ Current version of `Plutip` requires some initial setup to be prepared to functi
 
 ## Usage
 
-Current version provides brief eDSL to spin up private network and execute `Contract`. Minimal example could be something like:
+Plutip provides a tasty interface for executing Plutus contracts on a local cluster.
+depend on each other.
 
 ```haskell
-runUsingCluster $ do -- spins up private local network
-    testW1 <- addSomeWallet (ada 101) -- creates wallet and sends 101 Ada to it
-    testW2 <- addSomeWallet (ada 202) -- creates wallet and sends 101 Ada to it
-    waitSeconds 2 -- wait for wallet funding transactions to complete
-    runContractTagged 
-      "Pay wallet-to-wallet" -- short description of the Contract
-      testW1 -- wallet that will act as "own wallet" (e.g., will provide own `PaymentPubKeyHash`)
-      (payTo (ledgerPaymentPkh testW2) 10_000_000) -- `Contract` to execute
-
-    where
-      payTo :: PaymentPubKeyHash -> Integer -> Contract () EmptySchema Text CardanoTx
-      payTo toPkh amt = do
-        ownPkh <- ownPaymentPubKeyHash
-        tx <- submitTx 
-                (Constraints.mustPayToPubKey toPkh (Ada.lovelaceValueOf amt) 
-                  <> Constraints.mustBeSignedBy ownPkh
-                )
-      void $ waitNSlots 1
-      pure tx
+tests :: TestTree
+tests =
+  withCluster
+    "Integration tests"
+    [ shouldSucceed "Get utxos" (initAndAssertAda 100 100) $ const GetUtxos.getUtxos
+    , shouldFail "Throws Contract error" (initAda 100) $ const GetUtxos.getUtxosThrowsErr
+    , shouldFail "Throws Exception" (initAda 100) $ const GetUtxos.getUtxosThrowsEx
+    , shouldSucceed
+        "Pay wallet-to-wallet"
+        (initAda 300 <> initAndAssertAda 100 110)
+        $ \[w1] ->
+          PayToWallet.payTo (ledgerPaymentPkh w1) 10_000_000
+    , shouldFail "Lock at script then spend - budget overspend" (initAda 100) $
+        const LockUnlock.lockThenSpend
+    , shouldFail "Lock at script then spend - validation fail" (initAda 100) $ const LockUnlockValidationFail.lockThenSpend
+    ]
 ```
 
-`runContract` and `runContractTagged` return result of contract execution in form of `ExecutionResult` which can be pretty printed to terminal with `report` function or used in asserions in tests (there is `isSuccess` function to check that execution did not fail).
-
-If exception will be thrown during `Contract` execution, `ExecutionResult` with error will be returned.
+For more, see `Test.Plutip.LocalCluster` `Test.Plutip.Contract`.
 
 More examples could be found [here](example/Main.hs).
 

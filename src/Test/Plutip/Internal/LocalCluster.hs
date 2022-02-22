@@ -3,52 +3,34 @@
 -- temporary measure while module under development
 {-# OPTIONS_GHC -Wno-unused-imports #-}
 
-module Test.Plutip.Internal.LocalCluster.Cluster (runUsingCluster, runUsingCluster') where
+module Test.Plutip.Internal.LocalCluster (
+  startCluster,
+  stopCluster,
+  withPlutusInterface,
+  withPlutusInterface',
+) where
 
 import Cardano.Api qualified as CAPI
-import Cardano.BM.Data.Severity (
-  Severity (..),
- )
-import Cardano.BM.Data.Tracer (
-  HasPrivacyAnnotation (..),
-  HasSeverityAnnotation (..),
- )
-import Cardano.CLI (
-  LogOutput (..),
-  withLoggingNamed,
- )
+import Cardano.BM.Data.Severity (Severity (..))
+import Cardano.BM.Data.Tracer (HasPrivacyAnnotation (..), HasSeverityAnnotation (..))
+import Cardano.CLI (LogOutput (..), withLoggingNamed)
 import Cardano.Launcher.Node (nodeSocketFile)
-import Cardano.Startup (
-  installSignalHandlers,
-  setDefaultFilePermissions,
-  withUtf8Encoding,
- )
-import Cardano.Wallet.Api.Types (
-  EncodeAddress (..),
- )
-import Cardano.Wallet.Logging (
-  stdoutTextTracer,
-  trMessageText,
- )
-import Cardano.Wallet.Primitive.AddressDerivation (
-  NetworkDiscriminant (..),
- )
-import Cardano.Wallet.Primitive.Types.Coin (
-  Coin (..),
- )
+import Cardano.Startup (installSignalHandlers, setDefaultFilePermissions, withUtf8Encoding)
+import Cardano.Wallet.Api.Types (EncodeAddress (..))
+import Cardano.Wallet.Logging (stdoutTextTracer, trMessageText)
+import Cardano.Wallet.Primitive.AddressDerivation (NetworkDiscriminant (..))
+import Cardano.Wallet.Primitive.Types.Coin (Coin (..))
 import Cardano.Wallet.Shelley (
   SomeNetworkDiscriminant (..),
   serveWallet,
   setupTracers,
   tracerSeverities,
  )
-import Cardano.Wallet.Shelley.Launch (
-  withSystemTempDir,
- )
+import Cardano.Wallet.Shelley.Launch (withSystemTempDir)
 import Cardano.Wallet.Shelley.Launch.Cluster (
   ClusterLog (..),
   Credential (..),
-  RunningNode (..),
+  LocalClusterConfig,
   localClusterConfigFromEnv,
   moveInstantaneousRewardsTo,
   nodeMinSeverityFromEnv,
@@ -61,46 +43,28 @@ import Cardano.Wallet.Shelley.Launch.Cluster (
   walletMinSeverityFromEnv,
   withCluster,
  )
-import Control.Arrow (
-  first,
- )
+import Control.Arrow (first)
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (async)
 import Control.Monad (unless, void, when)
 import Control.Monad.Reader (ReaderT (runReaderT))
-import Control.Tracer (
-  Tracer,
-  contramap,
-  traceWith,
- )
+import Control.Tracer (Tracer, contramap, traceWith)
+import Data.Kind (Type)
 import Data.Maybe (catMaybes, isJust)
-import Data.Proxy (
-  Proxy (..),
- )
-import Data.Text (
-  Text,
-  pack,
- )
+import Data.Proxy (Proxy (..))
+import Data.Text (Text, pack)
 import Data.Text qualified as T
-import Data.Text.Class (
-  ToText (..),
- )
+import Data.Text.Class (ToText (..))
 import Plutus.ChainIndex.App qualified as ChainIndex
 import Plutus.ChainIndex.Config (ChainIndexConfig (cicNetworkId, cicPort), cicDbPath, cicSocketPath)
 import Plutus.ChainIndex.Config qualified as CI
 import Plutus.ChainIndex.Logging qualified as ChainIndex.Logging
 import Plutus.ChainIndex.Types (Point (..))
 import Servant.Client (BaseUrl (BaseUrl), Scheme (Http))
-import System.Directory (
-  createDirectory,
-  doesFileExist,
-  findExecutable,
- )
+import System.Directory (createDirectory, doesFileExist, findExecutable)
 import System.Environment (setEnv)
 import System.Exit (die)
-import System.FilePath (
-  (</>),
- )
+import System.FilePath ((</>))
 import Test.Integration.Faucet (
   genRewardAccounts,
   maryIntegrationTestAssets,
@@ -108,20 +72,19 @@ import Test.Integration.Faucet (
   shelleyIntegrationTestFunds,
  )
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BotSetup
-import Test.Plutip.Internal.LocalCluster.Types
+import Test.Plutip.Internal.Types (ClusterEnv (..), RunningNode (RunningNode))
+import UnliftIO.Concurrent (forkFinally)
+import UnliftIO.STM (TVar, atomically, newTVarIO, readTVar, retrySTM, writeTVar)
 
-{- | Start cluster and run action using provided `CalusterEnv`
- under development (mostly borrowed from `cardano-wallet`)
--}
-runUsingCluster :: ReaderT ClusterEnv IO () -> IO ()
-runUsingCluster act = runUsingCluster' (runReaderT act)
+withPlutusInterface :: forall (a :: Type). ReaderT ClusterEnv IO a -> IO a
+withPlutusInterface action = withPlutusInterface' (runReaderT action)
 
 {- Examples:
    `plutus-apps` local cluster: https://github.com/input-output-hk/plutus-apps/blob/75a581c6eb98d36192ce3d3f86ea60a04bc4a52a/plutus-pab/src/Plutus/PAB/LocalCluster/Run.hs
    `cardano-wallet` local cluster: https://github.com/input-output-hk/cardano-wallet/blob/99b13e50f092ffca803fd38b9e435c24dae05c91/lib/shelley/exe/local-cluster.hs
 -}
-runUsingCluster' :: (ClusterEnv -> IO ()) -> IO ()
-runUsingCluster' action = do
+withPlutusInterface' :: forall (a :: Type). (ClusterEnv -> IO a) -> IO a
+withPlutusInterface' action = do
   -- current setup requires `cardano-node` and `cardano-cli` as external processes
   checkProcessesAvailable ["cardano-node", "cardano-cli"]
 
@@ -157,6 +120,7 @@ runUsingCluster' action = do
 -- temporary directory, log output configurations, and pass these to the given
 -- main action.
 withLocalClusterSetup ::
+  forall (a :: Type).
   (FilePath -> [LogOutput] -> [LogOutput] -> IO a) ->
   IO a
 withLocalClusterSetup action = do
@@ -256,3 +220,36 @@ launchChainIndex (RunningNode sp _block0 (_gp, _vData)) dir = do
           }
   void . async $ void $ ChainIndex.runMain config chainIndexConfig
   return $ cicPort chainIndexConfig
+
+data ClusterStatus (a :: Type)
+  = ClusterStarting
+  | ClusterStarted a
+  | ClusterClosing
+  | ClusterClosed
+
+{- | Starting a cluster with a setup action
+ We're heavily depending on cardano-wallet local cluster tooling, however they don't allow the
+ start and stop actions to be two separate processes, which is needed for tasty integration.
+ Instead of rewriting and maintaining these, I introduced a semaphore mechanism to keep the
+ cluster alive until the ClusterClosing action is called.
+-}
+startCluster :: forall (a :: Type). ReaderT ClusterEnv IO a -> IO (TVar (ClusterStatus a), a)
+startCluster onClusterStart = do
+  status <- newTVarIO ClusterStarting
+  void $
+    forkFinally
+      ( withPlutusInterface' $ \clusterEnv -> do
+          res <- runReaderT onClusterStart clusterEnv
+          atomically $ writeTVar status (ClusterStarted res)
+          atomically $ readTVar status >>= \case ClusterClosing -> pure (); _ -> retrySTM
+      )
+      (either (error . show) (const (atomically (writeTVar status ClusterClosed))))
+
+  setupRes <- atomically $ readTVar status >>= \case ClusterStarted v -> pure v; _ -> retrySTM
+  pure (status, setupRes)
+
+--- | Send a shutdown signal to the cluster and wait for it
+stopCluster :: TVar (ClusterStatus a) -> IO ()
+stopCluster status = do
+  atomically $ writeTVar status ClusterClosing
+  atomically $ readTVar status >>= \case ClusterClosed -> pure (); _ -> retrySTM

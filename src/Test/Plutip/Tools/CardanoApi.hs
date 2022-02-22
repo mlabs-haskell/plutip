@@ -10,13 +10,12 @@ import Cardano.Api qualified as C
 import Cardano.Api.ProtocolParameters (ProtocolParameters)
 import Cardano.Launcher.Node (nodeSocketFile)
 import Cardano.Slotting.Slot (WithOrigin)
-import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (RunningNode))
 import Control.Exception (Exception)
 import Data.Set qualified as Set
 import GHC.Generics (Generic)
 import Ouroboros.Consensus.HardFork.Combinator.AcrossEras (EraMismatch)
 import Ouroboros.Network.Protocol.LocalStateQuery.Type (AcquireFailure)
-import Test.Plutip.Internal.LocalCluster.Types (ClusterEnv (runningNode))
+import Test.Plutip.Internal.Types (ClusterEnv (runningNode), RunningNode (RunningNode))
 
 data CardanoApiError
   = SomeError String

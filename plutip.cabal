@@ -1,6 +1,6 @@
 cabal-version:      3.0
 name:               plutip
-version:            0.1.0.0
+version:            0.2
 license-file:       LICENSE
 author:             mlabs
 maintainer:         TODO
@@ -29,6 +29,7 @@ common common-imports
     , contra-tracer
     , data-default
     , directory
+    , either
     , exceptions
     , filepath
     , http-client
@@ -51,10 +52,12 @@ common common-imports
     , row-types
     , servant-client
     , stm
+    , tagged
     , tasty
     , text
     , text-class
     , typed-process
+    , unliftio
     , uuid
 
 common common-language
@@ -114,14 +117,15 @@ library
 
   hs-source-dirs:  src/
   exposed-modules:
-    Test.Plutip
+    Test.Plutip.Contract
     Test.Plutip.Internal.BotPlutusInterface.Keys
     Test.Plutip.Internal.BotPlutusInterface.Run
     Test.Plutip.Internal.BotPlutusInterface.Setup
     Test.Plutip.Internal.BotPlutusInterface.Types
     Test.Plutip.Internal.BotPlutusInterface.Wallet
-    Test.Plutip.Internal.LocalCluster.Cluster
-    Test.Plutip.Internal.LocalCluster.Types
+    Test.Plutip.Internal.LocalCluster
+    Test.Plutip.Internal.Types
+    Test.Plutip.LocalCluster
     Test.Plutip.Tools
     Test.Plutip.Tools.Address
     Test.Plutip.Tools.CardanoApi
@@ -151,6 +155,7 @@ executable plutip-example
     , plutus-pab
     , plutus-tx
     , plutus-tx-plugin
+    , tasty
     , text
 
 test-suite plutip-tests

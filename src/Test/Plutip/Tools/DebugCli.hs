@@ -13,7 +13,7 @@ import System.Process.Typed (
   readProcess,
   setEnv,
  )
-import Test.Plutip.Internal.LocalCluster.Types (ClusterEnv, nodeSocket)
+import Test.Plutip.Internal.Types (ClusterEnv, nodeSocket)
 
 {- | Call `cardano-cli` as external process.
  `cardano-cli` must be available in shell

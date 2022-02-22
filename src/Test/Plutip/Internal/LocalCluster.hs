@@ -23,7 +23,7 @@ import Control.Monad.Reader (ReaderT (runReaderT))
 import Control.Retry (constantDelay, limitRetries, recoverAll)
 import Control.Tracer (Tracer, contramap, traceWith)
 import Data.Kind (Type)
-import Data.Maybe (catMaybes, isJust)
+import Data.Maybe (catMaybes, isJust, fromMaybe)
 import Data.Text (Text, pack)
 import Data.Text.Class (ToText (toText))
 import Plutus.ChainIndex.App qualified as ChainIndex
@@ -47,9 +47,10 @@ import UnliftIO.STM (TVar, atomically, newTVarIO, readTVar, retrySTM, writeTVar)
 import Data.Default (def)
 import Data.Foldable (for_)
 import GHC.Stack.Types (HasCallStack)
-import Test.Plutip.Config (PlutipConfig (chainIndexPort, relayNodeLogs))
+import Test.Plutip.Config (PlutipConfig (chainIndexPort, relayNodeLogs, clusterDataDir))
 import Text.Printf (printf)
 import UnliftIO.Exception (catchIO)
+import Paths_plutip (getDataFileName)
 
 withPlutusInterface :: forall (a :: Type). ReaderT ClusterEnv IO a -> IO a
 withPlutusInterface action = withPlutusInterface' def (runReaderT action)
@@ -104,7 +105,7 @@ withLocalClusterSetup ::
 withLocalClusterSetup conf action = do
   -- Setting required environment variables
   setEnv "NO_POOLS" "1"
-  setEnv "SHELLEY_TEST_DATA" "cluster-data"
+  setClusterDataDir
 
   -- Handle SIGTERM properly
   installSignalHandlers (putStrLn "Terminated")
@@ -126,6 +127,11 @@ withLocalClusterSetup conf action = do
       walletLogs <- logOutputs "wallet.log" <$> walletMinSeverityFromEnv
 
       action dir clusterLogs walletLogs
+  where
+    setClusterDataDir = do
+      defaultClusterDataDir <- getDataFileName "cluster-data"
+      setEnv "SHELLEY_TEST_DATA" $
+        fromMaybe defaultClusterDataDir (clusterDataDir conf)
 
 checkProcessesAvailable :: [String] -> IO ()
 checkProcessesAvailable requiredProcesses = do

@@ -1,35 +1,24 @@
 module Main (main) where
 
-import Control.Monad (forever, replicateM_, void)
+import Control.Monad (void)
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Reader (ask)
-import Data.Text (Text, unpack)
 import DebugContract.GetUtxos qualified as GetUtxos
 import DebugContract.LockUnlock qualified as LockUnlock
 import DebugContract.LockUnlockValidationFail qualified as LockUnlockValidationFail
 import DebugContract.PayToWallet qualified as PayToWallet
-import System.Environment (setEnv)
-import System.IO (BufferMode (NoBuffering), hSetBuffering, stderr, stdout)
 import Test.Plutip (
   ada,
   addSomeWallet,
-  andThen,
   ledgerPaymentPkh,
-  mkMainnetAddress,
-  report,
   runContractWithReport,
   runUsingCluster,
   waitSeconds,
  )
 
-import Data.Default (def)
-import Test.Plutip.Internal.LocalCluster.Cluster (runUsingClusterConf)
-import Test.Plutip.Internal.LocalCluster.Config (relayNodeLogs)
 
 main :: IO ()
 main = do
-  let conf = def {relayNodeLogs = Just "example/relay-node.log"}
-  runUsingClusterConf conf $ do
+  runUsingCluster $ do
     testW1 <- addSomeWallet (ada 101)
     testW2 <- addSomeWallet (ada 202)
     waitSeconds 2 -- wait for transactions to submit

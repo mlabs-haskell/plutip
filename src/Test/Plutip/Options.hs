@@ -1,30 +1,29 @@
-module Test.Plutip.Options
-  ( DataDir (..),
-    RelayLogs (..),
-    ChainIndexPort (..),
-    toClusterConfig,
-  )
-where
+module Test.Plutip.Options (
+  DataDir (..),
+  RelayLogs (..),
+  ChainIndexPort (..),
+  toClusterConfig,
+) where
 
 import Data.Default (def)
 import Data.Tagged (Tagged (Tagged))
 import Numeric.Natural (Natural)
-import Test.Plutip.Internal.LocalCluster.Config
-  ( Config (Config, chainIndexPort, clusterDataDir, relayNodeLogs),
-  )
-import Test.Tasty.Options
-  ( IsOption,
-    OptionSet,
-    defaultValue,
-    lookupOption,
-    optionHelp,
-    optionName,
-    parseValue,
-    showDefaultValue,
-  )
+import Test.Plutip.Config (
+  PlutipConfig (PlutipConfig, chainIndexPort, clusterDataDir, relayNodeLogs),
+ )
+import Test.Tasty.Options (
+  IsOption,
+  OptionSet,
+  defaultValue,
+  lookupOption,
+  optionHelp,
+  optionName,
+  parseValue,
+  showDefaultValue,
+ )
 
 -- TODO: not sure if we will be able to use it with tasty integration
--- but let it be for now, just in case
+-- need to merge with Tasty integration and see hwo these can be used
 
 -- | Directory with data required for cluster launch
 newtype DataDir = DataDir (Maybe FilePath)
@@ -66,7 +65,7 @@ instance IsOption ChainIndexPort where
 
 -- data SlotLength -- TBD
 
-toClusterConfig :: OptionSet -> Config
+toClusterConfig :: OptionSet -> PlutipConfig
 toClusterConfig ops =
   let (DataDir dir) = lookupOption @DataDir ops
       logs = case lookupOption @RelayLogs ops of
@@ -75,8 +74,8 @@ toClusterConfig ops =
       cixPort = case lookupOption @ChainIndexPort ops of
         SomeUnused -> Nothing
         Exact port -> Just port
-   in Config
-        { clusterDataDir = dir,
-          relayNodeLogs = logs,
-          chainIndexPort = cixPort
+   in PlutipConfig
+        { clusterDataDir = dir
+        , relayNodeLogs = logs
+        , chainIndexPort = cixPort
         }

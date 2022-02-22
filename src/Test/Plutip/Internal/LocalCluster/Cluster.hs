@@ -53,9 +53,9 @@ import Data.Text.Class (ToText (toText))
 import GHC.Stack (HasCallStack)
 import Paths_plutip (getDataFileName)
 import Plutus.ChainIndex.App qualified as ChainIndex
-import Plutus.ChainIndex.Logging qualified as ChainIndex
 import Plutus.ChainIndex.Config (ChainIndexConfig (cicNetworkId, cicPort), cicDbPath, cicSocketPath)
-import Plutus.ChainIndex.Config qualified as CI
+import Plutus.ChainIndex.Config qualified as ChainIndex
+import Plutus.ChainIndex.Logging (defaultConfig)
 import Servant.Client (BaseUrl (BaseUrl), Scheme (Http))
 import System.Directory (
   copyFile,
@@ -66,19 +66,22 @@ import System.Exit (die)
 import System.FilePath (
   (</>),
  )
+import Test.Plutip.Config (PlutipConfig (chainIndexPort, clusterDataDir, relayNodeLogs))
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BotSetup
-import Test.Plutip.Internal.LocalCluster.Config (Config (clusterDataDir, relayNodeLogs, chainIndexPort))
 import Test.Plutip.Internal.LocalCluster.Types (ClusterEnv (ClusterEnv, chainIndexUrl, networkId, runningNode, supportDir, tracer))
 import Test.Plutip.Tools.CardanoApi qualified as Tools
 import Text.Printf (printf)
 
 {- | Start cluster and run action using provided `CalusterEnv`
- under development
+     using default `PlutipConfig`
 -}
 runUsingCluster :: ReaderT ClusterEnv IO () -> IO ()
 runUsingCluster = runUsingClusterConf def
 
-runUsingClusterConf :: Config -> ReaderT ClusterEnv IO () -> IO ()
+{- | Start cluster and run action using provided `CalusterEnv`
+     using `PlutipConfig`
+-}
+runUsingClusterConf :: PlutipConfig -> ReaderT ClusterEnv IO () -> IO ()
 runUsingClusterConf conf act =
   runUsingCluster'
     conf
@@ -88,7 +91,7 @@ runUsingClusterConf conf act =
    `plutus-apps` local cluster: https://github.com/input-output-hk/plutus-apps/blob/75a581c6eb98d36192ce3d3f86ea60a04bc4a52a/plutus-pab/src/Plutus/PAB/LocalCluster/Run.hs
    `cardano-wallet` local cluster: https://github.com/input-output-hk/cardano-wallet/blob/99b13e50f092ffca803fd38b9e435c24dae05c91/lib/shelley/exe/local-cluster.hs
 -}
-runUsingCluster' :: Config -> (ClusterEnv -> IO ()) -> IO ()
+runUsingCluster' :: PlutipConfig -> (ClusterEnv -> IO ()) -> IO ()
 runUsingCluster' conf action = do
   -- current setup requires `cardano-node` and `cardano-cli` as external processes
   checkProcessesAvailable ["cardano-node", "cardano-cli"]
@@ -119,11 +122,10 @@ runUsingCluster' conf action = do
               , supportDir = dir
               , tracer = trCluster
               }
-
       BotSetup.runSetup cEnv -- run preparations to use `bot-plutus-interface`
       userActon cEnv -- executing user action on cluster
 
-handleLogs :: HasCallStack => FilePath -> Config -> IO ()
+handleLogs :: HasCallStack => FilePath -> PlutipConfig -> IO ()
 handleLogs clusterDir conf =
   copyRelayLog `catchIO` (error . printf "Failed to save relay node log: %s" . show)
   where
@@ -140,7 +142,7 @@ handleLogs clusterDir conf =
 -- temporary directory, log output configurations, and pass these to the given
 -- main action.
 withLocalClusterSetup ::
-  Config ->
+  PlutipConfig ->
   (FilePath -> [LogOutput] -> [LogOutput] -> IO a) ->
   IO a
 withLocalClusterSetup conf action = do
@@ -228,19 +230,21 @@ waitForRelayNode trCluster rn = do
     getTip = trace >> void (Tools.queryTip rn)
     trace = traceWith trCluster WaitingRelayNode
 
-{- | Launch the chain index in a separate thread.
- TODO: add ability to set custom port (if needed)
--}
-launchChainIndex :: Config -> RunningNode -> FilePath -> IO Int
+-- | Launch the chain index in a separate thread.
+launchChainIndex :: PlutipConfig -> RunningNode -> FilePath -> IO Int
 launchChainIndex conf (RunningNode sp _block0 (_gp, _vData)) dir = do
-  config <- ChainIndex.defaultConfig
+  config <- defaultConfig
   let dbPath = dir </> "chain-index.db"
       chainIndexConfig =
-        CI.defaultConfig
+        ChainIndex.defaultConfig
           { cicSocketPath = nodeSocketFile sp
           , cicDbPath = dbPath
           , cicNetworkId = CAPI.Mainnet
-          , cicPort = maybe (cicPort CI.defaultConfig) fromEnum (chainIndexPort conf)
+          , cicPort =
+              maybe
+                (cicPort ChainIndex.defaultConfig)
+                fromEnum
+                (chainIndexPort conf)
           }
   void . async $ void $ ChainIndex.runMain config chainIndexConfig
   return $ cicPort chainIndexConfig

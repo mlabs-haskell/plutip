@@ -130,13 +130,13 @@ library
   hs-source-dirs:  src/
   exposed-modules:
     Test.Plutip
+    Test.Plutip.Config
     Test.Plutip.Internal.BotPlutusInterface.Keys
     Test.Plutip.Internal.BotPlutusInterface.Run
     Test.Plutip.Internal.BotPlutusInterface.Setup
     Test.Plutip.Internal.BotPlutusInterface.Types
     Test.Plutip.Internal.BotPlutusInterface.Wallet
     Test.Plutip.Internal.LocalCluster.Cluster
-    Test.Plutip.Internal.LocalCluster.Config
     Test.Plutip.Internal.LocalCluster.Types
     Test.Plutip.Options
     Test.Plutip.Tools

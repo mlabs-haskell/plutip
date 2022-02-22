@@ -118,6 +118,7 @@ library
 
   hs-source-dirs:  src/
   exposed-modules:
+    Test.Plutip.Config
     Test.Plutip.Contract
     Test.Plutip.Internal.BotPlutusInterface.Keys
     Test.Plutip.Internal.BotPlutusInterface.Run

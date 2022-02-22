@@ -28,10 +28,10 @@ import Data.Text (Text, pack)
 import Data.Text.Class (ToText (toText))
 import Plutus.ChainIndex.App qualified as ChainIndex
 import Plutus.ChainIndex.Config (ChainIndexConfig (cicNetworkId, cicPort), cicDbPath, cicSocketPath)
-import Plutus.ChainIndex.Config qualified as CI
-import Plutus.ChainIndex.Logging qualified as ChainIndex.Logging
+import Plutus.ChainIndex.Config qualified as ChainIndex
+import Plutus.ChainIndex.Logging (defaultConfig)
 import Servant.Client (BaseUrl (BaseUrl), Scheme (Http))
-import System.Directory (findExecutable)
+import System.Directory (copyFile, findExecutable)
 import System.Environment (setEnv)
 import System.Exit (die)
 import System.FilePath ((</>))
@@ -44,20 +44,27 @@ import Test.Plutip.Tools.CardanoApi qualified as Tools
 import UnliftIO.Concurrent (forkFinally)
 import UnliftIO.STM (TVar, atomically, newTVarIO, readTVar, retrySTM, writeTVar)
 
+import Data.Default (def)
+import Data.Foldable (for_)
+import GHC.Stack.Types (HasCallStack)
+import Test.Plutip.Config (PlutipConfig (chainIndexPort, relayNodeLogs))
+import Text.Printf (printf)
+import UnliftIO.Exception (catchIO)
+
 withPlutusInterface :: forall (a :: Type). ReaderT ClusterEnv IO a -> IO a
-withPlutusInterface action = withPlutusInterface' (runReaderT action)
+withPlutusInterface action = withPlutusInterface' def (runReaderT action)
 
 {- Examples:
    `plutus-apps` local cluster: https://github.com/input-output-hk/plutus-apps/blob/75a581c6eb98d36192ce3d3f86ea60a04bc4a52a/plutus-pab/src/Plutus/PAB/LocalCluster/Run.hs
    `cardano-wallet` local cluster: https://github.com/input-output-hk/cardano-wallet/blob/99b13e50f092ffca803fd38b9e435c24dae05c91/lib/shelley/exe/local-cluster.hs
 -}
-withPlutusInterface' :: forall (a :: Type). (ClusterEnv -> IO a) -> IO a
-withPlutusInterface' action = do
+withPlutusInterface' :: forall (a :: Type). PlutipConfig -> (ClusterEnv -> IO a) -> IO a
+withPlutusInterface' conf action = do
   -- current setup requires `cardano-node` and `cardano-cli` as external processes
   checkProcessesAvailable ["cardano-node", "cardano-cli"]
 
-  withLocalClusterSetup $ \dir clusterLogs _walletLogs -> do
-    withLoggingNamed "cluster" clusterLogs $ \(_, (_, trCluster)) -> do
+  withLocalClusterSetup conf $ \dir clusterLogs _walletLogs -> do
+    result <- withLoggingNamed "cluster" clusterLogs $ \(_, (_, trCluster)) -> do
       let tr' = contramap MsgCluster $ trMessageText trCluster
       clusterCfg <- localClusterConfigFromEnv
       withCluster
@@ -66,11 +73,13 @@ withPlutusInterface' action = do
         clusterCfg
         (const $ pure ()) -- faucet setup was here in `cardano-wallet` version
         (\rn -> runActionWthSetup rn dir trCluster action)
+    handleLogs dir conf
+    return result
   where
     runActionWthSetup rn dir trCluster userActon = do
       let tracer' = trMessageText trCluster
       waitForRelayNode tracer' rn
-      ciPort <- launchChainIndex rn dir
+      ciPort <- launchChainIndex conf rn dir
       traceWith tracer' (ChaiIndexStartedAt ciPort)
       let cEnv =
             ClusterEnv
@@ -89,9 +98,10 @@ withPlutusInterface' action = do
 -- main action.
 withLocalClusterSetup ::
   forall (a :: Type).
+  PlutipConfig ->
   (FilePath -> [LogOutput] -> [LogOutput] -> IO a) ->
   IO a
-withLocalClusterSetup action = do
+withLocalClusterSetup conf action = do
   -- Setting required environment variables
   setEnv "NO_POOLS" "1"
   setEnv "SHELLEY_TEST_DATA" "cluster-data"
@@ -135,20 +145,36 @@ waitForRelayNode trCluster rn = do
     trace = traceWith trCluster WaitingRelayNode
 
 -- | Launch the chain index in a separate thread.
-
--- TODO: add ability to set custom port (if needed)
-launchChainIndex :: RunningNode -> FilePath -> IO Int
-launchChainIndex (RunningNode sp _block0 (_gp, _vData)) dir = do
-  config <- ChainIndex.Logging.defaultConfig
+launchChainIndex :: PlutipConfig -> RunningNode -> FilePath -> IO Int
+launchChainIndex conf (RunningNode sp _block0 (_gp, _vData)) dir = do
+  config <- defaultConfig
   let dbPath = dir </> "chain-index.db"
       chainIndexConfig =
-        CI.defaultConfig
+        ChainIndex.defaultConfig
           { cicSocketPath = nodeSocketFile sp
           , cicDbPath = dbPath
           , cicNetworkId = CAPI.Mainnet
+          , cicPort =
+              maybe
+                (cicPort ChainIndex.defaultConfig)
+                fromEnum
+                (chainIndexPort conf)
           }
   void . async $ void $ ChainIndex.runMain config chainIndexConfig
   return $ cicPort chainIndexConfig
+
+handleLogs :: HasCallStack => FilePath -> PlutipConfig -> IO ()
+handleLogs clusterDir conf =
+  copyRelayLog `catchIO` (error . printf "Failed to save relay node log: %s" . show)
+  where
+    copyRelayLog = for_ (relayNodeLogs conf) $ \toFile ->
+      copyFile
+        {- We're heavily depending on cardano-wallet local cluster tooling atm.
+          Path partially hardcoded in Cardano.Wallet.Shelley.Launch.Cluster by
+         `withRelayNode` ("node" subdir) and `genConfig` (file name)
+        -}
+        (clusterDir </> "node" </> "cardano-node.log")
+        toFile
 
 data ClusterStatus (a :: Type)
   = ClusterStarting
@@ -163,11 +189,18 @@ data ClusterStatus (a :: Type)
  cluster alive until the ClusterClosing action is called.
 -}
 startCluster :: forall (a :: Type). ReaderT ClusterEnv IO a -> IO (TVar (ClusterStatus a), a)
-startCluster onClusterStart = do
+startCluster = startClusterConf def
+
+startClusterConf ::
+  forall (a :: Type).
+  PlutipConfig ->
+  ReaderT ClusterEnv IO a ->
+  IO (TVar (ClusterStatus a), a)
+startClusterConf conf onClusterStart = do
   status <- newTVarIO ClusterStarting
   void $
     forkFinally
-      ( withPlutusInterface' $ \clusterEnv -> do
+      ( withPlutusInterface' conf $ \clusterEnv -> do
           res <- runReaderT onClusterStart clusterEnv
           atomically $ writeTVar status (ClusterStarted res)
           atomically $ readTVar status >>= \case ClusterClosing -> pure (); _ -> retrySTM

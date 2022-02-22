@@ -49,6 +49,7 @@ common common-imports
     , plutus-pab
     , plutus-tx
     , plutus-tx-plugin
+    , retry
     , row-types
     , servant-client
     , stm

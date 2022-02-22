@@ -1,7 +1,3 @@
-{-# LANGUAGE ImplicitParams #-}
-{-# LANGUAGE NamedFieldPuns #-}
-
---
 module Test.Plutip.LocalCluster (
   BpiWallet,
   addSomeWallet,

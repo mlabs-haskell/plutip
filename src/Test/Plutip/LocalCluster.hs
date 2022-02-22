@@ -1,7 +1,6 @@
 {-# LANGUAGE ImplicitParams #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
---
 module Test.Plutip.LocalCluster (
   BpiWallet,
   addSomeWallet,
@@ -37,8 +36,17 @@ import Test.Tasty.Providers (TestTree)
 waitSeconds :: Natural -> ReaderT ClusterEnv IO ()
 waitSeconds n = liftIO $ threadDelay (fromEnum n * 1_000_000)
 
-{- | Spin up a local cluster and run multiple contracts inside.
- Each contract had its own set of wallets, so they don't depend on each other.
+{- | Spin up a local cluster and create a test group with the contracts inside it.
+ The cluster is reused by all the test cases, but the wallets are isolated, so contracts won't
+ depend on each other (note that time related issues might still occur).
+
+= Usage
+> test :: TestTree
+> test =
+>   withCluster
+>     "Tests with local cluster"
+>     [ shouldSucceed "Get utxos" (initAda 100) $ const getUtxos
+>     ...
 
  @since 0.2
 -}

@@ -1,13 +1,12 @@
 module Spec.Integration (test) where
 
-import Control.Monad (void)
 import Data.Map (Map)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Ledger (CardanoTx, ChainIndexTxOut, PaymentPubKeyHash, TxOutRef, pubKeyHashAddress)
 import Ledger.Ada qualified as Ada
 import Ledger.Constraints qualified as Constraints
-import Plutus.Contract (Contract, ownPaymentPubKeyHash, submitTx, utxosAt, waitNSlots)
+import Plutus.Contract (Contract, submitTx, utxosAt)
 import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
 import Test.Plutip.Contract (initAda, initAndAssertAda, shouldFail, shouldSucceed)
@@ -45,11 +44,4 @@ getUtxosThrowsEx = error "This Exception was thrown intentionally in Contract.\n
 
 payTo :: PaymentPubKeyHash -> Integer -> Contract () EmptySchema Text CardanoTx
 payTo toPkh amt = do
-  ownPkh <- ownPaymentPubKeyHash
-  tx <-
-    submitTx
-      ( Constraints.mustPayToPubKey toPkh (Ada.lovelaceValueOf amt)
-          <> Constraints.mustBeSignedBy ownPkh
-      )
-  void $ waitNSlots 1
-  pure tx
+  submitTx (Constraints.mustPayToPubKey toPkh (Ada.lovelaceValueOf amt))

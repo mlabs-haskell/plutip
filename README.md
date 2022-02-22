@@ -34,22 +34,7 @@ tests =
     ]
 ```
 
-`withCluster` will spin up the local cluster and create a test group with the contracts inside it.
-The cluster is reused by all the test cases, but the wallets are isolated, so contracts won't
-depend on each other (note that time related issues might still occur).
-
-All assertions accept a name, some TestWallets and a contract.
-
-At least one TestWallet is required, this will be used as the own wallet for the contract. Any other
-wallets can be used as other parties in transactions.
-
-A TestWallet can be initialised with any positive number of lovelace, using the `initAda` or
-`initLovelace`. In addition, the value in these wallets can be asserted after the contract
-execution with `initAdaAssertValue` or `initAndAssertAda`. For more, see `Test.Plutip.Contract`.
-
-To reference the wallet inside the contract, the following callback function is used, when
-supplying a contract toa test case: `[PaymentPubKeyHash] -> Contract w s e a`.
-Note that `[PaymentPubKeyHash]` does not include the contract's own wallet, for that you can use `ownPaymentPubKeyHash` from `Plutus.Contract` inside the Contract monad.
+For more, see `Test.Plutip.LocalCluster` `Test.Plutip.Contract`.
 
 More examples could be found [here](example/Main.hs).
 

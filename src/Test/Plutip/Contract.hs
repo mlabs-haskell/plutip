@@ -1,6 +1,28 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE NamedFieldPuns #-}
 
+{- | This module provides some contract assertions to be used with `Test.Plutip.LocalCluster.withContract`
+  All assertions accept a name, some TestWallets and a contract.
+
+  At least one TestWallet is required, this will be used as the own wallet for the contract. Any other
+  wallets can be used as other parties in transactions.
+
+  A TestWallet can be initialised with any positive number of lovelace, using the `initAda` or
+  `initLovelace`. In addition, the value in these wallets can be asserted after the contract
+  execution with `initAdaAssertValue` or `initAndAssertAda`.
+
+ > shouldSucceed "Get utxos" (initAda 100) $ \_ -> do
+ >   pkh <- Contract.ownPaymentPubKeyHash
+ >   utxosAt $ pubKeyHashAddress pkh Nothing
+
+  To use multiple wallets, you can use the `Semigroup` instance of `TestWallets`. To reference the
+  wallet inside the contract, the following callback function is used, when
+  supplying a contract toa test case: @[PaymentPubKeyHash] -> Contract w s e a@.
+  Note that @[PaymentPubKeyHash]@ does not include the contract's own wallet, for that you can use `Plutus.Contract.ownPaymentPubKeyHash` inside the Contract monad.
+
+ > shouldSucceed "Send some Ada" (initAda 100 <> initAndAssertAda 100 110) $
+ >   \[pkh1] -> submitTx (Constraints.mustPayToPubKey pkh1 (Ada.lovelaceValueOf amt))
+-}
 module Test.Plutip.Contract (
   -- Assertions
   shouldSucceed,
@@ -56,7 +78,12 @@ type TestContractConstraints (w :: Type) (s :: Row Type) (e :: Type) (a :: Type)
   , AsContractError e
   )
 
-{- | Assert that a contract is valid
+{- | Assert that a contract is valid.
+
+ = Usage
+ > shouldSucceed "Get utxos" (initAndAssertAda 100 100) $ \_ -> do
+ >   pkh <- Contract.ownPaymentPubKeyHash
+ >   utxosAt $ pubKeyHashAddress pkh Nothing
 
  @since 0.2
 -}
@@ -75,7 +102,11 @@ shouldSucceed tag testWallets toContract =
         (ExpectSuccess (const True) (const True) (twExpected <$> unTestWallets testWallets))
   )
 
-{- | Assert that a contract should NOT validate
+{- | Assert that a contract should NOT validate.
+
+ = Usage
+ > shouldFail "Get utxos throwing error" (initAda 100) $ \_ ->
+ >   Contract.throwError "This Error was thrown intentionally by Contract"
 
  @since 0.2
 -}
@@ -94,7 +125,7 @@ shouldFail tag testWallets toContract =
         (ExpectFailure (const True))
   )
 
-{- | Assert the return value of the contract with a custom preficate
+{- | Assert the return value of the contract with a custom predicate.
 
  @since 0.2
 -}
@@ -114,7 +145,7 @@ assertYieldedResultWith tag testWallets predicate toContract =
         (ExpectSuccess predicate (const True) (twExpected <$> unTestWallets testWallets))
   )
 
-{- | Check if the return value of the contract equals to some expected value
+{- | Check if the return value of the contract equals to some expected value.
 
  @since 0.2
 -}
@@ -129,7 +160,7 @@ shouldYield ::
 shouldYield tag testWallets expected =
   assertYieldedResultWith tag testWallets (== expected)
 
-{- | Assert the observable state of the contract with a custom preficate
+{- | Assert the observable state of the contract with a custom predicate.
 
  @since 0.2
 -}
@@ -149,7 +180,7 @@ assertObservableStateWith tag testWallets predicate toContract =
         (ExpectSuccess (const True) predicate (twExpected <$> unTestWallets testWallets))
   )
 
-{- | Check if the observable state of the contract equals to some expected value
+{- | Check if the observable state of the contract equals to some expected value.
 
  @since 0.2
 -}
@@ -184,7 +215,7 @@ data TestContract (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) = TestCont
   }
   deriving stock (Typeable)
 
-{- | Expected outcome of running contract
+{- | Expected outcome of running contract.
 
  @since 0.2
 -}
@@ -215,7 +246,7 @@ instance
   testOptions = Tagged []
 
 {- | Wrap test contracts to wait for transaction submission and
- to get the utxo amount at test wallets and wait for transaction
+ to get the utxo amount at test wallets and wait for transaction.
 
  @since 0.2
 -}
@@ -247,14 +278,14 @@ data TestWallet = TestWallet
   , twExpected :: Maybe Value
   }
 
-{- | Create a wallet with the given amount of lovelace
+{- | Create a wallet with the given amount of lovelace.
 
  @since 0.2
 -}
 initLovelace :: Natural -> TestWallets
 initLovelace initial = TestWallets $ TestWallet initial Nothing :| []
 
-{- | Create a wallet with the given amount of Ada
+{- | Create a wallet with the given amount of Ada.
 
  @since 0.2
 -}
@@ -262,7 +293,7 @@ initAda :: Natural -> TestWallets
 initAda initial = initLovelace (initial * 1_000_000)
 
 {- | Create a wallet with the given amount of lovelace,
- and assert values at the wallet address after contract execution
+ and assert values at the wallet address after contract execution.
 
  @since 0.2
 -}
@@ -270,7 +301,7 @@ initLovelaceAssertValue :: Natural -> Value -> TestWallets
 initLovelaceAssertValue initial expect = TestWallets $ TestWallet initial (Just expect) :| []
 
 {- | Create a wallet with the given amount of Ada
- and assert values at the wallet address after contract execution
+ and assert values at the wallet address after contract execution.
 
  @since 0.2
 -}
@@ -278,7 +309,7 @@ initAdaAssertValue :: Natural -> Natural -> TestWallets
 initAdaAssertValue initial = initAndAssertLovelace (initial * 1_000_000)
 
 {- | Create a wallet with the given amount of lovelace
- and assert the amount lovelace at the wallet address after contract execution
+ and assert the amount lovelace at the wallet address after contract execution.
 
  @since 0.2
 -}
@@ -287,7 +318,7 @@ initAndAssertLovelace initial expect =
   initLovelaceAssertValue initial (Ada.lovelaceValueOf (fromIntegral expect))
 
 {- | Create a wallet with the given amount of Ada
- and assert the amount of Ada at the wallet address after contract execution
+ and assert the amount of Ada at the wallet address after contract execution.
 
  @since 0.2
 -}

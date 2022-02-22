@@ -10,7 +10,7 @@ import Ledger.Constraints qualified as Constraints
 import Plutus.Contract (Contract, ownPaymentPubKeyHash, submitTx, utxosAt, waitNSlots)
 import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
-import Test.Plutip.Contract (initAda, initAndAssertAda, ledgerPaymentPkh, shouldFail, shouldSucceed)
+import Test.Plutip.Contract (initAda, initAndAssertAda, shouldFail, shouldSucceed)
 import Test.Plutip.LocalCluster (withCluster)
 import Test.Tasty (TestTree)
 import Text.Printf (printf)
@@ -24,10 +24,10 @@ test =
     [ shouldSucceed "Get utxos" (initAda 100) $ const getUtxos
     , shouldFail "Get utxos throwing error" (initAda 100) $ const getUtxosThrowsErr
     , shouldFail "Get utxos throwing exception" (initAda 100) $ const getUtxosThrowsEx
-    , shouldFail "Pay negative amount" (initAda 300 <> initAda 200) $ \[w1] ->
-        payTo (ledgerPaymentPkh w1) (-10_000_000)
+    , shouldFail "Pay negative amount" (initAda 300 <> initAda 200) $
+        \[pkh1] -> payTo pkh1 (-10_000_000)
     , shouldSucceed "Pay from wallet to wallet" (initAda 100 <> initAndAssertAda 100 110) $
-        \[w1] -> payTo (ledgerPaymentPkh w1) 10_000_000
+        \[pkh1] -> payTo pkh1 10_000_000
     ]
 
 getUtxos :: Contract () EmptySchema Text (Map TxOutRef ChainIndexTxOut)

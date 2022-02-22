@@ -32,7 +32,7 @@ import Data.List.NonEmpty qualified as NonEmpty
 import Data.Map qualified as Map
 import Data.Row (Row)
 import Data.Tagged (Tagged (Tagged))
-import Ledger (Address, ChainIndexTxOut (PublicKeyChainIndexTxOut, ScriptChainIndexTxOut))
+import Ledger (Address, ChainIndexTxOut (PublicKeyChainIndexTxOut, ScriptChainIndexTxOut), PaymentPubKeyHash)
 import Ledger.Ada qualified as Ada
 import Ledger.Address (pubKeyHashAddress)
 import Ledger.Value (Value)
@@ -65,7 +65,7 @@ shouldSucceed ::
   TestContractConstraints w s e a =>
   String ->
   TestWallets ->
-  ([BpiWallet] -> Contract w s e a) ->
+  ([PaymentPubKeyHash] -> Contract w s e a) ->
   (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
 shouldSucceed tag testWallets toContract =
   ( testWallets
@@ -84,7 +84,7 @@ shouldFail ::
   TestContractConstraints w s e a =>
   String ->
   TestWallets ->
-  ([BpiWallet] -> Contract w s e a) ->
+  ([PaymentPubKeyHash] -> Contract w s e a) ->
   (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
 shouldFail tag testWallets toContract =
   ( testWallets
@@ -104,7 +104,7 @@ assertYieldedResultWith ::
   String ->
   TestWallets ->
   (a -> Bool) ->
-  ([BpiWallet] -> Contract w s e a) ->
+  ([PaymentPubKeyHash] -> Contract w s e a) ->
   (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
 assertYieldedResultWith tag testWallets predicate toContract =
   ( testWallets
@@ -124,7 +124,7 @@ shouldYield ::
   String ->
   TestWallets ->
   a ->
-  ([BpiWallet] -> Contract w s e a) ->
+  ([PaymentPubKeyHash] -> Contract w s e a) ->
   (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
 shouldYield tag testWallets expected =
   assertYieldedResultWith tag testWallets (== expected)
@@ -139,7 +139,7 @@ assertObservableStateWith ::
   String ->
   TestWallets ->
   (w -> Bool) ->
-  ([BpiWallet] -> Contract w s e a) ->
+  ([PaymentPubKeyHash] -> Contract w s e a) ->
   (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
 assertObservableStateWith tag testWallets predicate toContract =
   ( testWallets
@@ -159,7 +159,7 @@ shouldHaveObservableState ::
   String ->
   TestWallets ->
   w ->
-  ([BpiWallet] -> Contract w s e a) ->
+  ([PaymentPubKeyHash] -> Contract w s e a) ->
   (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
 shouldHaveObservableState tag testWallets expected =
   assertObservableStateWith tag testWallets (== expected)
@@ -178,7 +178,7 @@ valueAt addr = do
     utxoValue (ScriptChainIndexTxOut _ _ _ v) = v
 
 data TestContract (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) = TestContract
-  { tcContract :: (ToJSON w, Monoid w, Show w, Show e, Show a) => [BpiWallet] -> Contract w s e a
+  { tcContract :: (ToJSON w, Monoid w, Show w, Show e, Show a) => [PaymentPubKeyHash] -> Contract w s e a
   , tcExpected :: ExpectedOutcome w e a
   , tcSetup :: IO (ClusterEnv, NonEmpty BpiWallet)
   }
@@ -200,7 +200,7 @@ instance
   where
   run _ TestContract {tcContract, tcSetup, tcExpected} _ = do
     (cEnv, wallets@(ownWallet :| otherWallets)) <- tcSetup
-    let contract = wrapContract wallets (tcContract otherWallets)
+    let contract = wrapContract wallets (tcContract (map ledgerPaymentPkh otherWallets))
     result <- runReaderT (runContract cEnv ownWallet contract) cEnv
 
     pure $ case (tcExpected, result) of

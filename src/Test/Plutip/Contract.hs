@@ -47,19 +47,27 @@ module Test.Plutip.Contract (
 import Control.Monad (void)
 import Control.Monad.Reader (runReaderT)
 import Data.Aeson (ToJSON)
+import Data.Aeson.Extras (encodeByteString)
 import Data.Dynamic (Typeable)
+import Data.Either (fromRight)
 import Data.Kind (Type)
+import Data.List (find)
 import Data.List.NonEmpty (NonEmpty ((:|)))
 import Data.List.NonEmpty qualified as NonEmpty
 import Data.Map qualified as Map
 import Data.Row (Row)
 import Data.Tagged (Tagged (Tagged))
+import Data.Text (Text)
+import Data.Text qualified as Text
+import Data.Text.Encoding (decodeUtf8')
 import Ledger (Address, ChainIndexTxOut (PublicKeyChainIndexTxOut, ScriptChainIndexTxOut), PaymentPubKeyHash)
 import Ledger.Ada qualified as Ada
 import Ledger.Address (pubKeyHashAddress)
-import Ledger.Value (Value)
+import Ledger.Value (CurrencySymbol (unCurrencySymbol), TokenName (unTokenName), Value)
+import Ledger.Value qualified as Value
 import Numeric.Positive (Positive)
 import Plutus.Contract (AsContractError, Contract, utxosAt, waitNSlots)
+import PlutusTx.Builtins (fromBuiltin)
 import Test.Plutip.Internal.BotPlutusInterface.Run (runContract)
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet, ledgerPaymentPkh)
 import Test.Plutip.Internal.Types (
@@ -68,6 +76,7 @@ import Test.Plutip.Internal.Types (
   FailureReason,
  )
 import Test.Tasty.Providers (IsTest (run, testOptions), TestTree, singleTest, testFailed, testPassed)
+import Text.Show.Pretty (ppShow)
 
 type TestContractConstraints (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) =
   ( ToJSON w
@@ -75,8 +84,8 @@ type TestContractConstraints (w :: Type) (s :: Row Type) (e :: Type) (a :: Type)
   , Show w
   , Show e
   , Show a
-  , Typeable s
   , Typeable w
+  , Typeable s
   , Typeable e
   , Typeable a
   , AsContractError e
@@ -239,13 +248,19 @@ instance
     result <- runReaderT (runContract cEnv ownWallet contract) cEnv
 
     pure $ case (tcExpected, result) of
+      (ExpectSuccess {}, ExecutionResult (Left err) _) ->
+        testFailed $ "Contract failed with " ++ ppShow err
+      (ExpectFailure _, ExecutionResult (Right _) _) ->
+        testFailed "Expected a failing contract, but it succeeded."
       (ExpectSuccess assertRes assertObsSt expectedVal, ExecutionResult (Right (res, values)) obsSt)
-        | assertRes res
-            && assertObsSt obsSt
-            && assertValues expectedVal values ->
-          testPassed $ show result
+        | not (assertRes res) ->
+          testFailed $ "Contract result assertion failed.\nGot: " ++ ppShow res
+        | not (assertObsSt obsSt) ->
+          testFailed $ "Observable state assertion failed.\nGot:" ++ ppShow obsSt
+        | otherwise -> case assertValues expectedVal values of
+          Left err -> testFailed $ Text.unpack err
+          Right () -> testPassed ""
       (ExpectFailure _, ExecutionResult (Left _) _) -> testPassed ""
-      _ -> testFailed $ show result
 
   testOptions = Tagged []
 
@@ -267,12 +282,40 @@ wrapContract bpiWallets contract = do
   values <- traverse (valueAt . (`pubKeyHashAddress` Nothing)) walletPkhs
   pure (res, values)
 
-assertValues :: NonEmpty (Maybe Value) -> NonEmpty Value -> Bool
+assertValues :: NonEmpty (Maybe Value) -> NonEmpty Value -> Either Text ()
 assertValues expected values =
-  all assertValue $ zip (NonEmpty.toList expected) (NonEmpty.toList values)
+  maybe (Right ()) (Left . report) $
+    find findFailing $ zip3 [0 :: Int ..] (NonEmpty.toList expected) (NonEmpty.toList values)
   where
-    assertValue (Nothing, _) = True
-    assertValue (Just v, v') = v == v'
+    findFailing (_, Nothing, _) = False
+    findFailing (_, Just v, v') = v /= v'
+
+    report (_, Nothing, _) = ""
+    report (walletIdx, Just expV, gotV) =
+      mconcat
+        [ "Value assertion failed on "
+        , if walletIdx == 0 then "own wallet." else "wallet " <> Text.pack (show walletIdx) <> "."
+        , "\nExpected: "
+        , showValue expV
+        , "\nGot: "
+        , showValue gotV
+        ]
+
+    showValue :: Value -> Text
+    showValue =
+      Text.intercalate ", " . map showFlatValue . Value.flattenValue
+
+    showFlatValue :: (CurrencySymbol, TokenName, Integer) -> Text
+    showFlatValue (curSymbol, name, amount)
+      | curSymbol == Ada.adaSymbol = amountStr <> " lovelace"
+      | Text.null tokenNameStr = amountStr <> " " <> curSymbolStr
+      | otherwise = amountStr <> " " <> curSymbolStr <> "." <> tokenNameStr
+      where
+        amountStr = Text.pack $ show amount
+        curSymbolStr = encodeByteString $ fromBuiltin $ unCurrencySymbol curSymbol
+        tokenNameStr =
+          let bs = fromBuiltin $ unTokenName name
+           in fromRight (encodeByteString bs) $ decodeUtf8' bs
 
 newtype TestWallets = TestWallets {unTestWallets :: NonEmpty TestWallet}
   deriving newtype (Semigroup)
@@ -309,8 +352,8 @@ initLovelaceAssertValue initial expect = TestWallets $ TestWallet initial (Just 
 
  @since 0.2
 -}
-initAdaAssertValue :: Positive -> Positive -> TestWallets
-initAdaAssertValue initial = initAndAssertLovelace (initial * 1_000_000)
+initAdaAssertValue :: Positive -> Value -> TestWallets
+initAdaAssertValue initial = initLovelaceAssertValue (initial * 1_000_000)
 
 {- | Create a wallet with the given amount of lovelace
  and assert the amount lovelace at the wallet address after contract execution.

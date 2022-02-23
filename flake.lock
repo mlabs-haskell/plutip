@@ -79,17 +79,17 @@
         "servant-purescript": "servant-purescript"
       },
       "locked": {
-        "lastModified": 1645636156,
-        "narHash": "sha256-DTD312DaVKDGlVyraEIn3jlLcFM6T12Nfao6XEWWp14=",
+        "lastModified": 1645658503,
+        "narHash": "sha256-mduSwSnHJSE0P6NF9NDtSdIz8WtniLRW5S88NPBVs7o=",
         "owner": "mlabs-haskell",
         "repo": "bot-plutus-interface",
-        "rev": "691dd53d1d6aa8b5ded8253d68194a526713c499",
+        "rev": "ca7d096a200a33312484356d9e47e73e1466ce13",
         "type": "github"
       },
       "original": {
         "owner": "mlabs-haskell",
         "repo": "bot-plutus-interface",
-        "rev": "691dd53d1d6aa8b5ded8253d68194a526713c499",
+        "rev": "ca7d096a200a33312484356d9e47e73e1466ce13",
         "type": "github"
       }
     },
@@ -978,6 +978,10 @@
     "root": {
       "inputs": {
         "bot-plutus-interface": "bot-plutus-interface",
+        "cardano-node": [
+          "bot-plutus-interface",
+          "cardano-node"
+        ],
         "flake-compat": "flake-compat_2",
         "haskell-nix": [
           "bot-plutus-interface",

@@ -10,7 +10,7 @@
       url = "github:edolstra/flake-compat";
       flake = false;
     };
-    bot-plutus-interface.url = "github:mlabs-haskell/bot-plutus-interface?rev=691dd53d1d6aa8b5ded8253d68194a526713c499";
+    bot-plutus-interface.url = "github:mlabs-haskell/bot-plutus-interface?rev=ca7d096a200a33312484356d9e47e73e1466ce13";
   };
 
   outputs = { self, bot-plutus-interface, nixpkgs, haskell-nix, iohk-nix, ... }@inputs:
@@ -34,15 +34,15 @@
         }
       ];
 
-      haskellModules = system: [
-        (bot-plutus-interface.haskellModule system)
+      haskellModules = bot-plutus-interface.haskellModules ++ [(
+        { config, ... }:
         {
           packages.plutip.components.tests."plutip-tests".build-tools = [
-            #inputs.cardano-node.packages.${system}.cardano-node
-            #inputs.cardano-node.packages.${system}.cardano-cli
+            config.hsPkgs.cardano-cli.components.exes.cardano-cli
+            config.hsPkgs.cardano-node.components.exes.cardano-node
           ];
         }
-      ];
+      )];
 
       projectFor = system:
         let

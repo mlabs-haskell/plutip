@@ -1,23 +1,23 @@
 { src, inputs, pkgs, pkgs', system, extraSources, cabalProjectLocal, haskellModules }:
 
-pkgs.haskell-nix.cabalProject {
-  inherit src;
+let
+  project = pkgs.haskell-nix.cabalProject {
+    inherit src;
 
-  name = "plutip";
+    name = "plutip";
 
-  compiler-nix-name = "ghc8107";
+    compiler-nix-name = "ghc8107";
 
-  shell = {
-    additional = ps: [ ps.bot-plutus-interface ];
+    shell = {
+      additional = ps: [ ps.bot-plutus-interface ];
 
-    withHoogle = true;
+      withHoogle = true;
 
-    tools.haskell-language-server = "latest";
+      tools.haskell-language-server = "latest";
 
-    exactDeps = true;
+      exactDeps = true;
 
-    nativeBuildInputs = with pkgs';
-      [
+      nativeBuildInputs = with pkgs'; [
         # Haskell Tools
         haskellPackages.fourmolu
         haskellPackages.cabal-install
@@ -31,13 +31,13 @@ pkgs.haskell-nix.cabalProject {
         haskellPackages.record-dot-preprocessor
 
         # Cardano tools
-        # FIXME: use project.hsPkgs.cardano-node.components.executables.<something>
-        # inputs.cardano-node.packages.${system}.cardano-node
-        # inputs.cardano-node.packages.${system}.cardano-cli
+        project.hsPkgs.cardano-cli.components.exes.cardano-cli
+        project.hsPkgs.cardano-node.components.exes.cardano-node
       ];
+    };
+
+    inherit cabalProjectLocal extraSources;
+
+    modules = haskellModules;
   };
-
-  inherit cabalProjectLocal extraSources;
-
-  modules = haskellModules system;
-}
+in project

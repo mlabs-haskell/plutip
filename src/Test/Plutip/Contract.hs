@@ -35,13 +35,18 @@ module Test.Plutip.Contract (
   TestWallets (TestWallets, unTestWallets),
   TestWallet (twInitDistribuition, twExpected),
   initAda,
-  initLovelace,
   initAndAssertAda,
-  initAndAssertLovelace,
+  initAndAssertAdaWith,
   initAdaAssertValue,
+  initAdaAssertValueWith,
+  initLovelace,
+  initAndAssertLovelace,
+  initAndAssertLovelaceWith,
   initLovelaceAssertValue,
+  initLovelaceAssertValueWith,
   -- Helpers
   ledgerPaymentPkh,
+  ValueOrdering (VEq, VGt, VLt, VGEq, VLEq),
 ) where
 
 import Control.Monad (void)
@@ -233,7 +238,7 @@ data TestContract (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) = TestCont
  @since 0.2
 -}
 data ExpectedOutcome w e a
-  = ExpectSuccess (a -> Bool) (w -> Bool) (NonEmpty (Maybe Value))
+  = ExpectSuccess (a -> Bool) (w -> Bool) (NonEmpty (Maybe (ValueOrdering, Value)))
   | ExpectFailure (FailureReason e -> Bool)
   deriving stock (Typeable)
 
@@ -282,24 +287,30 @@ wrapContract bpiWallets contract = do
   values <- traverse (valueAt . (`pubKeyHashAddress` Nothing)) walletPkhs
   pure (res, values)
 
-assertValues :: NonEmpty (Maybe Value) -> NonEmpty Value -> Either Text ()
+assertValues :: NonEmpty (Maybe (ValueOrdering, Value)) -> NonEmpty Value -> Either Text ()
 assertValues expected values =
   maybe (Right ()) (Left . report) $
     find findFailing $ zip3 [0 :: Int ..] (NonEmpty.toList expected) (NonEmpty.toList values)
   where
     findFailing (_, Nothing, _) = False
-    findFailing (_, Just v, v') = v /= v'
+    findFailing (_, Just (ord, v), v') = not (compareValuesWith ord v' v)
 
     report (_, Nothing, _) = ""
-    report (walletIdx, Just expV, gotV) =
-      mconcat
-        [ "Value assertion failed on "
-        , if walletIdx == 0 then "own wallet." else "wallet " <> Text.pack (show walletIdx) <> "."
-        , "\nExpected: "
-        , showValue expV
-        , "\nGot: "
-        , showValue gotV
+    report (walletIdx, Just (ord, expV), gotV) =
+      Text.unlines
+        [ mconcat
+            [ "Value assertion failed on "
+            , if walletIdx == 0 then "own wallet." else "wallet " <> Text.pack (show walletIdx) <> "."
+            ]
+        , mconcat ["Expected", showVOrd ord, ": ", showValue expV]
+        , mconcat ["Got: ", showValue gotV]
         ]
+
+    showVOrd VEq = ""
+    showVOrd VGt = " greater than"
+    showVOrd VLt = " less than"
+    showVOrd VGEq = " greater than or equal to"
+    showVOrd VLEq = " less than or equal to"
 
     showValue :: Value -> Text
     showValue =
@@ -322,8 +333,18 @@ newtype TestWallets = TestWallets {unTestWallets :: NonEmpty TestWallet}
 
 data TestWallet = TestWallet
   { twInitDistribuition :: Positive
-  , twExpected :: Maybe Value
+  , twExpected :: Maybe (ValueOrdering, Value)
   }
+
+-- | Value doesn't have an Ord instance, so we cannot use `compare`
+data ValueOrdering = VEq | VGt | VLt | VGEq | VLEq
+
+compareValuesWith :: ValueOrdering -> Value -> Value -> Bool
+compareValuesWith VEq = (==)
+compareValuesWith VGt = Value.gt
+compareValuesWith VLt = Value.lt
+compareValuesWith VGEq = Value.geq
+compareValuesWith VLEq = Value.leq
 
 {- | Create a wallet with the given amount of lovelace.
 
@@ -332,31 +353,33 @@ data TestWallet = TestWallet
 initLovelace :: Positive -> TestWallets
 initLovelace initial = TestWallets $ TestWallet initial Nothing :| []
 
-{- | Create a wallet with the given amount of Ada.
+{- | Create a wallet with the given amount of lovelace, and after contract execution
+ compare the values at the wallet address with the given ordering and value.
 
  @since 0.2
 -}
-initAda :: Positive -> TestWallets
-initAda initial = initLovelace (initial * 1_000_000)
+initLovelaceAssertValueWith :: Positive -> ValueOrdering -> Value -> TestWallets
+initLovelaceAssertValueWith initial ord expect = TestWallets $ TestWallet initial (Just (ord, expect)) :| []
 
-{- | Create a wallet with the given amount of lovelace,
- and assert values at the wallet address after contract execution.
+{- | Create a wallet with the given amount of lovelace, and after contract execution
+ check if values at the wallet address are equal to a given value.
 
  @since 0.2
 -}
 initLovelaceAssertValue :: Positive -> Value -> TestWallets
-initLovelaceAssertValue initial expect = TestWallets $ TestWallet initial (Just expect) :| []
+initLovelaceAssertValue initial = initLovelaceAssertValueWith initial VEq
 
-{- | Create a wallet with the given amount of Ada
- and assert values at the wallet address after contract execution.
+{- | Create a wallet with the given amount of lovelace, and after contract execution
+ compare the values at the wallet address with the given ordering and lovelace amount.
 
  @since 0.2
 -}
-initAdaAssertValue :: Positive -> Value -> TestWallets
-initAdaAssertValue initial = initLovelaceAssertValue (initial * 1_000_000)
+initAndAssertLovelaceWith :: Positive -> ValueOrdering -> Positive -> TestWallets
+initAndAssertLovelaceWith initial ord expect =
+  initLovelaceAssertValueWith initial ord (Ada.lovelaceValueOf (fromIntegral expect))
 
-{- | Create a wallet with the given amount of lovelace
- and assert the amount lovelace at the wallet address after contract execution.
+{- | Create a wallet with the given amount of lovelace, and after contract execution
+ check if values at the wallet address are equal to a given lovelace amount.
 
  @since 0.2
 -}
@@ -364,8 +387,40 @@ initAndAssertLovelace :: Positive -> Positive -> TestWallets
 initAndAssertLovelace initial expect =
   initLovelaceAssertValue initial (Ada.lovelaceValueOf (fromIntegral expect))
 
-{- | Create a wallet with the given amount of Ada
- and assert the amount of Ada at the wallet address after contract execution.
+{- | Create a wallet with the given amount of Ada.
+
+ @since 0.2
+-}
+initAda :: Positive -> TestWallets
+initAda initial = initLovelace (initial * 1_000_000)
+
+{- | Create a wallet with the given amount of Ada, and after contract execution
+ compare the values at the wallet address with the given ordering and value.
+
+ @since 0.2
+-}
+initAdaAssertValueWith :: Positive -> ValueOrdering -> Value -> TestWallets
+initAdaAssertValueWith initial = initLovelaceAssertValueWith (initial * 1_000_000)
+
+{- | Create a wallet with the given amount of Ada, and after contract execution
+ check if values at the wallet address are equal to a given value.
+
+ @since 0.2
+-}
+initAdaAssertValue :: Positive -> Value -> TestWallets
+initAdaAssertValue initial = initLovelaceAssertValue (initial * 1_000_000)
+
+{- | Create a wallet with the given amount of Ada, and after contract execution
+ compare the values at the wallet address with the given ordering and ada amount.
+
+ @since 0.2
+-}
+initAndAssertAdaWith :: Positive -> ValueOrdering -> Positive -> TestWallets
+initAndAssertAdaWith initial ord expect =
+  initAndAssertLovelaceWith (initial * 1_000_000) ord (expect * 1_000_000)
+
+{- | Create a wallet with the given amount of Ada, and after contract execution
+ check if values at the wallet address are equal to a given ada amount.
 
  @since 0.2
 -}

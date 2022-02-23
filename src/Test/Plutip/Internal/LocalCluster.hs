@@ -1,95 +1,98 @@
--- temporary measure while module under development
-{-# OPTIONS_GHC -Wno-missing-import-lists #-}
--- temporary measure while module under development
-{-# OPTIONS_GHC -Wno-unused-imports #-}
-
 module Test.Plutip.Internal.LocalCluster (
   startCluster,
   stopCluster,
   withPlutusInterface,
-  withPlutusInterface',
+  -- withPlutusInterface',
 ) where
 
 import Cardano.Api qualified as CAPI
-import Cardano.BM.Data.Severity (Severity (..))
-import Cardano.BM.Data.Tracer (HasPrivacyAnnotation (..), HasSeverityAnnotation (..))
-import Cardano.CLI (LogOutput (..), withLoggingNamed)
+
 import Cardano.Launcher.Node (nodeSocketFile)
 import Cardano.Startup (installSignalHandlers, setDefaultFilePermissions, withUtf8Encoding)
-import Cardano.Wallet.Api.Types (EncodeAddress (..))
 import Cardano.Wallet.Logging (stdoutTextTracer, trMessageText)
-import Cardano.Wallet.Primitive.AddressDerivation (NetworkDiscriminant (..))
-import Cardano.Wallet.Primitive.Types.Coin (Coin (..))
-import Cardano.Wallet.Shelley (
-  SomeNetworkDiscriminant (..),
-  serveWallet,
-  setupTracers,
-  tracerSeverities,
- )
 import Cardano.Wallet.Shelley.Launch (withSystemTempDir)
-import Cardano.Wallet.Shelley.Launch.Cluster (
-  ClusterLog (..),
-  Credential (..),
-  LocalClusterConfig,
-  localClusterConfigFromEnv,
-  moveInstantaneousRewardsTo,
-  nodeMinSeverityFromEnv,
-  oneMillionAda,
-  sendFaucetAssetsTo,
-  sendFaucetFundsTo,
-  testMinSeverityFromEnv,
-  tokenMetadataServerFromEnv,
-  walletListenFromEnv,
-  walletMinSeverityFromEnv,
-  withCluster,
- )
-import Control.Arrow (first)
-import Control.Concurrent (threadDelay)
+
+import Cardano.BM.Data.Severity qualified as Severity
+import Cardano.BM.Data.Tracer (HasPrivacyAnnotation, HasSeverityAnnotation (getSeverityAnnotation))
+import Cardano.CLI (LogOutput (LogToFile, LogToStdStreams), withLoggingNamed)
+import Cardano.Wallet.Shelley.Launch.Cluster (ClusterLog, localClusterConfigFromEnv, testMinSeverityFromEnv, walletMinSeverityFromEnv, withCluster)
 import Control.Concurrent.Async (async)
-import Control.Monad (unless, void, when)
+import Control.Monad (unless, void)
+import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ReaderT (runReaderT))
+import Control.Retry (constantDelay, limitRetries, recoverAll)
 import Control.Tracer (Tracer, contramap, traceWith)
 import Data.Kind (Type)
-import Data.Maybe (catMaybes, isJust)
-import Data.Proxy (Proxy (..))
+import Data.Maybe (catMaybes, fromMaybe, isJust)
 import Data.Text (Text, pack)
-import Data.Text qualified as T
-import Data.Text.Class (ToText (..))
+import Data.Text.Class (ToText (toText))
 import Plutus.ChainIndex.App qualified as ChainIndex
 import Plutus.ChainIndex.Config (ChainIndexConfig (cicNetworkId, cicPort), cicDbPath, cicSocketPath)
-import Plutus.ChainIndex.Config qualified as CI
-import Plutus.ChainIndex.Logging qualified as ChainIndex.Logging
-import Plutus.ChainIndex.Types (Point (..))
+import Plutus.ChainIndex.Config qualified as ChainIndex
+import Plutus.ChainIndex.Logging (defaultConfig)
 import Servant.Client (BaseUrl (BaseUrl), Scheme (Http))
-import System.Directory (createDirectory, doesFileExist, findExecutable)
+import System.Directory (copyFile, findExecutable)
 import System.Environment (setEnv)
 import System.Exit (die)
 import System.FilePath ((</>))
-import Test.Integration.Faucet (
-  genRewardAccounts,
-  maryIntegrationTestAssets,
-  mirMnemonics,
-  shelleyIntegrationTestFunds,
- )
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BotSetup
-import Test.Plutip.Internal.Types (ClusterEnv (..), RunningNode (RunningNode))
+import Test.Plutip.Internal.Types (
+  ClusterEnv (ClusterEnv, chainIndexUrl, networkId, runningNode, supportDir, tracer),
+  RunningNode (RunningNode),
+ )
+import Test.Plutip.Tools.CardanoApi qualified as Tools
 import UnliftIO.Concurrent (forkFinally)
 import UnliftIO.STM (TVar, atomically, newTVarIO, readTVar, retrySTM, writeTVar)
 
-withPlutusInterface :: forall (a :: Type). ReaderT ClusterEnv IO a -> IO a
-withPlutusInterface action = withPlutusInterface' (runReaderT action)
+import Data.Foldable (for_)
+import GHC.Stack.Types (HasCallStack)
+import Paths_plutip (getDataFileName)
+import Test.Plutip.Config (PlutipConfig (chainIndexPort, clusterDataDir, relayNodeLogs))
+import Text.Printf (printf)
+import UnliftIO.Exception (catchIO)
+
+{- | Starting a cluster with a setup action
+ We're heavily depending on cardano-wallet local cluster tooling, however they don't allow the
+ start and stop actions to be two separate processes, which is needed for tasty integration.
+ Instead of rewriting and maintaining these, I introduced a semaphore mechanism to keep the
+ cluster alive until the ClusterClosing action is called.
+-}
+startCluster ::
+  forall (a :: Type).
+  PlutipConfig ->
+  ReaderT ClusterEnv IO a ->
+  IO (TVar (ClusterStatus a), a)
+startCluster conf onClusterStart = do
+  status <- newTVarIO ClusterStarting
+  void $
+    forkFinally
+      ( withPlutusInterface conf $ \clusterEnv -> do
+          res <- runReaderT onClusterStart clusterEnv
+          atomically $ writeTVar status (ClusterStarted res)
+          atomically $ readTVar status >>= \case ClusterClosing -> pure (); _ -> retrySTM
+      )
+      (either (error . show) (const (atomically (writeTVar status ClusterClosed))))
+
+  setupRes <- atomically $ readTVar status >>= \case ClusterStarted v -> pure v; _ -> retrySTM
+  pure (status, setupRes)
+
+--- | Send a shutdown signal to the cluster and wait for it
+stopCluster :: TVar (ClusterStatus a) -> IO ()
+stopCluster status = do
+  atomically $ writeTVar status ClusterClosing
+  atomically $ readTVar status >>= \case ClusterClosed -> pure (); _ -> retrySTM
 
 {- Examples:
    `plutus-apps` local cluster: https://github.com/input-output-hk/plutus-apps/blob/75a581c6eb98d36192ce3d3f86ea60a04bc4a52a/plutus-pab/src/Plutus/PAB/LocalCluster/Run.hs
    `cardano-wallet` local cluster: https://github.com/input-output-hk/cardano-wallet/blob/99b13e50f092ffca803fd38b9e435c24dae05c91/lib/shelley/exe/local-cluster.hs
 -}
-withPlutusInterface' :: forall (a :: Type). (ClusterEnv -> IO a) -> IO a
-withPlutusInterface' action = do
+withPlutusInterface :: forall (a :: Type). PlutipConfig -> (ClusterEnv -> IO a) -> IO a
+withPlutusInterface conf action = do
   -- current setup requires `cardano-node` and `cardano-cli` as external processes
   checkProcessesAvailable ["cardano-node", "cardano-cli"]
 
-  withLocalClusterSetup $ \dir clusterLogs _walletLogs -> do
-    withLoggingNamed "cluster" clusterLogs $ \(_, (_, trCluster)) -> do
+  withLocalClusterSetup conf $ \dir clusterLogs _walletLogs -> do
+    result <- withLoggingNamed "cluster" clusterLogs $ \(_, (_, trCluster)) -> do
       let tr' = contramap MsgCluster $ trMessageText trCluster
       clusterCfg <- localClusterConfigFromEnv
       withCluster
@@ -98,11 +101,13 @@ withPlutusInterface' action = do
         clusterCfg
         (const $ pure ()) -- faucet setup was here in `cardano-wallet` version
         (\rn -> runActionWthSetup rn dir trCluster action)
+    handleLogs dir conf
+    return result
   where
     runActionWthSetup rn dir trCluster userActon = do
       let tracer' = trMessageText trCluster
-      awaitSocketCreated tracer' rn
-      ciPort <- launchChainIndex rn dir
+      waitForRelayNode tracer' rn
+      ciPort <- launchChainIndex conf rn dir
       traceWith tracer' (ChaiIndexStartedAt ciPort)
       let cEnv =
             ClusterEnv
@@ -121,12 +126,13 @@ withPlutusInterface' action = do
 -- main action.
 withLocalClusterSetup ::
   forall (a :: Type).
+  PlutipConfig ->
   (FilePath -> [LogOutput] -> [LogOutput] -> IO a) ->
   IO a
-withLocalClusterSetup action = do
+withLocalClusterSetup conf action = do
   -- Setting required environment variables
   setEnv "NO_POOLS" "1"
-  setEnv "SHELLEY_TEST_DATA" "cluster-data"
+  setClusterDataDir
 
   -- Handle SIGTERM properly
   installSignalHandlers (putStrLn "Terminated")
@@ -140,7 +146,7 @@ withLocalClusterSetup action = do
     -- produced by the local test cluster.
     withSystemTempDir stdoutTextTracer "test-cluster" $ \dir -> do
       let logOutputs name minSev =
-            [ LogToFile (dir </> name) (min minSev Info)
+            [ LogToFile (dir </> name) (min minSev Severity.Info)
             , LogToStdStreams minSev
             ]
 
@@ -148,16 +154,66 @@ withLocalClusterSetup action = do
       walletLogs <- logOutputs "wallet.log" <$> walletMinSeverityFromEnv
 
       action dir clusterLogs walletLogs
+  where
+    setClusterDataDir = do
+      defaultClusterDataDir <- getDataFileName "cluster-data"
+      setEnv "SHELLEY_TEST_DATA" $
+        fromMaybe defaultClusterDataDir (clusterDataDir conf)
 
 checkProcessesAvailable :: [String] -> IO ()
 checkProcessesAvailable requiredProcesses = do
   results <- mapM findExecutable requiredProcesses
   unless (isJust `all` results) $
-    -- TODO: maybe some better way throwing needed?
     die $
       "This processes should be available in the environment:\n " <> show requiredProcesses
         <> "\n but only these were found:\n "
         <> show (catMaybes results)
+
+waitForRelayNode :: Tracer IO TestsLog -> RunningNode -> IO ()
+waitForRelayNode trCluster rn = do
+  liftIO $ recoverAll policy (const getTip)
+  where
+    policy = constantDelay 500000 <> limitRetries 5
+    getTip = trace >> void (Tools.queryTip rn)
+    trace = traceWith trCluster WaitingRelayNode
+
+-- | Launch the chain index in a separate thread.
+launchChainIndex :: PlutipConfig -> RunningNode -> FilePath -> IO Int
+launchChainIndex conf (RunningNode sp _block0 (_gp, _vData)) dir = do
+  config <- defaultConfig
+  let dbPath = dir </> "chain-index.db"
+      chainIndexConfig =
+        ChainIndex.defaultConfig
+          { cicSocketPath = nodeSocketFile sp
+          , cicDbPath = dbPath
+          , cicNetworkId = CAPI.Mainnet
+          , cicPort =
+              maybe
+                (cicPort ChainIndex.defaultConfig)
+                fromEnum
+                (chainIndexPort conf)
+          }
+  void . async $ void $ ChainIndex.runMain config chainIndexConfig
+  return $ cicPort chainIndexConfig
+
+handleLogs :: HasCallStack => FilePath -> PlutipConfig -> IO ()
+handleLogs clusterDir conf =
+  copyRelayLog `catchIO` (error . printf "Failed to save relay node log: %s" . show)
+  where
+    copyRelayLog = for_ (relayNodeLogs conf) $ \toFile ->
+      copyFile
+        {- We're heavily depending on cardano-wallet local cluster tooling atm.
+          Path partially hardcoded in Cardano.Wallet.Shelley.Launch.Cluster by
+         `withRelayNode` ("node" subdir) and `genConfig` (file name)
+        -}
+        (clusterDir </> "node" </> "cardano-node.log")
+        toFile
+
+data ClusterStatus (a :: Type)
+  = ClusterStarting
+  | ClusterStarted a
+  | ClusterClosing
+  | ClusterClosed
 
 -- Logging
 
@@ -165,7 +221,7 @@ data TestsLog
   = MsgBaseUrl Text Text Text -- wallet url, ekg url, prometheus url
   | MsgSettingUpFaucet
   | MsgCluster ClusterLog
-  | WaitingSocketCreated
+  | WaitingRelayNode
   | ChaiIndexStartedAt Int
   deriving stock (Show)
 
@@ -182,74 +238,15 @@ instance ToText TestsLog where
         ]
     MsgSettingUpFaucet -> "Setting up faucet..."
     MsgCluster msg -> toText msg
-    WaitingSocketCreated -> "Awaiting for node socket to be created"
+    WaitingRelayNode -> "Waiting for relay node up and running"
     ChaiIndexStartedAt ciPort -> "Chain-index started at port " <> pack (show ciPort)
 
 instance HasPrivacyAnnotation TestsLog
 
 instance HasSeverityAnnotation TestsLog where
   getSeverityAnnotation = \case
-    MsgSettingUpFaucet -> Notice
-    MsgBaseUrl {} -> Notice
+    MsgSettingUpFaucet -> Severity.Notice
+    MsgBaseUrl {} -> Severity.Notice
     MsgCluster msg -> getSeverityAnnotation msg
-    WaitingSocketCreated -> Notice
-    ChaiIndexStartedAt {} -> Notice
-
-awaitSocketCreated :: Tracer IO TestsLog -> RunningNode -> IO ()
-awaitSocketCreated trCluster rn@(RunningNode socket _ _) = do
-  let sock = nodeSocketFile socket
-  socketReady <- doesFileExist sock
-  unless socketReady (waitASecond >> awaitSocketCreated trCluster rn)
-  where
-    waitASecond =
-      traceWith trCluster WaitingSocketCreated
-        >> threadDelay 1000000
-
--- | Launch the chain index in a separate thread.
-
--- TODO: add ability to set custom port (if needed)
-launchChainIndex :: RunningNode -> FilePath -> IO Int
-launchChainIndex (RunningNode sp _block0 (_gp, _vData)) dir = do
-  config <- ChainIndex.Logging.defaultConfig
-  let dbPath = dir </> "chain-index.db"
-      chainIndexConfig =
-        CI.defaultConfig
-          { cicSocketPath = nodeSocketFile sp
-          , cicDbPath = dbPath
-          , cicNetworkId = CAPI.Mainnet
-          }
-  void . async $ void $ ChainIndex.runMain config chainIndexConfig
-  return $ cicPort chainIndexConfig
-
-data ClusterStatus (a :: Type)
-  = ClusterStarting
-  | ClusterStarted a
-  | ClusterClosing
-  | ClusterClosed
-
-{- | Starting a cluster with a setup action
- We're heavily depending on cardano-wallet local cluster tooling, however they don't allow the
- start and stop actions to be two separate processes, which is needed for tasty integration.
- Instead of rewriting and maintaining these, I introduced a semaphore mechanism to keep the
- cluster alive until the ClusterClosing action is called.
--}
-startCluster :: forall (a :: Type). ReaderT ClusterEnv IO a -> IO (TVar (ClusterStatus a), a)
-startCluster onClusterStart = do
-  status <- newTVarIO ClusterStarting
-  void $
-    forkFinally
-      ( withPlutusInterface' $ \clusterEnv -> do
-          res <- runReaderT onClusterStart clusterEnv
-          atomically $ writeTVar status (ClusterStarted res)
-          atomically $ readTVar status >>= \case ClusterClosing -> pure (); _ -> retrySTM
-      )
-      (either (error . show) (const (atomically (writeTVar status ClusterClosed))))
-
-  setupRes <- atomically $ readTVar status >>= \case ClusterStarted v -> pure v; _ -> retrySTM
-  pure (status, setupRes)
-
---- | Send a shutdown signal to the cluster and wait for it
-stopCluster :: TVar (ClusterStatus a) -> IO ()
-stopCluster status = do
-  atomically $ writeTVar status ClusterClosing
-  atomically $ readTVar status >>= \case ClusterClosed -> pure (); _ -> retrySTM
+    WaitingRelayNode -> Severity.Notice
+    ChaiIndexStartedAt {} -> Severity.Notice

@@ -1,10 +1,9 @@
 module Test.Plutip.Internal.Types (
   ClusterEnv (..),
-  Outcome (..),
+  ExecutionResult (..),
   FailureReason (..),
   RunningNode (..),
   nodeSocket,
-  isSuccess,
 ) where
 
 import Cardano.Api (NetworkId)
@@ -12,7 +11,7 @@ import Cardano.BM.Tracing (Trace)
 import Cardano.Launcher.Node (CardanoNodeConn)
 import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (RunningNode))
 import Control.Exception (SomeException)
-import Data.Text (Text, intercalate, pack)
+import Data.Text (Text)
 import Servant.Client (BaseUrl)
 
 -- | Environment for actions that use local cluster
@@ -30,56 +29,23 @@ data ClusterEnv = ClusterEnv
 nodeSocket :: ClusterEnv -> CardanoNodeConn
 nodeSocket (ClusterEnv (RunningNode sp _ _) _ _ _ _) = sp
 
--- | Outcome of running contract
-data Outcome w e a
-  = Success
-      { -- | return value of `Contract`
-        contractResult :: a
-      , -- | `Contract` observable state after execution
-        contractState :: w
-      }
-  | Failure
-      { -- | reason of `Contract` execution failure
-        reason :: FailureReason e
-      }
+{- | Result of `Contract` execution. Returns contract observable state
+    and either `Contract` return value, or error of type `FailureReason`.
+    In case of failure observable state will hold changes up to the failure point.
+-}
+data ExecutionResult w e a = ExecutionResult
+  { -- | outcome of running contract.
+    outcome :: Either (FailureReason e) a
+  , -- | `Contract` observable state after execution (or up to the point where it failed)
+    contractState :: w
+  }
   deriving stock (Show)
 
--- | Reason of `Contract` execution failure
+-- | The reason of `Contract` execution failureю
 data FailureReason e
   = -- | error thrown by `Contract` (via `throwError`)
     ContractExecutionError e
-  | -- | exception caught during contract run
+  | -- | exception caught during contract execution
     CaughtException SomeException
   | OtherErr Text
   deriving stock (Show)
-
--- | Check if outcome of contract execution result is `Success`
-isSuccess :: Outcome w e a -> Bool
-isSuccess = \case
-  Success _ _ -> True
-  Failure _ -> False
-
--- -- | Pretty print (temporary impl)
--- prettyResult :: (Show a, Show w, Show e) => Outcome w e a -> Text
--- prettyResult res@(RunResult tag outc) =
---   intercalate "\n" [header, prettyOut outc, ""]
---   where
---     header =
---       mconcat
---         [ maybe "Contract" (\t -> "\'" <> t <> "\'") tag
---         , " execution "
---         , if isSuccess res then "succeeded" else "failed"
---         ]
-
-prettyOut :: (Show a, Show w, Show e) => Outcome w e a -> Text
-prettyOut = \case
-  (Success cRes cState) ->
-    intercalate
-      "\n"
-      [ " Contract returned: " <> toText cRes
-      , " Contract state: " <> toText cState
-      ]
-  (Failure e) -> " The error is: " <> toText e
-
-toText :: Show a => a -> Text
-toText = pack . show

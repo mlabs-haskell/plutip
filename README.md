@@ -8,7 +8,6 @@ Current version of `Plutip` requires some initial setup to be prepared to functi
 
 - `cardano-cli` executable available in the environment
 - `cardano-node` executable available in the environment
-- data required by local cluster in `./cluster-data` directory
 
 ## Usage
 

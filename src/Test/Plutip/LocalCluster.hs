@@ -1,6 +1,3 @@
-{-# LANGUAGE ImplicitParams #-}
-{-# LANGUAGE NamedFieldPuns #-}
-
 module Test.Plutip.LocalCluster (
   BpiWallet,
   addSomeWallet,
@@ -10,14 +7,17 @@ module Test.Plutip.LocalCluster (
   cardanoMainnetAddress,
   ledgerPaymentPkh,
   withCluster,
+  withConfiguredCluster,
 ) where
 
 import Control.Concurrent (threadDelay)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ReaderT, ask)
 import Data.Bifunctor (second)
+import Data.Default (def)
 import Data.List.NonEmpty (NonEmpty)
 import Numeric.Natural (Natural)
+import Test.Plutip.Config (PlutipConfig)
 import Test.Plutip.Contract (TestWallet (twInitDistribuition), TestWallets (unTestWallets))
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   BpiWallet,
@@ -39,6 +39,7 @@ waitSeconds n = liftIO $ threadDelay (fromEnum n * 1_000_000)
 {- | Spin up a local cluster and create a test group with the contracts inside it.
  The cluster is reused by all the test cases, but the wallets are isolated, so contracts won't
  depend on each other (note that time related issues might still occur).
+ Uses default `PlutipConfig`.
 
 = Usage
 > test :: TestTree
@@ -54,8 +55,30 @@ withCluster ::
   String ->
   [(TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)] ->
   TestTree
-withCluster name testCases =
-  withResource (startCluster setup) (stopCluster . fst) $
+withCluster = withConfiguredCluster def
+
+{- | Spin up a local cluster and create a test group with the contracts inside it.
+ The cluster is reused by all the test cases, but the wallets are isolated, so contracts won't
+ depend on each other (note that time related issues might still occur).
+
+= Usage
+> test :: TestTree
+> test =
+>     let myConfig = PlutipConfig ...
+>     withConfiguredCluster myConfig
+>     "Tests with local cluster"
+>     [ shouldSucceed "Get utxos" (initAda 100) $ const getUtxos
+>     ...
+
+ @since 0.2
+-}
+withConfiguredCluster ::
+  PlutipConfig ->
+  String ->
+  [(TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)] ->
+  TestTree
+withConfiguredCluster conf name testCases =
+  withResource (startCluster conf setup) (stopCluster . fst) $
     \getResource ->
       testGroup name $
         imap

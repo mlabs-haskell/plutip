@@ -7,6 +7,17 @@ maintainer:         TODO
 build-type:         Simple
 extra-source-files: CHANGELOG.md
 
+data-files: cluster-data/*.yaml
+            cluster-data/*.cert
+            cluster-data/*.skey
+            cluster-data/*.counter
+            cluster-data/*.vkey
+            cluster-data/*.opcert
+            cluster-data/*.sh
+            cluster-data/*.config
+            cluster-data/faucet-addrs/*.addr
+            cluster-data/faucet-addrs/*.key
+
 common common-imports
   build-depends:
     , aeson
@@ -49,6 +60,7 @@ common common-imports
     , plutus-pab
     , plutus-tx
     , plutus-tx-plugin
+    , retry
     , row-types
     , servant-client
     , stm
@@ -56,6 +68,7 @@ common common-imports
     , tasty
     , text
     , text-class
+    , transformers-except
     , typed-process
     , unliftio
     , uuid
@@ -117,6 +130,7 @@ library
 
   hs-source-dirs:  src/
   exposed-modules:
+    Test.Plutip.Config
     Test.Plutip.Contract
     Test.Plutip.Internal.BotPlutusInterface.Keys
     Test.Plutip.Internal.BotPlutusInterface.Run
@@ -131,9 +145,12 @@ library
     Test.Plutip.Tools.CardanoApi
     Test.Plutip.Tools.ChainIndex
     Test.Plutip.Tools.DebugCli
+  other-modules:
+    Paths_plutip
 
 executable plutip-example
   import:         common-language
+  import:         common-ghc-options
   main-is:        Main.hs
   other-modules:
     DebugContract.GetUtxos

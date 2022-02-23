@@ -1,7 +1,7 @@
 module Spec.Test.Plutip.BotPlutusInterface (test) where
 
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Reader (ask)
+import Data.Default (def)
 import Network.HTTP.Client (
   Response (responseStatus),
   defaultManagerSettings,
@@ -18,8 +18,7 @@ import Test.Tasty.HUnit (assertBool, testCase)
 
 test :: TestTree
 test = testCase "Bot interface integration" $ do
-  withPlutusInterface $ do
-    cEnv <- ask
+  withPlutusInterface def $ \cEnv -> do
     liftIO $
       doesDirectoryExist (keysDir cEnv)
         >>= assertBool "Required directory not found after setup run"

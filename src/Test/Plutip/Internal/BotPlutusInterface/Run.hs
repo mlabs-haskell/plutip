@@ -50,7 +50,11 @@ import Plutus.Contract (Contract)
 import Plutus.PAB.Core.ContractInstance.STM (Activity (Active))
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BIS
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet (walletPkh))
-import Test.Plutip.Internal.Types (ClusterEnv (chainIndexUrl, networkId), ExecutionResult (ExecutionResult, contractState, outcome), FailureReason (CaughtException, ContractExecutionError), Outcome (Failure, Success))
+import Test.Plutip.Internal.Types (
+  ClusterEnv (chainIndexUrl, networkId),
+  ExecutionResult (ExecutionResult, contractState, outcome),
+  FailureReason (CaughtException, ContractExecutionError),
+ )
 import Wallet.Types (ContractInstanceId (ContractInstanceId))
 
 runContract_ ::
@@ -81,7 +85,7 @@ runContract cEnv bpiWallet contract = do
   currentState <- liftIO (readTVarIO contractState)
   return $
     ExecutionResult
-      { outcome = either Failure Success result
+      { outcome = result
       , contractState = csObservableState currentState
       }
   where

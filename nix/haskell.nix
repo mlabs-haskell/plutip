@@ -120,6 +120,11 @@ pkgs.haskell-nix.cabalProject {
         [ pkgs.buildPackages.buildPackages.gitMinimal ];
       cardano-config.components.library.build-tools =
         [ pkgs.buildPackages.buildPackages.gitMinimal ];
+
+      plutip.components.tests."plutip-tests".build-tools =
+        [ inputs.cardano-node.packages.${system}.cardano-node
+          inputs.cardano-node.packages.${system}.cardano-cli
+        ];
     };
   }];
 

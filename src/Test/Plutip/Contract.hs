@@ -58,7 +58,7 @@ import Ledger (Address, ChainIndexTxOut (PublicKeyChainIndexTxOut, ScriptChainIn
 import Ledger.Ada qualified as Ada
 import Ledger.Address (pubKeyHashAddress)
 import Ledger.Value (Value)
-import Numeric.Natural (Natural)
+import Numeric.Positive (Positive)
 import Plutus.Contract (AsContractError, Contract, utxosAt, waitNSlots)
 import Test.Plutip.Internal.BotPlutusInterface.Run (runContract)
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet, ledgerPaymentPkh)
@@ -278,7 +278,7 @@ newtype TestWallets = TestWallets {unTestWallets :: NonEmpty TestWallet}
   deriving newtype (Semigroup)
 
 data TestWallet = TestWallet
-  { twInitDistribuition :: Natural
+  { twInitDistribuition :: Positive
   , twExpected :: Maybe Value
   }
 
@@ -286,14 +286,14 @@ data TestWallet = TestWallet
 
  @since 0.2
 -}
-initLovelace :: Natural -> TestWallets
+initLovelace :: Positive -> TestWallets
 initLovelace initial = TestWallets $ TestWallet initial Nothing :| []
 
 {- | Create a wallet with the given amount of Ada.
 
  @since 0.2
 -}
-initAda :: Natural -> TestWallets
+initAda :: Positive -> TestWallets
 initAda initial = initLovelace (initial * 1_000_000)
 
 {- | Create a wallet with the given amount of lovelace,
@@ -301,7 +301,7 @@ initAda initial = initLovelace (initial * 1_000_000)
 
  @since 0.2
 -}
-initLovelaceAssertValue :: Natural -> Value -> TestWallets
+initLovelaceAssertValue :: Positive -> Value -> TestWallets
 initLovelaceAssertValue initial expect = TestWallets $ TestWallet initial (Just expect) :| []
 
 {- | Create a wallet with the given amount of Ada
@@ -309,7 +309,7 @@ initLovelaceAssertValue initial expect = TestWallets $ TestWallet initial (Just 
 
  @since 0.2
 -}
-initAdaAssertValue :: Natural -> Natural -> TestWallets
+initAdaAssertValue :: Positive -> Positive -> TestWallets
 initAdaAssertValue initial = initAndAssertLovelace (initial * 1_000_000)
 
 {- | Create a wallet with the given amount of lovelace
@@ -317,7 +317,7 @@ initAdaAssertValue initial = initAndAssertLovelace (initial * 1_000_000)
 
  @since 0.2
 -}
-initAndAssertLovelace :: Natural -> Natural -> TestWallets
+initAndAssertLovelace :: Positive -> Positive -> TestWallets
 initAndAssertLovelace initial expect =
   initLovelaceAssertValue initial (Ada.lovelaceValueOf (fromIntegral expect))
 
@@ -326,6 +326,6 @@ initAndAssertLovelace initial expect =
 
  @since 0.2
 -}
-initAndAssertAda :: Natural -> Natural -> TestWallets
+initAndAssertAda :: Positive -> Positive -> TestWallets
 initAndAssertAda initial expect =
   initAndAssertLovelace (initial * 1_000_000) (expect * 1_000_000)

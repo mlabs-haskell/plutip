@@ -150,6 +150,7 @@ library
 
 executable plutip-example
   import:         common-language
+  import:         common-ghc-options
   main-is:        Main.hs
   other-modules:
     DebugContract.GetUtxos

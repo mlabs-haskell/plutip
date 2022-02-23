@@ -85,7 +85,6 @@ runContract cEnv bpiWallet contract = do
       , contractState = csObservableState currentState
       }
   where
-    -- runContract' :: ProtocolParameters -> m (Outcome w e a)
     runContract' pparams contractState = do
       contractInstanceID <- liftIO $ ContractInstanceId <$> UUID.nextRandom
       let pabConf =

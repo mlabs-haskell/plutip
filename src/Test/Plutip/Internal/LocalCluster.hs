@@ -2,7 +2,7 @@ module Test.Plutip.Internal.LocalCluster (
   startCluster,
   stopCluster,
   withPlutusInterface,
-  withPlutusInterface',
+  -- withPlutusInterface',
 ) where
 
 import Cardano.Api qualified as CAPI
@@ -44,7 +44,6 @@ import Test.Plutip.Tools.CardanoApi qualified as Tools
 import UnliftIO.Concurrent (forkFinally)
 import UnliftIO.STM (TVar, atomically, newTVarIO, readTVar, retrySTM, writeTVar)
 
-import Data.Default (def)
 import Data.Foldable (for_)
 import GHC.Stack.Types (HasCallStack)
 import Paths_plutip (getDataFileName)
@@ -52,15 +51,43 @@ import Test.Plutip.Config (PlutipConfig (chainIndexPort, clusterDataDir, relayNo
 import Text.Printf (printf)
 import UnliftIO.Exception (catchIO)
 
-withPlutusInterface :: forall (a :: Type). ReaderT ClusterEnv IO a -> IO a
-withPlutusInterface action = withPlutusInterface' def (runReaderT action)
+{- | Starting a cluster with a setup action
+ We're heavily depending on cardano-wallet local cluster tooling, however they don't allow the
+ start and stop actions to be two separate processes, which is needed for tasty integration.
+ Instead of rewriting and maintaining these, I introduced a semaphore mechanism to keep the
+ cluster alive until the ClusterClosing action is called.
+-}
+startCluster ::
+  forall (a :: Type).
+  PlutipConfig ->
+  ReaderT ClusterEnv IO a ->
+  IO (TVar (ClusterStatus a), a)
+startCluster conf onClusterStart = do
+  status <- newTVarIO ClusterStarting
+  void $
+    forkFinally
+      ( withPlutusInterface conf $ \clusterEnv -> do
+          res <- runReaderT onClusterStart clusterEnv
+          atomically $ writeTVar status (ClusterStarted res)
+          atomically $ readTVar status >>= \case ClusterClosing -> pure (); _ -> retrySTM
+      )
+      (either (error . show) (const (atomically (writeTVar status ClusterClosed))))
+
+  setupRes <- atomically $ readTVar status >>= \case ClusterStarted v -> pure v; _ -> retrySTM
+  pure (status, setupRes)
+
+--- | Send a shutdown signal to the cluster and wait for it
+stopCluster :: TVar (ClusterStatus a) -> IO ()
+stopCluster status = do
+  atomically $ writeTVar status ClusterClosing
+  atomically $ readTVar status >>= \case ClusterClosed -> pure (); _ -> retrySTM
 
 {- Examples:
    `plutus-apps` local cluster: https://github.com/input-output-hk/plutus-apps/blob/75a581c6eb98d36192ce3d3f86ea60a04bc4a52a/plutus-pab/src/Plutus/PAB/LocalCluster/Run.hs
    `cardano-wallet` local cluster: https://github.com/input-output-hk/cardano-wallet/blob/99b13e50f092ffca803fd38b9e435c24dae05c91/lib/shelley/exe/local-cluster.hs
 -}
-withPlutusInterface' :: forall (a :: Type). PlutipConfig -> (ClusterEnv -> IO a) -> IO a
-withPlutusInterface' conf action = do
+withPlutusInterface :: forall (a :: Type). PlutipConfig -> (ClusterEnv -> IO a) -> IO a
+withPlutusInterface conf action = do
   -- current setup requires `cardano-node` and `cardano-cli` as external processes
   checkProcessesAvailable ["cardano-node", "cardano-cli"]
 
@@ -187,40 +214,6 @@ data ClusterStatus (a :: Type)
   | ClusterStarted a
   | ClusterClosing
   | ClusterClosed
-
-{- | Starting a cluster with a setup action
- We're heavily depending on cardano-wallet local cluster tooling, however they don't allow the
- start and stop actions to be two separate processes, which is needed for tasty integration.
- Instead of rewriting and maintaining these, I introduced a semaphore mechanism to keep the
- cluster alive until the ClusterClosing action is called.
--}
-startCluster :: forall (a :: Type). ReaderT ClusterEnv IO a -> IO (TVar (ClusterStatus a), a)
-startCluster = startClusterConf def
-
-startClusterConf ::
-  forall (a :: Type).
-  PlutipConfig ->
-  ReaderT ClusterEnv IO a ->
-  IO (TVar (ClusterStatus a), a)
-startClusterConf conf onClusterStart = do
-  status <- newTVarIO ClusterStarting
-  void $
-    forkFinally
-      ( withPlutusInterface' conf $ \clusterEnv -> do
-          res <- runReaderT onClusterStart clusterEnv
-          atomically $ writeTVar status (ClusterStarted res)
-          atomically $ readTVar status >>= \case ClusterClosing -> pure (); _ -> retrySTM
-      )
-      (either (error . show) (const (atomically (writeTVar status ClusterClosed))))
-
-  setupRes <- atomically $ readTVar status >>= \case ClusterStarted v -> pure v; _ -> retrySTM
-  pure (status, setupRes)
-
---- | Send a shutdown signal to the cluster and wait for it
-stopCluster :: TVar (ClusterStatus a) -> IO ()
-stopCluster status = do
-  atomically $ writeTVar status ClusterClosing
-  atomically $ readTVar status >>= \case ClusterClosed -> pure (); _ -> retrySTM
 
 -- Logging
 

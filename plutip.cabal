@@ -148,33 +148,6 @@ library
   other-modules:
     Paths_plutip
 
-executable plutip-example
-  import:         common-language
-  import:         common-ghc-options
-  main-is:        Main.hs
-  other-modules:
-    DebugContract.GetUtxos
-    DebugContract.LockUnlock
-    DebugContract.LockUnlockValidationFail
-    DebugContract.PayToWallet
-
-  hs-source-dirs: example/
-  ghc-options:    -Wall -threaded -rtsopts
-  build-depends:
-    , base
-    , containers
-    , mtl
-    , plutip
-    , plutus-contract
-    , plutus-ledger
-    , plutus-ledger-api
-    , plutus-ledger-constraints
-    , plutus-pab
-    , plutus-tx
-    , plutus-tx-plugin
-    , tasty
-    , text
-
 test-suite plutip-tests
   import:             common-imports
   import:             common-language
@@ -186,6 +159,7 @@ test-suite plutip-tests
   ghc-options:        -Wall -threaded -rtsopts
   build-depends:
     , base
+    , lens
     , plutip
     , tasty
     , tasty-expected-failure

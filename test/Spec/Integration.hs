@@ -1,19 +1,25 @@
+
 module Spec.Integration (test) where
 
+import Control.Exception ( ErrorCall, Exception(fromException) )
 import Control.Lens ((^.))
 import Control.Monad (replicateM_)
 import Data.Map (Map)
 import Data.Map qualified as Map
+import Data.Maybe (isJust)
 import Data.Text (Text)
-import Data.Text qualified as Text
 import Ledger (CardanoTx, ChainIndexTxOut, PaymentPubKeyHash, TxOutRef, Value, ciTxOutValue, pubKeyHashAddress)
 import Ledger.Ada qualified as Ada
+import Ledger.Constraints (MkTxError (OwnPubKeyMissing))
 import Ledger.Constraints qualified as Constraints
-import Plutus.Contract (Contract, submitTx, utxosAt)
+import Plutus.Contract (Contract, ContractError (ConstraintResolutionError), submitTx, utxosAt)
 import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
-import Plutus.V1.Ledger.Ada
-import Test.Plutip.Contract (assertObservableStateWith, assertYieldedResultWith, initAda, initAndAssertAda, initLovelace, shouldFail, shouldHaveObservableState, shouldSucceed, shouldYield)
+import Plutus.V1.Ledger.Ada ( lovelaceValueOf )
+import Test.Plutip.Contract (assertContractError, assertFailure, assertObservableStateWith, assertYieldedResultWith, initAda, initAndAssertAda, initLovelace, shouldFail, shouldHaveObservableState, shouldSucceed, shouldThrowContractError, shouldYield)
+import Test.Plutip.Internal.Types (
+  FailureReason (CaughtException),
+ )
 import Test.Plutip.LocalCluster (withCluster)
 import Test.Tasty (TestTree)
 import Text.Printf (printf)
@@ -55,6 +61,25 @@ test =
             (initAda 101)
             ((== stateLen) . length)
             (const $ replicateM_ stateLen ownValueToState)
+    , let err = ConstraintResolutionError OwnPubKeyMissing
+       in shouldThrowContractError
+            "Should throw `ConstraintResolutionError OwnPubKeyMissing`"
+            (initAda 100)
+            err
+            (const getUtxosThrowsErr)
+    , assertContractError
+        "Should throw anything but `Contract.OtherError"
+        (initAda 100)
+        (\case Contract.OtherError _ -> False; _ -> True)
+        (const getUtxosThrowsErr)
+    , let pred' = \case
+            CaughtException e -> isJust @ErrorCall (fromException e)
+            _ -> False
+       in assertFailure
+            "Should throw `ErrorCall` exception"
+            (initAda 100)
+            pred'
+            (const getUtxosThrowsEx)
     ]
 
 getUtxos :: Contract [Value] EmptySchema Text (Map TxOutRef ChainIndexTxOut)
@@ -63,9 +88,9 @@ getUtxos = do
   Contract.logInfo @String $ printf "Own PKH: %s" (show pkh)
   utxosAt $ pubKeyHashAddress pkh Nothing
 
-getUtxosThrowsErr :: Contract () EmptySchema Text (Map TxOutRef ChainIndexTxOut)
+getUtxosThrowsErr :: Contract () EmptySchema ContractError (Map TxOutRef ChainIndexTxOut)
 getUtxosThrowsErr =
-  Contract.throwError $ Text.pack "This Error was thrown intentionally by Contract \n"
+  Contract.throwError $ ConstraintResolutionError OwnPubKeyMissing
 
 getUtxosThrowsEx :: Contract () EmptySchema Text (Map TxOutRef ChainIndexTxOut)
 getUtxosThrowsEx = error "This Exception was thrown intentionally in Contract.\n"

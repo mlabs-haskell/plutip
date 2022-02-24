@@ -47,5 +47,4 @@ data FailureReason e
     ContractExecutionError e
   | -- | exception caught during contract execution
     CaughtException SomeException
-  | OtherErr Text
   deriving stock (Show)

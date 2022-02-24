@@ -5,8 +5,10 @@ import DebugContract.LockUnlock qualified as LockUnlock
 import DebugContract.LockUnlockValidationFail qualified as LockUnlockValidationFail
 import DebugContract.PayToWallet qualified as PayToWallet
 import Test.Plutip.Contract (
+  ValueOrdering (VLt),
   initAda,
   initAndAssertAda,
+  initAndAssertAdaWith,
   shouldFail,
   shouldSucceed,
  )
@@ -25,7 +27,7 @@ tests =
     , shouldFail "Throws Exception" (initAda 100) $ const GetUtxos.getUtxosThrowsEx
     , shouldSucceed
         "Pay wallet-to-wallet"
-        (initAda 300 <> initAndAssertAda 100 110)
+        (initAndAssertAdaWith 300 VLt 290 <> initAndAssertAda 100 110)
         $ \[pkh1] -> PayToWallet.payTo pkh1 10_000_000
     , shouldFail "Lock at script then spend - budget overspend" (initAda 100) $
         const LockUnlock.lockThenSpend

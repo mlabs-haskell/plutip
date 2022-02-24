@@ -20,8 +20,8 @@ import Control.Monad.Reader (ReaderT, ask)
 import Data.Aeson.Extras (encodeByteString)
 import Data.Bool (bool)
 import Data.Text qualified as Text
-import GHC.Natural (Natural)
 import Ledger (PaymentPubKeyHash (PaymentPubKeyHash), PubKeyHash (PubKeyHash))
+import Numeric.Positive (Positive)
 import Plutus.V1.Ledger.Api qualified as LAPI
 import PlutusTx.Builtins (fromBuiltin, toBuiltin)
 import System.FilePath ((<.>), (</>))
@@ -46,7 +46,7 @@ data BpiWallet = BpiWallet
  to be used by bot interface.
  Directory for files could be obtained with `Test.Plutip.BotPlutusInterface.Setup.keysDir`
 -}
-eitherAddSomeWallet :: MonadIO m => Natural -> ReaderT ClusterEnv m (Either BpiError BpiWallet)
+eitherAddSomeWallet :: MonadIO m => Positive -> ReaderT ClusterEnv m (Either BpiError BpiWallet)
 eitherAddSomeWallet funds = do
   bpiWallet <- createWallet
   saveWallet bpiWallet
@@ -57,7 +57,7 @@ eitherAddSomeWallet funds = do
     sendFunds wallet = do
       cEnv <- ask
       let fundAddress = mkMainnetAddress wallet
-          amt' = Coin . toEnum . fromEnum $ funds
+          amt' = Coin . fromIntegral $ funds
       liftIO $
         sendFaucetFundsTo
           nullTracer -- todo: fix tracer to be not `nullTracer`
@@ -68,7 +68,7 @@ eitherAddSomeWallet funds = do
 {- | Add wallet with arbitrary address and specified amount of Ada.
  (version of `eitherAddSomeWallet` that will throw an error in case of failure)
 -}
-addSomeWallet :: MonadIO m => Natural -> ReaderT ClusterEnv m BpiWallet
+addSomeWallet :: MonadIO m => Positive -> ReaderT ClusterEnv m BpiWallet
 addSomeWallet funds =
   eitherAddSomeWallet funds >>= either (error . show) pure
 

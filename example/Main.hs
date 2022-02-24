@@ -11,6 +11,7 @@ import Test.Plutip.Contract (
   initAndAssertAdaWith,
   shouldFail,
   shouldSucceed,
+  withContract,
  )
 import Test.Plutip.LocalCluster (withCluster)
 import Test.Tasty (TestTree, defaultMain)
@@ -22,14 +23,14 @@ tests :: TestTree
 tests =
   withCluster
     "Integration tests"
-    [ shouldSucceed "Get utxos" (initAndAssertAda 100 100) $ const GetUtxos.getUtxos
-    , shouldFail "Throws Contract error" (initAda 100) $ const GetUtxos.getUtxosThrowsErr
-    , shouldFail "Throws Exception" (initAda 100) $ const GetUtxos.getUtxosThrowsEx
+    [ shouldSucceed "Get utxos" (initAndAssertAda 100 100) $ withContract $ const GetUtxos.getUtxos
+    , shouldFail "Throws Contract error" (initAda 100) $ withContract $ const GetUtxos.getUtxosThrowsErr
+    , shouldFail "Throws Exception" (initAda 100) $ withContract $ const GetUtxos.getUtxosThrowsEx
     , shouldSucceed
         "Pay wallet-to-wallet"
         (initAndAssertAdaWith 300 VLt 290 <> initAndAssertAda 100 110)
-        $ \[pkh1] -> PayToWallet.payTo pkh1 10_000_000
+        $ withContract $ \[pkh1] -> PayToWallet.payTo pkh1 10_000_000
     , shouldFail "Lock at script then spend - budget overspend" (initAda 100) $
-        const LockUnlock.lockThenSpend
-    , shouldFail "Lock at script then spend - validation fail" (initAda 100) $ const LockUnlockValidationFail.lockThenSpend
+        withContract $ const LockUnlock.lockThenSpend
+    , shouldFail "Lock at script then spend - validation fail" (initAda 100) $ withContract $ const LockUnlockValidationFail.lockThenSpend
     ]

@@ -1,5 +1,6 @@
 module Spec.Integration (test) where
 
+import Control.Monad (void)
 import Data.Map (Map)
 import Data.Text (Text)
 import Data.Text qualified as Text
@@ -9,7 +10,16 @@ import Ledger.Constraints qualified as Constraints
 import Plutus.Contract (Contract, submitTx, utxosAt)
 import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
-import Test.Plutip.Contract (initAda, initAndAssertAda, shouldFail, shouldSucceed)
+import Test.Plutip.Contract (
+  ValueOrdering (VLt),
+  initAda,
+  initAndAssertAda,
+  initAndAssertAdaWith,
+  shouldFail,
+  shouldSucceed,
+  withContract,
+  withContractAs,
+ )
 import Test.Plutip.LocalCluster (withCluster)
 import Test.Tasty (TestTree)
 import Text.Printf (printf)
@@ -20,13 +30,24 @@ test :: TestTree
 test =
   withCluster
     "Basic integration: launch, add wallet, tx from wallet to wallet"
-    [ shouldSucceed "Get utxos" (initAda 100) $ const getUtxos
-    , shouldFail "Get utxos throwing error" (initAda 100) $ const getUtxosThrowsErr
-    , shouldFail "Get utxos throwing exception" (initAda 100) $ const getUtxosThrowsEx
+    [ shouldSucceed "Get utxos" (initAda 100) $ withContract $ const getUtxos
+    , shouldFail "Get utxos throwing error" (initAda 100) $ withContract $ const getUtxosThrowsErr
+    , shouldFail "Get utxos throwing exception" (initAda 100) $ withContract $ const getUtxosThrowsEx
     , shouldFail "Pay negative amount" (initAda 300 <> initAda 200) $
-        \[pkh1] -> payTo pkh1 (-10_000_000)
+        withContract $
+          \[pkh1] -> payTo pkh1 (-10_000_000)
     , shouldSucceed "Pay from wallet to wallet" (initAda 100 <> initAndAssertAda 100 110) $
-        \[pkh1] -> payTo pkh1 10_000_000
+        withContract $
+          \[pkh1] -> payTo pkh1 10_000_000
+    , shouldSucceed
+        "Two contracts after each other"
+        (initAndAssertAdaWith 100 VLt 100 <> initAndAssertAdaWith 100 VLt 100)
+        $ do
+          void $
+            withContract $
+              \[pkh1] -> payTo pkh1 10_000_000
+          withContractAs 1 $
+            \[pkh1] -> payTo pkh1 10_000_000
     ]
 
 getUtxos :: Contract () EmptySchema Text (Map TxOutRef ChainIndexTxOut)

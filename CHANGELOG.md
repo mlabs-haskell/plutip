@@ -14,6 +14,7 @@ This format is based on [Keep A Changelog](https://keepachangelog.com/en/1.0.0).
 - Contract execution result returns current contract state for failure cases too
 - Implementing tasty integration
   - Group together contract executions inside a common cluster using `withCluster`
+  - Run multiple contracts in sequence using `withContract` and `withContractAs`
   - Assertions for testing contract success and failure, and for several outcomes:
     - `shouldSucceed`
     - `shouldFail`

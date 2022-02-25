@@ -129,11 +129,11 @@ shouldSucceed ::
   TestWallets ->
   TestRunner w e a ->
   (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
-shouldSucceed tag testWallets toTestRunner =
+shouldSucceed tag testWallets testRunner =
   ( testWallets
   , singleTest tag
       . TestContract
-        toTestRunner
+        testRunner
         (ExpectSuccess (const True) (const True) (twExpected <$> unTestWallets testWallets))
   )
 
@@ -152,11 +152,11 @@ shouldFail ::
   TestWallets ->
   TestRunner w e a ->
   (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
-shouldFail tag testWallets toTestRunner =
+shouldFail tag testWallets testRunner =
   ( testWallets
   , singleTest tag
       . TestContract
-        toTestRunner
+        testRunner
         (ExpectFailure (const True))
   )
 
@@ -172,11 +172,11 @@ assertYieldedResultWith ::
   (a -> Bool) ->
   TestRunner w e a ->
   (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
-assertYieldedResultWith tag testWallets predicate toTestRunner =
+assertYieldedResultWith tag testWallets predicate testRunner =
   ( testWallets
   , singleTest tag
       . TestContract
-        toTestRunner
+        testRunner
         (ExpectSuccess predicate (const True) (twExpected <$> unTestWallets testWallets))
   )
 
@@ -207,11 +207,11 @@ assertObservableStateWith ::
   (w -> Bool) ->
   TestRunner w e a ->
   (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
-assertObservableStateWith tag testWallets predicate toTestRunner =
+assertObservableStateWith tag testWallets predicate testRunner =
   ( testWallets
   , singleTest tag
       . TestContract
-        toTestRunner
+        testRunner
         (ExpectSuccess (const True) predicate (twExpected <$> unTestWallets testWallets))
   )
 
@@ -276,11 +276,11 @@ assertFailure ::
   (FailureReason e -> Bool) ->
   TestRunner w e a ->
   (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
-assertFailure tag testWallets predicate toTestRunner =
+assertFailure tag testWallets predicate testRunner =
   ( testWallets
   , singleTest tag
       . TestContract
-        toTestRunner
+        testRunner
         (ExpectFailure predicate)
   )
 

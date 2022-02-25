@@ -23,7 +23,8 @@ import BotPlutusInterface.Types (
     pcScriptFileDir,
     pcSigningKeyFileDir,
     pcSlotConfig,
-    pcTxFileDir
+    pcTxFileDir,
+    pcTipPollingInterval
   ),
   ceContractInstanceId,
   ceContractState,
@@ -105,6 +106,7 @@ runContract cEnv bpiWallet contract = do
               , pcProtocolParamsFile = Text.pack $ BIS.pParamsFile cEnv
               , pcLogLevel = Info
               , pcOwnPubKeyHash = walletPkh bpiWallet
+              , pcTipPollingInterval = 10_000_000
               , pcPort = 9080
               , pcEnableTxEndpoint = False
               }

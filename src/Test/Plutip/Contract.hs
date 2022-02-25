@@ -46,6 +46,9 @@ module Test.Plutip.Contract (
   shouldHaveObservableState,
   assertYieldedResultWith,
   assertObservableStateWith,
+  assertFailure,
+  assertContractError,
+  shouldThrowContractError,
   -- Wallet initialisation
   TestWallets (TestWallets, unTestWallets),
   TestWallet (twInitDistribuition, twExpected),
@@ -93,7 +96,7 @@ import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet, ledgerPaymentP
 import Test.Plutip.Internal.Types (
   ClusterEnv,
   ExecutionResult (ExecutionResult),
-  FailureReason,
+  FailureReason (ContractExecutionError),
  )
 import Test.Tasty.Providers (IsTest (run, testOptions), TestTree, singleTest, testFailed, testPassed)
 import Text.Show.Pretty (ppShow)
@@ -227,6 +230,60 @@ shouldHaveObservableState ::
 shouldHaveObservableState tag testWallets expected =
   assertObservableStateWith tag testWallets (== expected)
 
+{- | Check if contract throws expected error.
+
+ @since 0.2
+-}
+shouldThrowContractError ::
+  forall (w :: Type) (e :: Type) (a :: Type).
+  (TestContractConstraints w e a, Eq e) =>
+  String ->
+  TestWallets ->
+  e ->
+  TestRunner w e a ->
+  (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
+shouldThrowContractError tag testWallets expected =
+  assertContractError tag testWallets (== expected)
+
+{- | Assert the error thrown by contract with a custom predicate.
+
+ @since 0.2
+-}
+assertContractError ::
+  forall (w :: Type) (e :: Type) (a :: Type).
+  (TestContractConstraints w e a) =>
+  String ->
+  TestWallets ->
+  (e -> Bool) ->
+  TestRunner w e a ->
+  (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
+assertContractError tag testWallets predicate =
+  assertFailure tag testWallets (mkPredicate predicate)
+  where
+    mkPredicate p = \case
+      ContractExecutionError e -> p e
+      _ -> False
+
+{- | Assert the failure reason of contract execution with a custom predicate.
+
+ @since 0.2
+-}
+assertFailure ::
+  forall (w :: Type) (e :: Type) (a :: Type).
+  (TestContractConstraints w e a) =>
+  String ->
+  TestWallets ->
+  (FailureReason e -> Bool) ->
+  TestRunner w e a ->
+  (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
+assertFailure tag testWallets predicate toTestRunner =
+  ( testWallets
+  , singleTest tag
+      . TestContract
+        toTestRunner
+        (ExpectFailure predicate)
+  )
+
 valueAt ::
   forall (w :: Type) (s :: Row Type) (e :: Type).
   AsContractError e =>
@@ -280,7 +337,11 @@ instance
         | otherwise -> case assertValues expectedVal values of
           Left err -> testFailed $ Text.unpack err
           Right () -> testPassed ""
-      (ExpectFailure _, ExecutionResult (Left _) _) -> testPassed ""
+      (ExpectFailure assertErr, ExecutionResult (Left err) _)
+        | not (assertErr err) ->
+          testFailed $ "Error assertion failed.\nGot:" ++ ppShow err
+        | otherwise ->
+          testPassed ""
 
   testOptions = Tagged []
 

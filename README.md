@@ -36,7 +36,7 @@ tests =
 
 For more, see `Test.Plutip.LocalCluster` `Test.Plutip.Contract`.
 
-More examples could be found [here](example/Main.hs).
+More examples could be found [here](test/Spec/Integration.hs).
 
 ## Known limitations
 

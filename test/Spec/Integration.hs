@@ -1,7 +1,6 @@
-
 module Spec.Integration (test) where
 
-import Control.Exception ( ErrorCall, Exception(fromException) )
+import Control.Exception (ErrorCall, Exception (fromException))
 import Control.Lens ((^.))
 import Control.Monad (replicateM_)
 import Data.Map (Map)
@@ -12,10 +11,10 @@ import Ledger (CardanoTx, ChainIndexTxOut, PaymentPubKeyHash, TxOutRef, Value, c
 import Ledger.Ada qualified as Ada
 import Ledger.Constraints (MkTxError (OwnPubKeyMissing))
 import Ledger.Constraints qualified as Constraints
-import Plutus.Contract (Contract, ContractError (ConstraintResolutionError), submitTx, utxosAt)
+import Plutus.Contract (Contract, ContractError (ConstraintResolutionContractError), submitTx, utxosAt)
 import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
-import Plutus.V1.Ledger.Ada ( lovelaceValueOf )
+import Plutus.V1.Ledger.Ada (lovelaceValueOf)
 import Test.Plutip.Contract (assertContractError, assertFailure, assertObservableStateWith, assertYieldedResultWith, initAda, initAndAssertAda, initLovelace, shouldFail, shouldHaveObservableState, shouldSucceed, shouldThrowContractError, shouldYield)
 import Test.Plutip.Internal.Types (
   FailureReason (CaughtException),
@@ -61,7 +60,7 @@ test =
             (initAda 101)
             ((== stateLen) . length)
             (const $ replicateM_ stateLen ownValueToState)
-    , let err = ConstraintResolutionError OwnPubKeyMissing
+    , let err = ConstraintResolutionContractError OwnPubKeyMissing
        in shouldThrowContractError
             "Should throw `ConstraintResolutionError OwnPubKeyMissing`"
             (initAda 100)
@@ -70,7 +69,7 @@ test =
     , assertContractError
         "Should throw anything but `Contract.OtherError"
         (initAda 100)
-        (\case Contract.OtherError _ -> False; _ -> True)
+        (\case Contract.OtherContractError _ -> False; _ -> True)
         (const getUtxosThrowsErr)
     , let pred' = \case
             CaughtException e -> isJust @ErrorCall (fromException e)
@@ -90,7 +89,7 @@ getUtxos = do
 
 getUtxosThrowsErr :: Contract () EmptySchema ContractError (Map TxOutRef ChainIndexTxOut)
 getUtxosThrowsErr =
-  Contract.throwError $ ConstraintResolutionError OwnPubKeyMissing
+  Contract.throwError $ ConstraintResolutionContractError OwnPubKeyMissing
 
 getUtxosThrowsEx :: Contract () EmptySchema Text (Map TxOutRef ChainIndexTxOut)
 getUtxosThrowsEx = error "This Exception was thrown intentionally in Contract.\n"

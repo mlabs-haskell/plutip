@@ -21,6 +21,9 @@ This format is based on [Keep A Changelog](https://keepachangelog.com/en/1.0.0).
     - `shouldHaveObservableState`
     - `assertYieldedResultWith`
     - `assertObservableStateWith`
+    - `assertFailure`
+    - `assertContractError`
+    - `shouldThrowContractError`
   - Initialising wallets and asserting them after contract execution:
     - `initAda`
     - `initLovelace`

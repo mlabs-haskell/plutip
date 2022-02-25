@@ -6,7 +6,10 @@ import Data.Default (Default, def)
 import GHC.Generics (Generic)
 import GHC.Natural (Natural)
 
--- | Plutip configurable options
+{- | Plutip configurable options
+
+ @since 0.2
+-}
 data PlutipConfig = PlutipConfig
   { -- | in case of `Nothing` cluster data from project `data-files` is used
     clusterDataDir :: Maybe FilePath

@@ -23,7 +23,7 @@
  > shouldSucceed "Send some Ada" (initAda 100 <> initAndAssertAda 100 110) $ withContract $
  >   \[pkh1] -> submitTx (Constraints.mustPayToPubKey pkh1 (Ada.lovelaceValueOf amt))
 
-If you have multiple contracts debending on each other, you can chain them together using
+If you have multiple contracts depending on each other, you can chain them together using
 
 `withContract` and `withContractAs`.
  > shouldSucceed

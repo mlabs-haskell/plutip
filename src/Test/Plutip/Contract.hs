@@ -355,10 +355,7 @@ withContract ::
   TestContractConstraints w e a =>
   ([PaymentPubKeyHash] -> Contract w s e a) ->
   TestRunner w e a
-withContract toContract = do
-  (cEnv, wallets@(ownWallet :| otherWallets)) <- ask
-  let contract = wrapContract wallets (toContract (map ledgerPaymentPkh otherWallets))
-  liftIO $ runContract cEnv ownWallet contract
+withContract = withContractAs 0
 
 {- | Run a contract using the nth wallet as own wallet, and return ExecutionResult.
  This could be used by itself, or combined with multiple other contracts.

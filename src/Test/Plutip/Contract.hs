@@ -11,7 +11,7 @@
   `initLovelace`. In addition, the value in these wallets can be asserted after the contract
   execution with `initAdaAssertValue` or `initAndAssertAda`.
 
- > shouldSucceed "Get utxos" (initAda 100) $ \_ -> do
+ > shouldSucceed "Get utxos" (initAda 100) $ withContract $ \_ -> do
  >   pkh <- Contract.ownPaymentPubKeyHash
  >   utxosAt $ pubKeyHashAddress pkh Nothing
 
@@ -20,10 +20,25 @@
   supplying a contract toa test case: @[PaymentPubKeyHash] -> Contract w s e a@.
   Note that @[PaymentPubKeyHash]@ does not include the contract's own wallet, for that you can use `Plutus.Contract.ownPaymentPubKeyHash` inside the Contract monad.
 
- > shouldSucceed "Send some Ada" (initAda 100 <> initAndAssertAda 100 110) $
+ > shouldSucceed "Send some Ada" (initAda 100 <> initAndAssertAda 100 110) $ withContract $
  >   \[pkh1] -> submitTx (Constraints.mustPayToPubKey pkh1 (Ada.lovelaceValueOf amt))
+
+If you have multiple contracts depending on each other, you can chain them together using
+
+`withContract` and `withContractAs`.
+ > shouldSucceed
+ >   "Two contracts after each other"
+ >   (initAndAssertAdaWith 100 VLt 100 <> initAndAssertAdaWith 100 VLt 100)
+ >   $ do
+ >     void $
+ >       withContract $
+ >         \[pkh1] -> payTo pkh1 10_000_000
+ >     withContractAs 1 $
+ >       \[pkh1] -> payTo pkh1 10_000_000
 -}
 module Test.Plutip.Contract (
+  withContract,
+  withContractAs,
   -- Assertions
   shouldSucceed,
   shouldFail,
@@ -53,7 +68,7 @@ module Test.Plutip.Contract (
 ) where
 
 import Control.Monad (void)
-import Control.Monad.Reader (runReaderT)
+import Control.Monad.Reader (MonadIO (liftIO), MonadReader (ask), ReaderT, runReaderT)
 import Data.Aeson (ToJSON)
 import Data.Aeson.Extras (encodeByteString)
 import Data.Dynamic (Typeable)
@@ -86,14 +101,13 @@ import Test.Plutip.Internal.Types (
 import Test.Tasty.Providers (IsTest (run, testOptions), TestTree, singleTest, testFailed, testPassed)
 import Text.Show.Pretty (ppShow)
 
-type TestContractConstraints (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) =
+type TestContractConstraints (w :: Type) (e :: Type) (a :: Type) =
   ( ToJSON w
   , Monoid w
   , Show w
   , Show e
   , Show a
   , Typeable w
-  , Typeable s
   , Typeable e
   , Typeable a
   , AsContractError e
@@ -102,47 +116,47 @@ type TestContractConstraints (w :: Type) (s :: Row Type) (e :: Type) (a :: Type)
 {- | Assert that a contract is valid.
 
  = Usage
- > shouldSucceed "Get utxos" (initAndAssertAda 100 100) $ \_ -> do
+ > shouldSucceed "Get utxos" (initAndAssertAda 100 100) $ withContract $ \_ -> do
  >   pkh <- Contract.ownPaymentPubKeyHash
  >   utxosAt $ pubKeyHashAddress pkh Nothing
 
  @since 0.2
 -}
 shouldSucceed ::
-  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
-  TestContractConstraints w s e a =>
+  forall (w :: Type) (e :: Type) (a :: Type).
+  TestContractConstraints w e a =>
   String ->
   TestWallets ->
-  ([PaymentPubKeyHash] -> Contract w s e a) ->
+  TestRunner w e a ->
   (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
-shouldSucceed tag testWallets toContract =
+shouldSucceed tag testWallets testRunner =
   ( testWallets
   , singleTest tag
       . TestContract
-        toContract
+        testRunner
         (ExpectSuccess (const True) (const True) (twExpected <$> unTestWallets testWallets))
   )
 
 {- | Assert that a contract should NOT validate.
 
  = Usage
- > shouldFail "Get utxos throwing error" (initAda 100) $ \_ ->
+ > shouldFail "Get utxos throwing error" (initAda 100) $ withContract $ \_ ->
  >   Contract.throwError "This Error was thrown intentionally by Contract"
 
  @since 0.2
 -}
 shouldFail ::
-  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
-  TestContractConstraints w s e a =>
+  forall (w :: Type) (e :: Type) (a :: Type).
+  TestContractConstraints w e a =>
   String ->
   TestWallets ->
-  ([PaymentPubKeyHash] -> Contract w s e a) ->
+  TestRunner w e a ->
   (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
-shouldFail tag testWallets toContract =
+shouldFail tag testWallets testRunner =
   ( testWallets
   , singleTest tag
       . TestContract
-        toContract
+        testRunner
         (ExpectFailure (const True))
   )
 
@@ -151,18 +165,18 @@ shouldFail tag testWallets toContract =
  @since 0.2
 -}
 assertYieldedResultWith ::
-  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
-  TestContractConstraints w s e a =>
+  forall (w :: Type) (e :: Type) (a :: Type).
+  TestContractConstraints w e a =>
   String ->
   TestWallets ->
   (a -> Bool) ->
-  ([PaymentPubKeyHash] -> Contract w s e a) ->
+  TestRunner w e a ->
   (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
-assertYieldedResultWith tag testWallets predicate toContract =
+assertYieldedResultWith tag testWallets predicate testRunner =
   ( testWallets
   , singleTest tag
       . TestContract
-        toContract
+        testRunner
         (ExpectSuccess predicate (const True) (twExpected <$> unTestWallets testWallets))
   )
 
@@ -171,12 +185,12 @@ assertYieldedResultWith tag testWallets predicate toContract =
  @since 0.2
 -}
 shouldYield ::
-  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
-  (TestContractConstraints w s e a, Eq a) =>
+  forall (w :: Type) (e :: Type) (a :: Type).
+  (TestContractConstraints w e a, Eq a) =>
   String ->
   TestWallets ->
   a ->
-  ([PaymentPubKeyHash] -> Contract w s e a) ->
+  TestRunner w e a ->
   (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
 shouldYield tag testWallets expected =
   assertYieldedResultWith tag testWallets (== expected)
@@ -186,18 +200,18 @@ shouldYield tag testWallets expected =
  @since 0.2
 -}
 assertObservableStateWith ::
-  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
-  TestContractConstraints w s e a =>
+  forall (w :: Type) (e :: Type) (a :: Type).
+  TestContractConstraints w e a =>
   String ->
   TestWallets ->
   (w -> Bool) ->
-  ([PaymentPubKeyHash] -> Contract w s e a) ->
+  TestRunner w e a ->
   (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
-assertObservableStateWith tag testWallets predicate toContract =
+assertObservableStateWith tag testWallets predicate testRunner =
   ( testWallets
   , singleTest tag
       . TestContract
-        toContract
+        testRunner
         (ExpectSuccess (const True) predicate (twExpected <$> unTestWallets testWallets))
   )
 
@@ -206,12 +220,12 @@ assertObservableStateWith tag testWallets predicate toContract =
  @since 0.2
 -}
 shouldHaveObservableState ::
-  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
-  (TestContractConstraints w s e a, Eq w) =>
+  forall (w :: Type) (e :: Type) (a :: Type).
+  (TestContractConstraints w e a, Eq w) =>
   String ->
   TestWallets ->
   w ->
-  ([PaymentPubKeyHash] -> Contract w s e a) ->
+  TestRunner w e a ->
   (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
 shouldHaveObservableState tag testWallets expected =
   assertObservableStateWith tag testWallets (== expected)
@@ -221,12 +235,12 @@ shouldHaveObservableState tag testWallets expected =
  @since 0.2
 -}
 shouldThrowContractError ::
-  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
-  (TestContractConstraints w s e a, Eq e) =>
+  forall (w :: Type) (e :: Type) (a :: Type).
+  (TestContractConstraints w e a, Eq e) =>
   String ->
   TestWallets ->
   e ->
-  ([PaymentPubKeyHash] -> Contract w s e a) ->
+  TestRunner w e a ->
   (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
 shouldThrowContractError tag testWallets expected =
   assertContractError tag testWallets (== expected)
@@ -236,12 +250,12 @@ shouldThrowContractError tag testWallets expected =
  @since 0.2
 -}
 assertContractError ::
-  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
-  (TestContractConstraints w s e a) =>
+  forall (w :: Type) (e :: Type) (a :: Type).
+  (TestContractConstraints w e a) =>
   String ->
   TestWallets ->
   (e -> Bool) ->
-  ([PaymentPubKeyHash] -> Contract w s e a) ->
+  TestRunner w e a ->
   (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
 assertContractError tag testWallets predicate =
   assertFailure tag testWallets (mkPredicate predicate)
@@ -255,18 +269,18 @@ assertContractError tag testWallets predicate =
  @since 0.2
 -}
 assertFailure ::
-  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
-  (TestContractConstraints w s e a) =>
+  forall (w :: Type) (e :: Type) (a :: Type).
+  (TestContractConstraints w e a) =>
   String ->
   TestWallets ->
   (FailureReason e -> Bool) ->
-  ([PaymentPubKeyHash] -> Contract w s e a) ->
+  TestRunner w e a ->
   (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
-assertFailure tag testWallets predicate toContract =
+assertFailure tag testWallets predicate testRunner =
   ( testWallets
   , singleTest tag
       . TestContract
-        toContract
+        testRunner
         (ExpectFailure predicate)
   )
 
@@ -283,12 +297,15 @@ valueAt addr = do
     utxoValue (PublicKeyChainIndexTxOut _ v) = v
     utxoValue (ScriptChainIndexTxOut _ _ _ v) = v
 
-data TestContract (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) = TestContract
-  { tcContract :: (ToJSON w, Monoid w, Show w, Show e, Show a) => [PaymentPubKeyHash] -> Contract w s e a
+data TestContract (w :: Type) (e :: Type) (a :: Type) = TestContract
+  { tcContract :: TestContractConstraints w e a => TestRunner w e a
   , tcExpected :: ExpectedOutcome w e a
   , tcSetup :: IO (ClusterEnv, NonEmpty BpiWallet)
   }
   deriving stock (Typeable)
+
+type TestRunner (w :: Type) (e :: Type) (a :: Type) =
+  ReaderT (ClusterEnv, NonEmpty BpiWallet) IO (ExecutionResult w e (a, NonEmpty Value))
 
 {- | Expected outcome of running contract.
 
@@ -300,14 +317,12 @@ data ExpectedOutcome w e a
   deriving stock (Typeable)
 
 instance
-  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
-  TestContractConstraints w s e a =>
-  IsTest (TestContract w s e a)
+  forall (w :: Type) (e :: Type) (a :: Type).
+  TestContractConstraints w e a =>
+  IsTest (TestContract w e a)
   where
-  run _ TestContract {tcContract, tcSetup, tcExpected} _ = do
-    (cEnv, wallets@(ownWallet :| otherWallets)) <- tcSetup
-    let contract = wrapContract wallets (tcContract (map ledgerPaymentPkh otherWallets))
-    result <- runReaderT (runContract cEnv ownWallet contract) cEnv
+  run _ TestContract {tcContract = testCase, tcSetup, tcExpected} _ = do
+    result <- runReaderT testCase =<< tcSetup
 
     pure $ case (tcExpected, result) of
       (ExpectSuccess {}, ExecutionResult (Left err) _) ->
@@ -330,6 +345,40 @@ instance
 
   testOptions = Tagged []
 
+{- | Run a contract using the first wallet as own wallet, and return ExecutionResult.
+ This could be used by itself, or combined with multiple other contracts.
+
+ @since 0.2
+-}
+withContract ::
+  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
+  TestContractConstraints w e a =>
+  ([PaymentPubKeyHash] -> Contract w s e a) ->
+  TestRunner w e a
+withContract = withContractAs 0
+
+{- | Run a contract using the nth wallet as own wallet, and return ExecutionResult.
+ This could be used by itself, or combined with multiple other contracts.
+
+ @since 0.2
+-}
+withContractAs ::
+  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
+  TestContractConstraints w e a =>
+  Int ->
+  ([PaymentPubKeyHash] -> Contract w s e a) ->
+  TestRunner w e a
+withContractAs walletIdx toContract = do
+  (cEnv, wallets') <- ask
+  let wallets@(ownWallet :| otherWallets) = reorder walletIdx wallets'
+  let contract = wrapContract wallets (toContract (map ledgerPaymentPkh otherWallets))
+  liftIO $ runContract cEnv ownWallet contract
+  where
+    reorder i xss =
+      -- Allowing this to be partial intentionally
+      let (xs, y : ys) = NonEmpty.splitAt i xss
+       in y :| xs ++ ys
+
 {- | Wrap test contracts to wait for transaction submission and
  to get the utxo amount at test wallets and wait for transaction.
 
@@ -337,7 +386,7 @@ instance
 -}
 wrapContract ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
-  TestContractConstraints w s e a =>
+  TestContractConstraints w e a =>
   NonEmpty BpiWallet ->
   Contract w s e a ->
   Contract w s e (a, NonEmpty Value)

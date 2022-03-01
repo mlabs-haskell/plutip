@@ -10,10 +10,12 @@
       url = "github:edolstra/flake-compat";
       flake = false;
     };
-    bot-plutus-interface.url = "github:mlabs-haskell/bot-plutus-interface?rev=ca7d096a200a33312484356d9e47e73e1466ce13";
+    bot-plutus-interface.url =
+      "github:mlabs-haskell/bot-plutus-interface?rev=3dce48a64d3387e43070c6a6958df2a220bfecf1";
   };
 
-  outputs = { self, bot-plutus-interface, nixpkgs, haskell-nix, iohk-nix, ... }@inputs:
+  outputs =
+    { self, bot-plutus-interface, nixpkgs, haskell-nix, iohk-nix, ... }@inputs:
     let
       defaultSystems = [ "x86_64-linux" "x86_64-darwin" ];
 
@@ -21,28 +23,26 @@
 
       nixpkgsFor = system:
         import nixpkgs {
-          overlays = [ haskell-nix.overlay (import "${iohk-nix}/overlays/crypto") ];
+          overlays =
+            [ haskell-nix.overlay (import "${iohk-nix}/overlays/crypto") ];
           inherit (haskell-nix) config;
           inherit system;
         };
       nixpkgsFor' = system: import nixpkgs { inherit system; };
 
-      extraSources = inputs.bot-plutus-interface.extraSources ++ [
-        {
-          src = inputs.bot-plutus-interface;
-          subdirs = [ "." ];
-        }
-      ];
+      extraSources = inputs.bot-plutus-interface.extraSources ++ [{
+        src = inputs.bot-plutus-interface;
+        subdirs = [ "." ];
+      }];
 
-      haskellModules = bot-plutus-interface.haskellModules ++ [(
-        { config, ... }:
-        {
+      haskellModules = bot-plutus-interface.haskellModules ++ [
+        ({ config, ... }: {
           packages.plutip.components.tests."plutip-tests".build-tools = [
             config.hsPkgs.cardano-cli.components.exes.cardano-cli
             config.hsPkgs.cardano-node.components.exes.cardano-node
           ];
-        }
-      )];
+        })
+      ];
 
       projectFor = system:
         let
@@ -50,7 +50,10 @@
           pkgs' = nixpkgsFor' system;
           plutus = import inputs.plutus { inherit system; };
           src = ./.;
-        in import ./nix/haskell.nix { inherit src inputs pkgs pkgs' system extraSources haskellModules; inherit (bot-plutus-interface) cabalProjectLocal; };
+        in import ./nix/haskell.nix {
+          inherit src inputs pkgs pkgs' system extraSources haskellModules;
+          inherit (bot-plutus-interface) cabalProjectLocal;
+        };
 
     in {
       inherit extraSources haskellModules;

@@ -74,6 +74,7 @@ common common-imports
     , typed-process
     , unliftio
     , uuid
+    , tasty-hunit
 
 common common-language
   default-extensions:
@@ -142,6 +143,7 @@ library
     Test.Plutip.Internal.LocalCluster
     Test.Plutip.Internal.Types
     Test.Plutip.LocalCluster
+    Test.Plutip.Predicate
     Test.Plutip.Tools
     Test.Plutip.Tools.Address
     Test.Plutip.Tools.CardanoApi
@@ -168,6 +170,7 @@ test-suite plutip-tests
     , tasty-hunit
     , tasty-quickcheck
     , text
+    
 
   other-modules:
     Spec.Integration

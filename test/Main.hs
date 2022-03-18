@@ -11,6 +11,8 @@ main =
       "tests"
       -- FIXME: both `Integration.test` and `BotInterface.test`
       -- start own cluster to run tests, probably, need better solution in future
-      [ Integration.test
-      , BotInterface.test
+      [  Integration.test
+      --,
+      --  Integration.test
+      -- , BotInterface.test
       ]

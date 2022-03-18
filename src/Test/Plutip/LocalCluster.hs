@@ -82,7 +82,7 @@ withConfiguredCluster conf name testCases =
     \getResource ->
       testGroup name $
         imap
-          (\idx (_, toTestCase) -> toTestCase $ second (!! idx) . snd <$> getResource)
+          (\idx (_, toTestGroup) -> toTestGroup $ second (!! idx) . snd <$> getResource)
           testCases
   where
     setup :: ReaderT ClusterEnv IO (ClusterEnv, [NonEmpty BpiWallet])

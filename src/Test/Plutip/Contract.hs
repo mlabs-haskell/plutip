@@ -299,11 +299,9 @@ withContractAs walletIdx toContract = do
   let contract = wrapContract wallets (toContract (map ledgerPaymentPkh otherWallets))
   liftIO $ runContract cEnv ownWallet contract
   where
-    reorder i xss =
-      -- Allowing this to be partial intentionally
-      let (xs, y : ys) = NonEmpty.splitAt i xss
-       in y :| xs ++ ys
-
+    reorder i xss = case NonEmpty.splitAt i xss of
+      (xs, y : ys) -> y :| xs ++ ys
+      _            -> error $ "Should fail: bad wallet index for own wallet: " <> show i
 {- | Wrap test contracts to wait for transaction submission and
  to get the utxo amount at test wallets and wait for transaction.
 

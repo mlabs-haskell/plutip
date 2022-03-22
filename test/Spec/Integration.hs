@@ -2,7 +2,7 @@ module Spec.Integration (test) where
 
 import Control.Exception (ErrorCall, Exception (fromException))
 import Control.Lens ((^.))
-import Control.Monad (replicateM_, void)
+import Control.Monad (void)
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe (isJust)
@@ -15,15 +15,16 @@ import Plutus.Contract (Contract, ContractError (ConstraintResolutionContractErr
 import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
 import Plutus.V1.Ledger.Ada (lovelaceValueOf)
-import Test.Plutip.Contract (ValueOrdering (VLt), withContract, withContractAs, assertExecution, initAndAssertAdaWith, initAda, initAndAssertAda, initLovelace)
+import Test.Plutip.Contract (ValueOrdering (VLt), assertExecution, initAda, initAndAssertAda, initAndAssertAdaWith, initLovelace, withContract, withContractAs)
 import Test.Plutip.Internal.Types (
-  FailureReason (CaughtException, ContractExecutionError),
+  FailureReason (CaughtException),
+  isException,
  )
 import Test.Plutip.LocalCluster (withCluster)
+import Test.Plutip.Predicate (errorSatisfies, failReasonSatisfies, shouldFail, shouldSucceed, shouldThrow, shouldYield, stateIs, stateSatisfies, yieldSatisfies)
+import Test.Plutip.Predicate qualified as Predicate
 import Test.Tasty (TestTree)
 import Text.Printf (printf)
-import Test.Plutip.Predicate (shouldSucceed, shouldYield, shouldFail, yieldSatisfies, errorSatisfies, shouldThrow)
-import Test.Plutip.Predicate qualified as Predicate
 
 -- FIXME: something prints node configs polluting test outputs even with maximum log severity
 -- upd: (https://github.com/input-output-hk/cardano-node/blob/4ad6cddd40517c2eb8c3df144a6fa6737952aa92/cardano-node/src/Cardano/Node/Run.hs#L117)
@@ -32,80 +33,100 @@ test :: TestTree
 test =
   withCluster
     "Basic integration: launch, add wallet, tx from wallet to wallet"
-    [ assertExecution "Contract 1" 
-        (initAda 100) 
+    [ -- Basic Succeed or Failed tests
+      assertExecution
+        "Contract 1"
+        (initAda 100)
         (withContract $ const getUtxos)
-        [shouldSucceed, Predicate.not shouldFail]
-    , assertExecution "Contract 2" 
-        (initAda 100) 
+        [ shouldSucceed
+        , Predicate.not shouldFail
+        ]
+    , assertExecution
+        "Contract 2"
+        (initAda 100)
         (withContract $ const getUtxosThrowsErr)
-        [shouldFail, Predicate.not shouldSucceed]
-    , assertExecution "Contract 3"
-        (initAda 100) 
+        [ shouldFail
+        , Predicate.not shouldSucceed
+        ]
+    , assertExecution
+        "Contract 3"
+        (initAda 100)
         (withContract $ const getUtxosThrowsEx)
-        [shouldFail, Predicate.not shouldSucceed]
-    , assertExecution "Pay negative amount"
-        (initAda 100) 
+        [ shouldFail
+        , Predicate.not shouldSucceed
+        ]
+    , assertExecution
+        "Pay negative amount"
+        (initAda 100)
         (withContract $ \[pkh1] -> payTo pkh1 (-10_000_000))
         [shouldFail]
-    , assertExecution "Pay from wallet to wallet" 
+    , -- Tests with wallet's Value assertions
+      assertExecution
+        "Pay from wallet to wallet"
         (initAda 100 <> initAndAssertAda 100 110)
         (withContract $ \[pkh1] -> payTo pkh1 10_000_000)
         [shouldSucceed]
-    , assertExecution "Two contracts after each other"
-        (initAndAssertAdaWith 100 VLt 100 <> initAndAssertAdaWith 100 VLt 100)
-        (do
-          void $ -- run something prior to the contract which result will be checked 
-            withContract $
+    , assertExecution
+        "Two contracts one after another"
+        ( initAndAssertAdaWith 100 VLt 100 -- own wallet (index 0 in wallets list)
+            <> initAndAssertAdaWith 100 VLt 100 -- wallet with index 1 in wallets list
+        )
+        ( do
+            void $ -- run something prior to the contract which result will be checked
+              withContract $
+                \[pkh1] -> payTo pkh1 10_000_000
+            withContractAs 1 $ -- run contract which result will be checked
               \[pkh1] -> payTo pkh1 10_000_000
-          withContractAs 1 $ -- run contract which result will be checked -- TODO: some explanation
-            \[pkh1] -> payTo pkh1 10_000_000)
+        )
         [shouldSucceed]
-    , assertExecution "Wallet initiation creates single UTxO"
+    , -- Tests with assertions on Contract return value
+      assertExecution
+        "Initiate wallet and get UTxOs"
         (initAda 100)
         (withContract $ const getUtxos)
-        [yieldSatisfies ((==1) . Map.size)]
+        [ yieldSatisfies "Returns single UTxO" ((== 1) . Map.size)
+        ]
     , let initFunds = 10_000_000
        in assertExecution
             "Should yield own initial Ada"
             (initLovelace $ toEnum initFunds)
             (withContract $ const ownValue)
-            [shouldYield (lovelaceValueOf $ toEnum initFunds)]
-    , let err = ConstraintResolutionContractError OwnPubKeyMissing
+            [ shouldYield (lovelaceValueOf $ toEnum initFunds)
+            ]
+    , -- Tests with assertions on state
+      let initFunds = 10_000_000
        in assertExecution
-            "Should throw `ConstraintResolutionError OwnPubKeyMissing`"
+            "Puts own UTxOs Value to state"
+            (initLovelace $ toEnum initFunds)
+            (withContract $ const ownValueToState)
+            [ stateIs [lovelaceValueOf $ toEnum initFunds]
+            , Predicate.not $ stateSatisfies "length > 1" ((> 1) . length)
+            ]
+    , -- Tests with assertions on failure
+      let expectedErr = ConstraintResolutionContractError OwnPubKeyMissing
+          isResolutionError = \case
+            ConstraintResolutionContractError _ -> True
+            _ -> False
+       in assertExecution
+            ("Contract which throws `" <> show expectedErr <> "`")
             (initAda 100)
             (withContract $ const getUtxosThrowsErr)
-            [shouldThrow err, errorSatisfies (== err)]
+            [ shouldThrow expectedErr
+            , errorSatisfies "Throws resolution error" isResolutionError
+            , Predicate.not $ failReasonSatisfies "Throws exception" isException
+            ]
+    , let checkException = \case
+            CaughtException e -> isJust @ErrorCall (fromException e)
+            _ -> False
+       in assertExecution
+            "Contract which throws exception"
+            (initAda 100)
+            (withContract $ const getUtxosThrowsEx)
+            [ shouldFail
+            , Predicate.not shouldSucceed
+            , failReasonSatisfies "Throws ErrorCall" checkException
+            ]
     ]
-
--- TODO: to be ported
-    -- , let initFunds = 10_000_000
-    --    in shouldHaveObservableState
-    --         "Should have state with list of single initial Ada value"
-    --         (initLovelace $ toEnum initFunds)
-    --         [lovelaceValueOf $ toEnum initFunds]
-    --         (withContract $ const ownValueToState)
-    -- , let stateLen = 2
-    --    in assertObservableStateWith
-    --         "Should have state with length 2"
-    --         (initAda 101)
-    --         ((== stateLen) . length)
-    --         (withContract $ const $ replicateM_ stateLen ownValueToState)
-    -- , assertContractError
-    --     "Should throw anything but `Contract.OtherError"
-    --     (initAda 100)
-    --     (\case Contract.OtherContractError _ -> False; _ -> True)
-    --     (withContract $ const getUtxosThrowsErr)
-    -- , let pred' = \case
-    --         CaughtException e -> isJust @ErrorCall (fromException e)
-    --         _ -> False
-    --    in assertFailure
-    --         "Should throw `ErrorCall` exception"
-    --         (initAda 100)
-    --         pred'
-    --         (withContract $ const getUtxosThrowsEx)
-    -- ]
 
 getUtxos :: Contract [Value] EmptySchema Text (Map TxOutRef ChainIndexTxOut)
 getUtxos = do
@@ -125,8 +146,11 @@ payTo toPkh amt = do
   submitTx (Constraints.mustPayToPubKey toPkh (Ada.lovelaceValueOf amt))
 
 ownValue :: Contract [Value] EmptySchema Text Value
-ownValue = foldMap (^. ciTxOutValue) <$> getUtxos 
+ownValue = foldMap (^. ciTxOutValue) <$> getUtxos
 
+-- this Contract fails, but state should change in expected way
 ownValueToState :: Contract [Value] EmptySchema Text ()
-ownValueToState =
+ownValueToState = do
   ownValue >>= Contract.tell . (: [])
+  void $ Contract.throwError "Intentional fail"
+  ownValue >>= Contract.tell . (: []) -- should not be in state

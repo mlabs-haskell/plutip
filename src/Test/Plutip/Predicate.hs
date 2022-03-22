@@ -1,7 +1,7 @@
 {- | This module provides some predicates or assertions, that could be used together with
   `Test.Plutip.Contract.assertExecution` to run tests for Contract in private testnet.
 
-  Module also exports `Predicate` constructor itself, so any arbitrary predicate could be used.
+  Module also exports `Predicate` constructor itself, so any arbitrary predicate could be made.
 -}
 module Test.Plutip.Predicate (
   Predicate (..),
@@ -39,9 +39,11 @@ data Predicate w e a = Predicate
     positive :: String
   , -- | description for the opposite of `positive`case (mostly for `not` functionality)
     negative :: String
-  , -- | some useful debugging info that predicates can print based on contract execution
+  , -- | some useful debugging info that `Predicate` can print based on contract execution result,
+    -- used to print info in case of check failure
     debugInfo :: ExecutionResult w e (a, NonEmpty Value) -> String
-  , -- | check that predicate performs on Contract execution result
+  , -- | check that `Predicate` performs on Contract execution result,
+    -- if check evaluates fo `False` test case considered failure
     pCheck :: ExecutionResult w e (a, NonEmpty Value) -> Bool
   }
 
@@ -58,8 +60,8 @@ pTag = positive
 -}
 not :: Predicate w e a -> Predicate w e a
 not predicate =
-  let (Predicate wOk wFail ti c) = predicate
-   in Predicate wFail wOk ti (Prelude.not . c)
+  let (Predicate pos' neg' dbgInfo' check') = predicate
+   in Predicate pos' neg' dbgInfo' (Prelude.not . check')
 
 -- Predefined predicates --
 
@@ -102,10 +104,10 @@ shouldYield expected =
  @since 0.2
 -}
 yieldSatisfies :: (Show a) => String -> (a -> Bool) -> Predicate w e a
-yieldSatisfies msg p =
+yieldSatisfies description p =
   Predicate
-    msg
-    ("Should violate '" <> msg <> "'")
+    description
+    ("Should violate '" <> description <> "'")
     debugInfo'
     checkOutcome
   where
@@ -138,10 +140,10 @@ stateIs expected =
  @since 0.2
 -}
 stateSatisfies :: Show w => String -> (w -> Bool) -> Predicate w e a
-stateSatisfies msg p =
+stateSatisfies description p =
   Predicate
-    msg
-    ("Should violate '" <> msg <> "'")
+    description
+    ("Should violate '" <> description <> "'")
     debugInfo'
     checkState
   where
@@ -173,22 +175,22 @@ shouldThrow expected =
  @since 0.2
 -}
 errorSatisfies :: Show e => String -> (e -> Bool) -> Predicate w e a
-errorSatisfies msg p =
-  failReasonSatisfies msg $ \case
+errorSatisfies description p =
+  failReasonSatisfies description $ \case
     ContractExecutionError e -> p e
     _ -> False
 
-{- | Most general check for possible Contract failure.
+{- | The most general check for possible Contract failure.
   Can examine any possible contract failure represented by `FailureReason`:
   errors thrown by contracts or exceptions that happened during the run.
 
  @since 0.2
 -}
 failReasonSatisfies :: Show e => String -> (FailureReason e -> Bool) -> Predicate w e a
-failReasonSatisfies msg p =
+failReasonSatisfies description p =
   Predicate
-    msg
-    ("Should violate '" <> msg <> "'")
+    description
+    ("Should violate '" <> description <> "'")
     debugInfo'
     checkOutcome
   where

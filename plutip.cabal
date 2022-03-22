@@ -68,13 +68,13 @@ common common-imports
     , stm
     , tagged
     , tasty
+    , tasty-hunit
     , text
     , text-class
     , transformers-except
     , typed-process
     , unliftio
     , uuid
-    , tasty-hunit
 
 common common-language
   default-extensions:
@@ -127,9 +127,7 @@ library
   ghc-options:
     -Wall -Wcompat -Wincomplete-uni-patterns -Wredundant-constraints
     -Wmissing-export-lists -Wmissing-deriving-strategies
-    -Wmissing-import-lists
-
-  -- -Werror
+    -Wmissing-import-lists -Werror
 
   hs-source-dirs:  src/
   exposed-modules:

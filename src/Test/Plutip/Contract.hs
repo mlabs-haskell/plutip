@@ -1,7 +1,8 @@
 {-# LANGUAGE ConstraintKinds #-}
 
 {- | This module together with `Test.Plutip.Predicate` provides the way 
-  to run assertions against result of contract execution and funds at the wallet's UTxOs after contract being run.
+  to run assertions against the result of contract execution, 
+  as well as funds at the wallet's UTxOs after contract being run.
   
   Each test case starts with `assertExecution`, which accepts:
     - description of test case
@@ -48,7 +49,8 @@
  >   [shouldSucceed]
 
   Here:
-  - wallet with 100 Ada will be used as own wallet
+  - 3 wallets will be initialised with 100, 101 and 102 Ada respectively
+  - wallet with 100 Ada will be used as own wallet to run the contract
   - `pkh1` -- `PaymentPubKeyHash` of wallet with 101 Ada
   - `pkh2` -- `PaymentPubKeyHash` of wallet with 102 Ada
 
@@ -64,7 +66,8 @@
  >   [shouldSucceed]
 
   Here:
-    - wallet with 101 Ada will be used as own wallet
+    - 3 wallets will be initialised with 100, 101 and 102 Ada respectively
+    - wallet with 101 Ada will be used as own wallet to run the contract
     - `pkh0` -- `PaymentPubKeyHash` of wallet with 100 Ada
     - `pkh2` -- `PaymentPubKeyHash` of wallet with 102 Ada
 

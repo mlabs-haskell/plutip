@@ -37,17 +37,17 @@ import Text.Show.Pretty (ppShow)
 data Predicate w e a = Predicate
   { -- | description for the case when predicate holds
     positive :: String
-  , -- | description for the opposite of `positive`case (mostly for `not` functionality)
+  , -- | description for the opposite of `positive` case (mostly for `not` functionality)
     negative :: String
   , -- | some useful debugging info that `Predicate` can print based on contract execution result,
     -- used to print info in case of check failure
     debugInfo :: ExecutionResult w e (a, NonEmpty Value) -> String
   , -- | check that `Predicate` performs on Contract execution result,
-    -- if check evaluates fo `False` test case considered failure
+    -- if check evaluates to `False` test case considered failure
     pCheck :: ExecutionResult w e (a, NonEmpty Value) -> Bool
   }
 
-{- | "positive" description of `Predicate` that will be used as test case tag.
+{- | `positive` description of `Predicate` that will be used as test case tag.
 
  @since 0.2
 -}
@@ -101,6 +101,8 @@ shouldYield expected =
 
 {- | Check that the returned value of the Contract satisfies the predicate.
 
+  Provided `String` description will be used in tes case tag.
+
  @since 0.2
 -}
 yieldSatisfies :: (Show a) => String -> (a -> Bool) -> Predicate w e a
@@ -137,6 +139,8 @@ stateIs expected =
 {- | Check that Contract after execution satisfies the predicate.
   State will be accessible even if Contract failed.
 
+  Provided `String` description will be used in test case tag.
+
  @since 0.2
 -}
 stateSatisfies :: Show w => String -> (w -> Bool) -> Predicate w e a
@@ -171,6 +175,8 @@ shouldThrow expected =
 {- | Check that error thrown by Contract satisfies predicate.
   In case of exception that could happen during Contract execution,
   predicate won't hold.
+  
+  Provided `String` description will be used in test case tag.
 
  @since 0.2
 -}
@@ -183,6 +189,7 @@ errorSatisfies description p =
 {- | The most general check for possible Contract failure.
   Can examine any possible contract failure represented by `FailureReason`:
   errors thrown by contracts or exceptions that happened during the run.
+  Provided `String` description will be used in test case tag.
 
  @since 0.2
 -}

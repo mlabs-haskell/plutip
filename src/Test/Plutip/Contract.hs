@@ -5,6 +5,7 @@
   as well as funds at the wallet's UTxOs after contract being run.
   
   Each test case starts with `assertExecution`, which accepts:
+
     - description of test case
     - initial funds distribution at wallets addresses (with optional Value assertions to be performed after the Contract run)
     - contract to be tested (passed to `withContract`, more on this later)
@@ -35,6 +36,7 @@
   To use multiple wallets, you can use the `Semigroup` instance of `TestWallets`. To reference the
   wallet inside the contract, the following callback function is used together with `withContract`:
   @[PaymentPubKeyHash] -> Contract w s e a@.
+
   Note that @[PaymentPubKeyHash]@ does not include the contract's own wallet, 
   for that you can use `Plutus.Contract.ownPaymentPubKeyHash` inside the Contract monad.
   
@@ -44,15 +46,15 @@
  > assertExecution  "Send some Ada" 
  >   (initAda 100 <> initAda 101 <> initAda 102)
  >   (withContract $ \[pkh1, pkh2] ->
-        payToPubKey pkh1 (Ada.lovelaceValueOf amt))
- >   )
+ >     payToPubKey pkh1 (Ada.lovelaceValueOf amt))
  >   [shouldSucceed]
 
   Here:
+
   - 3 wallets will be initialised with 100, 101 and 102 Ada respectively
   - wallet with 100 Ada will be used as own wallet to run the contract
-  - `pkh1` -- `PaymentPubKeyHash` of wallet with 101 Ada
-  - `pkh2` -- `PaymentPubKeyHash` of wallet with 102 Ada
+  - `pkh1` - `PaymentPubKeyHash` of wallet with 101 Ada
+  - `pkh2` - `PaymentPubKeyHash` of wallet with 102 Ada
 
 
   When contract supplied to test with `withContractAs`, wallet with provided index (0 based) 
@@ -61,15 +63,15 @@
  > assertExecution  "Send some Ada" 
  >   (initAda 100 <> initAda 101 <> initAda 102)
  >   (withContractAs 1 $ \[pkh0, pkh2] ->
-        payToPubKey pkh1 (Ada.lovelaceValueOf amt))
- >   )
+ >     payToPubKey pkh1 (Ada.lovelaceValueOf amt))
  >   [shouldSucceed]
 
   Here:
+
     - 3 wallets will be initialised with 100, 101 and 102 Ada respectively
     - wallet with 101 Ada will be used as own wallet to run the contract
-    - `pkh0` -- `PaymentPubKeyHash` of wallet with 100 Ada
-    - `pkh2` -- `PaymentPubKeyHash` of wallet with 102 Ada
+    - `pkh0` - `PaymentPubKeyHash` of wallet with 100 Ada
+    - `pkh2` - `PaymentPubKeyHash` of wallet with 102 Ada
 
 
  If you have multiple contracts depending on each other, you can chain them together using
@@ -88,7 +90,7 @@
   >   [shouldSucceed]
 
   Here two contracts are executed one after another.
-  Note that only result of second contract execution will be tested.
+  Note that only execution result of the second contract will be tested.
 -}
 module Test.Plutip.Contract (
   withContract,
@@ -218,7 +220,7 @@ maybeAddValuesCheck ioRes tws =
   where
     expected = twExpected <$> unTestWallets tws
 
-    valuesCheckCase = testCase "Values check" $ do
+    valuesCheckCase = testCase "Values check" $
       ioRes
         >>= either (assertFailure . Text.unpack) (const $ pure ())
           . checkValues
@@ -268,7 +270,7 @@ instance
 
   testOptions = Tagged []
 
-{- | Run a contract using the first wallet as own wallet, and return ExecutionResult.
+{- | Run a contract using the first wallet as own wallet, and return `ExecutionResult`.
  This could be used by itself, or combined with multiple other contracts.
 
  @since 0.2
@@ -280,7 +282,7 @@ withContract ::
   TestRunner w e a
 withContract = withContractAs 0
 
-{- | Run a contract using the nth wallet as own wallet, and return ExecutionResult.
+{- | Run a contract using the nth wallet as own wallet, and return `ExecutionResult`.
  This could be used by itself, or combined with multiple other contracts.
 
  @since 0.2

@@ -4,6 +4,9 @@ module Test.Plutip.Internal.Types (
   FailureReason (..),
   RunningNode (..),
   nodeSocket,
+  isExecutionError,
+  isException,
+  isSuccessful,
 ) where
 
 import Cardano.Api (NetworkId)
@@ -11,6 +14,7 @@ import Cardano.BM.Tracing (Trace)
 import Cardano.Launcher.Node (CardanoNodeConn)
 import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (RunningNode))
 import Control.Exception (SomeException)
+import Data.Either (isRight)
 import Data.Text (Text)
 import Servant.Client (BaseUrl)
 
@@ -41,10 +45,23 @@ data ExecutionResult w e a = ExecutionResult
   }
   deriving stock (Show)
 
--- | The reason of `Contract` execution failureю
+isSuccessful :: ExecutionResult w e b -> Bool
+isSuccessful = isRight . outcome
+
+-- | The reason of `Contract` execution failure
 data FailureReason e
   = -- | error thrown by `Contract` (via `throwError`)
     ContractExecutionError e
   | -- | exception caught during contract execution
     CaughtException SomeException
   deriving stock (Show)
+
+isExecutionError :: FailureReason e -> Bool
+isExecutionError = \case
+  ContractExecutionError _ -> True
+  _ -> False
+
+isException :: FailureReason e -> Bool
+isException = \case
+  CaughtException _ -> True
+  _ -> False

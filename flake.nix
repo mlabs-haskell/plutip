@@ -3,7 +3,7 @@
 
   inputs = {
     haskell-nix.follows = "bot-plutus-interface/haskell-nix";
-    nixpkgs.follows = "bot-plutus-interface/haskell-nix/nixpkgs-unstable";
+    nixpkgs.follows = "bot-plutus-interface/haskell-nix/nixpkgs";
     iohk-nix.follows = "bot-plutus-interface/iohk-nix";
 
     flake-compat = {
@@ -11,7 +11,7 @@
       flake = false;
     };
     bot-plutus-interface.url =
-      "github:mlabs-haskell/bot-plutus-interface?rev=3dce48a64d3387e43070c6a6958df2a220bfecf1";
+      "github:mlabs-haskell/bot-plutus-interface?rev=0e3a56cad635288adecc98f41dc90d4d4a86755b";
   };
 
   outputs =

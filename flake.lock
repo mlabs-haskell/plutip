@@ -79,17 +79,17 @@
         "servant-purescript": "servant-purescript"
       },
       "locked": {
-        "lastModified": 1645698121,
-        "narHash": "sha256-mduSwSnHJSE0P6NF9NDtSdIz8WtniLRW5S88NPBVs7o=",
+        "lastModified": 1648141255,
+        "narHash": "sha256-bZZpLB4DvFgjjrRZ4q9NtnxRNFvbjO17xBIJed9y49E=",
         "owner": "mlabs-haskell",
         "repo": "bot-plutus-interface",
-        "rev": "3dce48a64d3387e43070c6a6958df2a220bfecf1",
+        "rev": "0e3a56cad635288adecc98f41dc90d4d4a86755b",
         "type": "github"
       },
       "original": {
         "owner": "mlabs-haskell",
         "repo": "bot-plutus-interface",
-        "rev": "3dce48a64d3387e43070c6a6958df2a220bfecf1",
+        "rev": "0e3a56cad635288adecc98f41dc90d4d4a86755b",
         "type": "github"
       }
     },
@@ -990,7 +990,7 @@
         "nixpkgs": [
           "bot-plutus-interface",
           "haskell-nix",
-          "nixpkgs-unstable"
+          "nixpkgs"
         ]
       }
     },

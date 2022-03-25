@@ -44,7 +44,7 @@
         })
       ];
 
-      projectFor = system: 
+      projectFor = system:
         let
           pkgs = nixpkgsFor system;
           pkgs' = nixpkgsFor' system;

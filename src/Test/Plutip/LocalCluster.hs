@@ -41,13 +41,13 @@ waitSeconds n = liftIO $ threadDelay (fromEnum n * 1_000_000)
 -- depend on each other (note that time related issues might still occur).
 -- Uses default `PlutipConfig`.
 --
---= Usage
---> test :: TestTree
---> test =
--->   withCluster
--->     "Tests with local cluster"
--->     [ shouldSucceed "Get utxos" (initAda 100) $ const getUtxos
--->     ...
+-- = Usage
+-- > test :: TestTree
+-- > test =
+-- >   withCluster
+-- >     "Tests with local cluster"
+-- >     [ shouldSucceed "Get utxos" (initAda 100) $ const getUtxos
+-- >     ...
 --
 -- @since 0.2
 withCluster ::
@@ -60,14 +60,14 @@ withCluster = withConfiguredCluster def
 -- The cluster is reused by all the test cases, but the wallets are isolated, so contracts won't
 -- depend on each other (note that time related issues might still occur).
 --
---= Usage
---> test :: TestTree
---> test =
--->     let myConfig = PlutipConfig ...
--->     withConfiguredCluster myConfig
--->     "Tests with local cluster"
--->     [ shouldSucceed "Get utxos" (initAda 100) $ const getUtxos
--->     ...
+-- = Usage
+-- > test :: TestTree
+-- > test =
+-- >     let myConfig = PlutipConfig ...
+-- >     withConfiguredCluster myConfig
+-- >     "Tests with local cluster"
+-- >     [ shouldSucceed "Get utxos" (initAda 100) $ const getUtxos
+-- >     ...
 --
 -- @since 0.2
 withConfiguredCluster ::

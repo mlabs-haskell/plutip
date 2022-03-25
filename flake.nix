@@ -56,7 +56,7 @@
         };
 
     in {
-      inherit extraSources haskellModules;
+      inherit extraSources haskellModules; 
       inherit (bot-plutus-interface) cabalProjectLocal;
 
       project = perSystem projectFor;

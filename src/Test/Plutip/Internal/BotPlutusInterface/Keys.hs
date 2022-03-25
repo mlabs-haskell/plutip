@@ -14,11 +14,10 @@ genKeyPair = do
   sKey <- generateSigningKey AsPaymentKey
   return $ KeyPair sKey (getVerificationKey sKey)
 
-{- | Helper to generate key pairs.
- Can be further developed to generate test keys for test wallets
- to work with `bot-plutus-interface`
- >>> genKeyPairs "cluster-data/known_wallets" "signing-key-" "verification-key-"
--}
+-- | Helper to generate key pairs.
+-- Can be further developed to generate test keys for test wallets
+-- to work with `bot-plutus-interface`
+-- >>> genKeyPairs "cluster-data/known_wallets" "signing-key-" "verification-key-"
 genKeyPairs :: FilePath -> String -> String -> IO ()
 genKeyPairs outDir sKeyPrefix vKeyPrefix = do
   sKey <- generateSigningKey AsPaymentKey

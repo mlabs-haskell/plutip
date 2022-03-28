@@ -29,6 +29,7 @@ import BotPlutusInterface.Types (
   ceContractInstanceId,
   ceContractState,
   cePABConfig,
+  pcForceBudget,
  )
 import Control.Concurrent.STM (newTVarIO, readTVarIO)
 import Control.Monad (void)
@@ -52,7 +53,7 @@ import Plutus.PAB.Core.ContractInstance.STM (Activity (Active))
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BIS
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet (walletPkh))
 import Test.Plutip.Internal.Types (
-  ClusterEnv (chainIndexUrl, networkId),
+  ClusterEnv (bpiForceBudget, chainIndexUrl, networkId),
   ExecutionResult (ExecutionResult, contractState, outcome),
   FailureReason (CaughtException, ContractExecutionError),
  )
@@ -105,6 +106,7 @@ runContract cEnv bpiWallet contract = do
               , pcDryRun = False
               , pcProtocolParamsFile = Text.pack $ BIS.pParamsFile cEnv
               , pcLogLevel = Info
+              , pcForceBudget = bpiForceBudget cEnv
               , pcOwnPubKeyHash = walletPkh bpiWallet
               , pcTipPollingInterval = 1_000_000
               , pcPort = 9080

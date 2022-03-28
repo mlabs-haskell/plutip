@@ -6,9 +6,8 @@ module Test.Plutip.Tools (
 import Control.Concurrent (threadDelay)
 import Numeric.Natural (Natural)
 
-{- | Library functions works with amounts in `Lovelace`.
- This function helps to specify amounts in `Ada` easier.
--}
+-- | Library functions works with amounts in `Lovelace`.
+-- This function helps to specify amounts in `Ada` easier.
 ada :: Natural -> Natural
 ada = (* 1_000_000)
 

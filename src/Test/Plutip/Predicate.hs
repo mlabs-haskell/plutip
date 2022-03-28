@@ -1,8 +1,7 @@
-{- | This module provides some predicates or assertions, that could be used together with
-  `Test.Plutip.Contract.assertExecution` to run tests for Contract in private testnet.
-
-  Module also exports `Predicate` constructor itself, so any arbitrary predicate could be made.
--}
+-- | This module provides some predicates or assertions, that could be used together with
+--  `Test.Plutip.Contract.assertExecution` to run tests for Contract in private testnet.
+--
+--  Module also exports `Predicate` constructor itself, so any arbitrary predicate could be made.
 module Test.Plutip.Predicate (
   Predicate (..),
   pTag,
@@ -27,13 +26,12 @@ import Test.Plutip.Internal.Types (
  )
 import Text.Show.Pretty (ppShow)
 
-{- | Predicate is used to build test cases for Contract.
-  List of predicates should be passed to `Test.Plutip.Contract.assertExecution`
-  to make assertions about contract execution.
-  Each predicate will result in separate test case.
-
- @since 0.2
--}
+-- | Predicate is used to build test cases for Contract.
+--  List of predicates should be passed to `Test.Plutip.Contract.assertExecution`
+--  to make assertions about contract execution.
+--  Each predicate will result in separate test case.
+--
+-- @since 0.2
 data Predicate w e a = Predicate
   { -- | description for the case when predicate holds
     positive :: String
@@ -47,17 +45,15 @@ data Predicate w e a = Predicate
     pCheck :: ExecutionResult w e (a, NonEmpty Value) -> Bool
   }
 
-{- | `positive` description of `Predicate` that will be used as test case tag.
-
- @since 0.2
--}
+-- | `positive` description of `Predicate` that will be used as test case tag.
+--
+-- @since 0.2
 pTag :: Predicate w e a -> String
 pTag = positive
 
-{- | Switch the meaning of `Predicate` to the opposite.
-
- @since 0.2
--}
+-- | Switch the meaning of `Predicate` to the opposite.
+--
+-- @since 0.2
 not :: Predicate w e a -> Predicate w e a
 not predicate =
   let (Predicate pos' neg' dbgInfo' check') = predicate
@@ -67,10 +63,9 @@ not predicate =
 
 -- Basic success/fail --
 
-{- | Check that Contract didn't fail.
-
- @since 0.2
--}
+-- | Check that Contract didn't fail.
+--
+-- @since 0.2
 shouldSucceed :: Predicate w e a
 shouldSucceed =
   Predicate
@@ -79,19 +74,17 @@ shouldSucceed =
     (const "But it didn't")
     isSuccessful
 
-{- | Check that Contract didn't succeed.
-
- @since 0.2
--}
+-- | Check that Contract didn't succeed.
+--
+-- @since 0.2
 shouldFail :: Predicate w e a
 shouldFail = Test.Plutip.Predicate.not shouldSucceed
 
 -- Contract result --
 
-{- | Check that Contract returned the expected value.
-
- @since 0.2
--}
+-- | Check that Contract returned the expected value.
+--
+-- @since 0.2
 shouldYield :: (Show a, Eq a) => a -> Predicate w e a
 shouldYield expected =
   (yieldSatisfies "" (== expected))
@@ -99,12 +92,11 @@ shouldYield expected =
     , negative = "Should NOT yield '" <> ppShow expected <> "'"
     }
 
-{- | Check that the returned value of the Contract satisfies the predicate.
-
-  Provided `String` description will be used in tes case tag.
-
- @since 0.2
--}
+-- | Check that the returned value of the Contract satisfies the predicate.
+--
+--  Provided `String` description will be used in tes case tag.
+--
+-- @since 0.2
 yieldSatisfies :: (Show a) => String -> (a -> Bool) -> Predicate w e a
 yieldSatisfies description p =
   Predicate
@@ -124,11 +116,10 @@ yieldSatisfies description p =
 
 -- Contract state --
 
-{- | Check that Contract has expected state after being executed.
-  State will be accessible even if Contract failed.
-
- @since 0.2
--}
+-- | Check that Contract has expected state after being executed.
+--  State will be accessible even if Contract failed.
+--
+-- @since 0.2
 stateIs :: (Show w, Eq w) => w -> Predicate w e a
 stateIs expected =
   (stateSatisfies "" (== expected))
@@ -136,13 +127,12 @@ stateIs expected =
     , negative = "State should NOT be '" <> ppShow expected <> "'"
     }
 
-{- | Check that Contract after execution satisfies the predicate.
-  State will be accessible even if Contract failed.
-
-  Provided `String` description will be used in test case tag.
-
- @since 0.2
--}
+-- | Check that Contract after execution satisfies the predicate.
+--  State will be accessible even if Contract failed.
+--
+--  Provided `String` description will be used in test case tag.
+--
+-- @since 0.2
 stateSatisfies :: Show w => String -> (w -> Bool) -> Predicate w e a
 stateSatisfies description p =
   Predicate
@@ -159,12 +149,11 @@ stateSatisfies description p =
 
 -- Errors --
 
-{- | Check that Contract throws expected error.
-  In case of exception that could happen during Contract execution,
-  predicate won't hold.
-
- @since 0.2
--}
+-- | Check that Contract throws expected error.
+--  In case of exception that could happen during Contract execution,
+--  predicate won't hold.
+--
+-- @since 0.2
 shouldThrow :: (Show e, Eq e) => e -> Predicate w e a
 shouldThrow expected =
   (errorSatisfies "" (== expected))
@@ -172,27 +161,25 @@ shouldThrow expected =
     , negative = "Should NOT throw '" <> ppShow expected <> "'"
     }
 
-{- | Check that error thrown by Contract satisfies predicate.
-  In case of exception that could happen during Contract execution,
-  predicate won't hold.
-  
-  Provided `String` description will be used in test case tag.
-
- @since 0.2
--}
+-- | Check that error thrown by Contract satisfies predicate.
+--  In case of exception that could happen during Contract execution,
+--  predicate won't hold.
+--
+--  Provided `String` description will be used in test case tag.
+--
+-- @since 0.2
 errorSatisfies :: Show e => String -> (e -> Bool) -> Predicate w e a
 errorSatisfies description p =
   failReasonSatisfies description $ \case
     ContractExecutionError e -> p e
     _ -> False
 
-{- | The most general check for possible Contract failure.
-  Can examine any possible contract failure represented by `FailureReason`:
-  errors thrown by contracts or exceptions that happened during the run.
-  Provided `String` description will be used in test case tag.
-
- @since 0.2
--}
+-- | The most general check for possible Contract failure.
+--  Can examine any possible contract failure represented by `FailureReason`:
+--  errors thrown by contracts or exceptions that happened during the run.
+--  Provided `String` description will be used in test case tag.
+--
+-- @since 0.2
 failReasonSatisfies :: Show e => String -> (FailureReason e -> Bool) -> Predicate w e a
 failReasonSatisfies description p =
   Predicate

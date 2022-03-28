@@ -1,4 +1,5 @@
-{ src, inputs, pkgs, pkgs', system, extraSources, cabalProjectLocal, haskellModules }:
+{ src, inputs, pkgs, pkgs', system, extraSources, cabalProjectLocal
+, haskellModules }:
 
 let
   project = pkgs.haskell-nix.cabalProject {

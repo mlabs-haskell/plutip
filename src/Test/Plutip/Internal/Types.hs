@@ -27,16 +27,17 @@ data ClusterEnv = ClusterEnv
     -- files created by `cardano-cli`, `chain-index` and `bot-plutus-interface`
     supportDir :: FilePath
   , tracer :: Trace IO Text -- not really used anywhere now
+  , -- | set the budget estimation to a constant
+    bpiForceBudget :: Maybe (Integer, Integer)
   }
 
 -- | Helper function to get socket path from
 nodeSocket :: ClusterEnv -> CardanoNodeConn
-nodeSocket (ClusterEnv (RunningNode sp _ _) _ _ _ _) = sp
+nodeSocket (ClusterEnv (RunningNode sp _ _) _ _ _ _ _) = sp
 
-{- | Result of `Contract` execution. Returns contract observable state
-    and either `Contract` return value, or error of type `FailureReason`.
-    In case of failure observable state will hold changes up to the failure point.
--}
+-- | Result of `Contract` execution. Returns contract observable state
+--    and either `Contract` return value, or error of type `FailureReason`.
+--    In case of failure observable state will hold changes up to the failure point.
 data ExecutionResult w e a = ExecutionResult
   { -- | outcome of running contract.
     outcome :: Either (FailureReason e) a

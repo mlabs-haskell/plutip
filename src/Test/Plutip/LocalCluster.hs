@@ -36,42 +36,40 @@ import Test.Tasty.Providers (TestTree)
 waitSeconds :: Natural -> ReaderT ClusterEnv IO ()
 waitSeconds n = liftIO $ threadDelay (fromEnum n * 1_000_000)
 
-{- | Spin up a local cluster and create a test group with the contracts inside it.
- The cluster is reused by all the test cases, but the wallets are isolated, so contracts won't
- depend on each other (note that time related issues might still occur).
- Uses default `PlutipConfig`.
-
-= Usage
-> test :: TestTree
-> test =
->   withCluster
->     "Tests with local cluster"
->     [ shouldSucceed "Get utxos" (initAda 100) $ const getUtxos
->     ...
-
- @since 0.2
--}
+-- | Spin up a local cluster and create a test group with the contracts inside it.
+-- The cluster is reused by all the test cases, but the wallets are isolated, so contracts won't
+-- depend on each other (note that time related issues might still occur).
+-- Uses default `PlutipConfig`.
+--
+-- = Usage
+-- > test :: TestTree
+-- > test =
+-- >   withCluster
+-- >     "Tests with local cluster"
+-- >     [ shouldSucceed "Get utxos" (initAda 100) $ const getUtxos
+-- >     ...
+--
+-- @since 0.2
 withCluster ::
   String ->
   [(TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)] ->
   TestTree
 withCluster = withConfiguredCluster def
 
-{- | Spin up a local cluster and create a test group with the contracts inside it.
- The cluster is reused by all the test cases, but the wallets are isolated, so contracts won't
- depend on each other (note that time related issues might still occur).
-
-= Usage
-> test :: TestTree
-> test =
->     let myConfig = PlutipConfig ...
->     withConfiguredCluster myConfig
->     "Tests with local cluster"
->     [ shouldSucceed "Get utxos" (initAda 100) $ const getUtxos
->     ...
-
- @since 0.2
--}
+-- | Spin up a local cluster and create a test group with the contracts inside it.
+-- The cluster is reused by all the test cases, but the wallets are isolated, so contracts won't
+-- depend on each other (note that time related issues might still occur).
+--
+-- = Usage
+-- > test :: TestTree
+-- > test =
+-- >     let myConfig = PlutipConfig ...
+-- >     withConfiguredCluster myConfig
+-- >     "Tests with local cluster"
+-- >     [ shouldSucceed "Get utxos" (initAda 100) $ const getUtxos
+-- >     ...
+--
+-- @since 0.2
 withConfiguredCluster ::
   PlutipConfig ->
   String ->

@@ -4,5 +4,5 @@ record-brace-space: true
 indent-wheres: true
 diff-friendly-import-export: true
 respectful: true
-haddock-style: multi-line
+haddock-style: single-line
 newlines-between-decls: 1

@@ -3,6 +3,7 @@ module Spec.Integration (test) where
 import Control.Exception (ErrorCall, Exception (fromException))
 import Control.Lens ((^.))
 import Control.Monad (void)
+import Data.Default (Default (def))
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe (isJust)
@@ -15,12 +16,13 @@ import Plutus.Contract (Contract, ContractError (ConstraintResolutionContractErr
 import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
 import Plutus.V1.Ledger.Ada (lovelaceValueOf)
+import Test.Plutip.Config (PlutipConfig (bpiForceBudget))
 import Test.Plutip.Contract (ValueOrdering (VLt), assertExecution, initAda, initAndAssertAda, initAndAssertAdaWith, initLovelace, withContract, withContractAs)
 import Test.Plutip.Internal.Types (
   FailureReason (CaughtException),
   isException,
  )
-import Test.Plutip.LocalCluster (withCluster)
+import Test.Plutip.LocalCluster (withConfiguredCluster)
 import Test.Plutip.Predicate (errorSatisfies, failReasonSatisfies, shouldFail, shouldSucceed, shouldThrow, shouldYield, stateIs, stateSatisfies, yieldSatisfies)
 import Test.Plutip.Predicate qualified as Predicate
 import Test.Tasty (TestTree)
@@ -31,7 +33,8 @@ import Text.Printf (printf)
 
 test :: TestTree
 test =
-  withCluster
+  withConfiguredCluster
+    (def {bpiForceBudget = Just (100, 100)})
     "Basic integration: launch, add wallet, tx from wallet to wallet"
     [ -- Basic Succeed or Failed tests
       assertExecution

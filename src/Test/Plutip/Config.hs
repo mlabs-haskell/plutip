@@ -6,10 +6,9 @@ import Data.Default (Default, def)
 import GHC.Generics (Generic)
 import GHC.Natural (Natural)
 
-{- | Plutip configurable options
-
- @since 0.2
--}
+-- | Plutip configurable options
+--
+-- @since 0.2
 data PlutipConfig = PlutipConfig
   { -- | in case of `Nothing` cluster data from project `data-files` is used
     clusterDataDir :: Maybe FilePath
@@ -17,8 +16,10 @@ data PlutipConfig = PlutipConfig
     relayNodeLogs :: Maybe FilePath
   , -- | in case of `Nothing` port from `Plutus.ChainIndex.Config.defaultConfig` is used
     chainIndexPort :: Maybe Natural
+  , -- | set the budget estimation to a constant
+    bpiForceBudget :: Maybe (Integer, Integer)
   }
   deriving stock (Generic)
 
 instance Default PlutipConfig where
-  def = PlutipConfig Nothing Nothing Nothing
+  def = PlutipConfig Nothing Nothing Nothing Nothing

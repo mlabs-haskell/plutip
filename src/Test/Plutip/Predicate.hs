@@ -57,7 +57,7 @@ pTag = positive
 not :: Predicate w e a -> Predicate w e a
 not predicate =
   let (Predicate pos' neg' dbgInfo' check') = predicate
-   in Predicate pos' neg' dbgInfo' (Prelude.not . check')
+   in Predicate neg' pos' dbgInfo' (Prelude.not . check')
 
 -- Predefined predicates --
 
@@ -66,18 +66,18 @@ not predicate =
 -- | Check that Contract didn't fail.
 --
 -- @since 0.2
-shouldSucceed :: Predicate w e a
+shouldSucceed :: (Show e, Show a, Show w) => Predicate w e a
 shouldSucceed =
   Predicate
     "Contract should succeed"
     "Contract should fail"
-    (const "But it didn't")
+    (mappend "But it didn't.\nResult: " . show)
     isSuccessful
 
 -- | Check that Contract didn't succeed.
 --
 -- @since 0.2
-shouldFail :: Predicate w e a
+shouldFail :: (Show e, Show a, Show w) => Predicate w e a
 shouldFail = Test.Plutip.Predicate.not shouldSucceed
 
 -- Contract result --

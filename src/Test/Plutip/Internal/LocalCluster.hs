@@ -14,7 +14,7 @@ import Cardano.Wallet.Shelley.Launch (withSystemTempDir)
 
 import Cardano.BM.Data.Severity qualified as Severity
 import Cardano.BM.Data.Tracer (HasPrivacyAnnotation, HasSeverityAnnotation (getSeverityAnnotation))
-import Cardano.CLI (LogOutput (LogToFile, LogToStdStreams), withLoggingNamed)
+import Cardano.CLI (LogOutput (LogToFile), withLoggingNamed)
 import Cardano.Wallet.Shelley.Launch.Cluster (ClusterLog, localClusterConfigFromEnv, testMinSeverityFromEnv, walletMinSeverityFromEnv, withCluster)
 import Control.Concurrent.Async (async)
 import Control.Monad (unless, void)
@@ -146,9 +146,8 @@ withLocalClusterSetup conf action = do
     -- produced by the local test cluster.
     withSystemTempDir stdoutTextTracer "test-cluster" $ \dir -> do
       let logOutputs name minSev =
-            [ LogToFile (dir </> name) (min minSev Severity.Info)
-            , LogToStdStreams minSev
-            ]
+            -- cluster logs to file only
+            [ LogToFile (dir </> name) (min minSev Severity.Info)]
 
       clusterLogs <- logOutputs "cluster.log" <$> testMinSeverityFromEnv
       walletLogs <- logOutputs "wallet.log" <$> walletMinSeverityFromEnv

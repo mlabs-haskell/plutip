@@ -14,17 +14,20 @@ This format is based on [Keep A Changelog](https://keepachangelog.com/en/1.0.0).
 - Contract execution result returns current contract state for failure cases too
 - Implementing tasty integration
   - Group together contract executions inside a common cluster using `withCluster`
+  - Construct test cases from initial wallet distribution, contracts and assertions with `assertExecution`
   - Run multiple contracts in sequence using `withContract` and `withContractAs`
-  - Assertions for testing contract success and failure, and for several outcomes:
+  - Assertions for testing contract execution result (success and failures) and contract state:
     - `shouldSucceed`
     - `shouldFail`
     - `shouldYield`
-    - `shouldHaveObservableState`
-    - `assertYieldedResultWith`
-    - `assertObservableStateWith`
-    - `assertFailure`
-    - `assertContractError`
-    - `shouldThrowContractError`
+    - `yieldSatisfies`
+    - `stateIs`
+    - `stateSatisfies`
+    - `shouldThrow`
+    - `errorSatisfies`
+    - `failReasonSatisfies`
+  - Combining arbitrary assertions together
+  - Building arbitrary assertions with `Predicate`  
   - Initialising wallets and asserting them after contract execution:
     - `initAda`
     - `initLovelace`

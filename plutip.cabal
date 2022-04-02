@@ -68,6 +68,7 @@ common common-imports
     , stm
     , tagged
     , tasty
+    , tasty-hunit
     , text
     , text-class
     , transformers-except
@@ -126,9 +127,7 @@ library
   ghc-options:
     -Wall -Wcompat -Wincomplete-uni-patterns -Wredundant-constraints
     -Wmissing-export-lists -Wmissing-deriving-strategies
-    -Wmissing-import-lists
-
-  -- -Werror
+    -Wmissing-import-lists -Werror
 
   hs-source-dirs:  src/
   exposed-modules:
@@ -142,6 +141,7 @@ library
     Test.Plutip.Internal.LocalCluster
     Test.Plutip.Internal.Types
     Test.Plutip.LocalCluster
+    Test.Plutip.Predicate
     Test.Plutip.Tools
     Test.Plutip.Tools.Address
     Test.Plutip.Tools.CardanoApi
@@ -168,6 +168,7 @@ test-suite plutip-tests
     , tasty-hunit
     , tasty-quickcheck
     , text
+    
 
   other-modules:
     Spec.Integration

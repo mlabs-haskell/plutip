@@ -1,54 +1,100 @@
 {-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE NamedFieldPuns #-}
 
-{- | This module provides some contract assertions to be used with `Test.Plutip.LocalCluster.withContract`
-  All assertions accept a name, some TestWallets and a contract.
-
-  At least one TestWallet is required, this will be used as the own wallet for the contract. Any other
-  wallets can be used as other parties in transactions.
-
-  A TestWallet can be initialised with any positive number of lovelace, using the `initAda` or
-  `initLovelace`. In addition, the value in these wallets can be asserted after the contract
-  execution with `initAdaAssertValue` or `initAndAssertAda`.
-
- > shouldSucceed "Get utxos" (initAda 100) $ withContract $ \_ -> do
- >   pkh <- Contract.ownPaymentPubKeyHash
- >   utxosAt $ pubKeyHashAddress pkh Nothing
-
-  To use multiple wallets, you can use the `Semigroup` instance of `TestWallets`. To reference the
-  wallet inside the contract, the following callback function is used, when
-  supplying a contract toa test case: @[PaymentPubKeyHash] -> Contract w s e a@.
-  Note that @[PaymentPubKeyHash]@ does not include the contract's own wallet, for that you can use `Plutus.Contract.ownPaymentPubKeyHash` inside the Contract monad.
-
- > shouldSucceed "Send some Ada" (initAda 100 <> initAndAssertAda 100 110) $ withContract $
- >   \[pkh1] -> submitTx (Constraints.mustPayToPubKey pkh1 (Ada.lovelaceValueOf amt))
-
-If you have multiple contracts depending on each other, you can chain them together using
-
-`withContract` and `withContractAs`.
- > shouldSucceed
- >   "Two contracts after each other"
- >   (initAndAssertAdaWith 100 VLt 100 <> initAndAssertAdaWith 100 VLt 100)
- >   $ do
- >     void $
- >       withContract $
- >         \[pkh1] -> payTo pkh1 10_000_000
- >     withContractAs 1 $
- >       \[pkh1] -> payTo pkh1 10_000_000
--}
+-- |
+--  This module together with `Test.Plutip.Predicate` provides the way
+--  to run assertions against the result of contract execution,
+--  as well as funds at the wallet's UTxOs after contract being run.
+--
+--  Each test case starts with `assertExecution`, which accepts:
+--
+--    - description of test case
+--    - initial funds distribution at wallets addresses (with optional Value assertions to be performed after the Contract run)
+--    - contract to be tested (passed to `withContract`, more on this later)
+--    - list of assertions to run against Contract return result, observable state and/or error
+--
+--  At least one TestWallet is required, this will be used as the own wallet for the contract. Any other
+--  wallets can be used as other parties in transactions.
+--
+--  A TestWallet can be initialised with any positive number of lovelace, using the `initAda` or
+--  `initLovelace`. In addition, the value in these wallets can be asserted after the contract
+--  execution with `initAdaAssertValue` or `initAndAssertAda`. When `initAdaAssertValue` or `initAndAssertAda` used
+--  to initiate wallets corresponding test case will be added automatically.
+--
+--  Each assertion in assertions list will become separate test case in `TestTree`,
+--  however Contract will be executed only once.
+--
+--  E.g.:
+--
+--    > assertExecution
+--    >   "Some Contract"                   -- Contract description
+--    >   (initAda 100)                     -- wallets and initial funds for them (single wallet in this case)
+--    >   (withContract $ \_ -> myContract) -- contract execution
+--    >   [ shouldSucceed                   -- list of assertions
+--    >   , not $ shouldYield someResult
+--    >   , stateSatisfies "description" somePredicate
+--    >   ]
+--
+--  To use multiple wallets, you can use the `Semigroup` instance of `TestWallets`. To reference the
+--  wallet inside the contract, the following callback function is used together with `withContract`:
+--  @[PaymentPubKeyHash] -> Contract w s e a@.
+--
+--  Note that @[PaymentPubKeyHash]@ does not include the contract's own wallet,
+--  for that you can use `Plutus.Contract.ownPaymentPubKeyHash` inside the Contract monad.
+--
+--  When contract supplied to test with `withContract`,
+--  the 1st initiated wallet will be used as "own" wallet, e.g.:
+--
+--    > assertExecution  "Send some Ada"
+--    >   (initAda 100 <> initAda 101 <> initAda 102)
+--    >   (withContract $ \[pkh1, pkh2] ->
+--    >     payToPubKey pkh1 (Ada.lovelaceValueOf amt))
+--    >   [shouldSucceed]
+--
+--  Here:
+--
+--  - 3 wallets will be initialised with 100, 101 and 102 Ada respectively
+--  - wallet with 100 Ada will be used as own wallet to run the contract
+--  - `pkh1` - `PaymentPubKeyHash` of wallet with 101 Ada
+--  - `pkh2` - `PaymentPubKeyHash` of wallet with 102 Ada
+--
+--
+--  When contract supplied to test with `withContractAs`, wallet with provided index (0 based)
+--  will be used as "own" wallet, e.g.:
+--
+--    > assertExecution  "Send some Ada"
+--    >   (initAda 100 <> initAda 101 <> initAda 102)
+--    >   (withContractAs 1 $ \[pkh0, pkh2] ->
+--    >     payToPubKey pkh1 (Ada.lovelaceValueOf amt))
+--    >   [shouldSucceed]
+--
+--  Here:
+--
+--    - 3 wallets will be initialised with 100, 101 and 102 Ada respectively
+--    - wallet with 101 Ada will be used as own wallet to run the contract
+--    - `pkh0` - `PaymentPubKeyHash` of wallet with 100 Ada
+--    - `pkh2` - `PaymentPubKeyHash` of wallet with 102 Ada
+--
+--
+--  If you have multiple contracts depending on each other, you can chain them together using
+--  `withContract` and `withContractAs`:
+--
+--    > assertExecution
+--    >   "Two contracts one after another"
+--    >   (initAda 100 <> initAda 101)
+--    >   ( do
+--    >       void $ -- run something prior to the contract which result will be checked
+--    >         withContract $
+--    >           \[pkh1] -> payTo pkh1 10_000_000
+--    >       withContractAs 1 $ -- run the contract which result will be checked
+--    >         \[pkh1] -> payTo pkh1 10_000_000
+--    >   )
+--    >   [shouldSucceed]
+--
+--  Here two contracts are executed one after another.
+--  Note that only execution result of the second contract will be tested.
 module Test.Plutip.Contract (
   withContract,
   withContractAs,
-  -- Assertions
-  shouldSucceed,
-  shouldFail,
-  shouldYield,
-  shouldHaveObservableState,
-  assertYieldedResultWith,
-  assertObservableStateWith,
-  assertFailure,
-  assertContractError,
-  shouldThrowContractError,
   -- Wallet initialisation
   TestWallets (TestWallets, unTestWallets),
   TestWallet (twInitDistribuition, twExpected),
@@ -65,12 +111,16 @@ module Test.Plutip.Contract (
   -- Helpers
   ledgerPaymentPkh,
   ValueOrdering (VEq, VGt, VLt, VGEq, VLEq),
+  assertValues,
+  assertExecution,
 ) where
 
+import Control.Arrow (left)
 import Control.Monad (void)
 import Control.Monad.Reader (MonadIO (liftIO), MonadReader (ask), ReaderT, runReaderT)
 import Data.Aeson (ToJSON)
 import Data.Aeson.Extras (encodeByteString)
+import Data.Bool (bool)
 import Data.Dynamic (Typeable)
 import Data.Either (fromRight)
 import Data.Kind (Type)
@@ -78,6 +128,7 @@ import Data.List (find)
 import Data.List.NonEmpty (NonEmpty ((:|)))
 import Data.List.NonEmpty qualified as NonEmpty
 import Data.Map qualified as Map
+import Data.Maybe (isJust)
 import Data.Row (Row)
 import Data.Tagged (Tagged (Tagged))
 import Data.Text (Text)
@@ -95,11 +146,12 @@ import Test.Plutip.Internal.BotPlutusInterface.Run (runContract)
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet, ledgerPaymentPkh)
 import Test.Plutip.Internal.Types (
   ClusterEnv,
-  ExecutionResult (ExecutionResult),
-  FailureReason (ContractExecutionError),
+  ExecutionResult (outcome),
  )
+import Test.Plutip.Predicate (Predicate, debugInfo, pCheck, pTag)
+import Test.Tasty (testGroup, withResource)
+import Test.Tasty.HUnit (assertFailure, testCase)
 import Test.Tasty.Providers (IsTest (run, testOptions), TestTree, singleTest, testFailed, testPassed)
-import Text.Show.Pretty (ppShow)
 
 type TestContractConstraints (w :: Type) (e :: Type) (a :: Type) =
   ( ToJSON w
@@ -113,176 +165,69 @@ type TestContractConstraints (w :: Type) (e :: Type) (a :: Type) =
   , AsContractError e
   )
 
-{- | Assert that a contract is valid.
-
- = Usage
- > shouldSucceed "Get utxos" (initAndAssertAda 100 100) $ withContract $ \_ -> do
- >   pkh <- Contract.ownPaymentPubKeyHash
- >   utxosAt $ pubKeyHashAddress pkh Nothing
-
- @since 0.2
--}
-shouldSucceed ::
+-- | When used with `withCluster`, builds `TestTree` from initial wallets distribution,
+--  Contract and list of assertions (predicates). Each assertion will be run as separate test case,
+--  although Contract will be executed only once.
+--
+-- > assertExecution
+-- >   "Some Contract"                   -- Contract description
+-- >   (initAda 100)                     -- wallets and initial funds for them (single wallet in this case)
+-- >   (withContract $ \_ -> myContract) -- contract execution
+-- >   [ shouldSucceed                   -- list of assertions
+-- >   , not $ shouldYield someResult
+-- >   , stateSatisfies "description" somePredicate
+-- >   ]
+--
+-- @since 0.2
+assertExecution ::
   forall (w :: Type) (e :: Type) (a :: Type).
   TestContractConstraints w e a =>
   String ->
   TestWallets ->
   TestRunner w e a ->
+  [Predicate w e a] ->
   (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
-shouldSucceed tag testWallets testRunner =
-  ( testWallets
-  , singleTest tag
-      . TestContract
-        testRunner
-        (ExpectSuccess (const True) (const True) (twExpected <$> unTestWallets testWallets))
-  )
-
-{- | Assert that a contract should NOT validate.
-
- = Usage
- > shouldFail "Get utxos throwing error" (initAda 100) $ withContract $ \_ ->
- >   Contract.throwError "This Error was thrown intentionally by Contract"
-
- @since 0.2
--}
-shouldFail ::
-  forall (w :: Type) (e :: Type) (a :: Type).
-  TestContractConstraints w e a =>
-  String ->
-  TestWallets ->
-  TestRunner w e a ->
-  (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
-shouldFail tag testWallets testRunner =
-  ( testWallets
-  , singleTest tag
-      . TestContract
-        testRunner
-        (ExpectFailure (const True))
-  )
-
-{- | Assert the return value of the contract with a custom predicate.
-
- @since 0.2
--}
-assertYieldedResultWith ::
-  forall (w :: Type) (e :: Type) (a :: Type).
-  TestContractConstraints w e a =>
-  String ->
-  TestWallets ->
-  (a -> Bool) ->
-  TestRunner w e a ->
-  (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
-assertYieldedResultWith tag testWallets predicate testRunner =
-  ( testWallets
-  , singleTest tag
-      . TestContract
-        testRunner
-        (ExpectSuccess predicate (const True) (twExpected <$> unTestWallets testWallets))
-  )
-
-{- | Check if the return value of the contract equals to some expected value.
-
- @since 0.2
--}
-shouldYield ::
-  forall (w :: Type) (e :: Type) (a :: Type).
-  (TestContractConstraints w e a, Eq a) =>
-  String ->
-  TestWallets ->
-  a ->
-  TestRunner w e a ->
-  (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
-shouldYield tag testWallets expected =
-  assertYieldedResultWith tag testWallets (== expected)
-
-{- | Assert the observable state of the contract with a custom predicate.
-
- @since 0.2
--}
-assertObservableStateWith ::
-  forall (w :: Type) (e :: Type) (a :: Type).
-  TestContractConstraints w e a =>
-  String ->
-  TestWallets ->
-  (w -> Bool) ->
-  TestRunner w e a ->
-  (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
-assertObservableStateWith tag testWallets predicate testRunner =
-  ( testWallets
-  , singleTest tag
-      . TestContract
-        testRunner
-        (ExpectSuccess (const True) predicate (twExpected <$> unTestWallets testWallets))
-  )
-
-{- | Check if the observable state of the contract equals to some expected value.
-
- @since 0.2
--}
-shouldHaveObservableState ::
-  forall (w :: Type) (e :: Type) (a :: Type).
-  (TestContractConstraints w e a, Eq w) =>
-  String ->
-  TestWallets ->
-  w ->
-  TestRunner w e a ->
-  (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
-shouldHaveObservableState tag testWallets expected =
-  assertObservableStateWith tag testWallets (== expected)
-
-{- | Check if contract throws expected error.
-
- @since 0.2
--}
-shouldThrowContractError ::
-  forall (w :: Type) (e :: Type) (a :: Type).
-  (TestContractConstraints w e a, Eq e) =>
-  String ->
-  TestWallets ->
-  e ->
-  TestRunner w e a ->
-  (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
-shouldThrowContractError tag testWallets expected =
-  assertContractError tag testWallets (== expected)
-
-{- | Assert the error thrown by contract with a custom predicate.
-
- @since 0.2
--}
-assertContractError ::
-  forall (w :: Type) (e :: Type) (a :: Type).
-  (TestContractConstraints w e a) =>
-  String ->
-  TestWallets ->
-  (e -> Bool) ->
-  TestRunner w e a ->
-  (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
-assertContractError tag testWallets predicate =
-  assertFailure tag testWallets (mkPredicate predicate)
+assertExecution tag testWallets testRunner predicates =
+  (testWallets, toTestGroup)
   where
-    mkPredicate p = \case
-      ContractExecutionError e -> p e
-      _ -> False
+    toTestGroup ioEnv =
+      withResource (runReaderT testRunner =<< ioEnv) (const $ pure ()) $
+        \ioRes ->
+          testGroup tag $
+            maybeAddValuesCheck
+              ioRes
+              testWallets
+              (toCase ioRes <$> predicates)
 
-{- | Assert the failure reason of contract execution with a custom predicate.
+    -- wraps IO with result of contract execution into single test
+    toCase ioRes p =
+      singleTest (pTag p) (TestContract p ioRes)
 
- @since 0.2
--}
-assertFailure ::
-  forall (w :: Type) (e :: Type) (a :: Type).
-  (TestContractConstraints w e a) =>
-  String ->
+-- | Adds test case with assertions on values if any assertions were added
+--  by `initAndAssert...` functions during wallets setup
+--
+-- @since 0.2
+maybeAddValuesCheck ::
+  Show e =>
+  IO (ExecutionResult w e (a, NonEmpty Value)) ->
   TestWallets ->
-  (FailureReason e -> Bool) ->
-  TestRunner w e a ->
-  (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
-assertFailure tag testWallets predicate testRunner =
-  ( testWallets
-  , singleTest tag
-      . TestContract
-        testRunner
-        (ExpectFailure predicate)
-  )
+  [TestTree] ->
+  [TestTree]
+maybeAddValuesCheck ioRes tws =
+  bool id (valuesCheckCase :) (any isJust expected)
+  where
+    expected = twExpected <$> unTestWallets tws
+
+    valuesCheckCase =
+      testCase "Values check" $
+        ioRes
+          >>= either (assertFailure . Text.unpack) (const $ pure ())
+            . checkValues
+            . outcome
+
+    checkValues o =
+      left (Text.pack . show) o
+        >>= \(_, vs) -> assertValues expected vs
 
 valueAt ::
   forall (w :: Type) (s :: Row Type) (e :: Type).
@@ -297,59 +242,37 @@ valueAt addr = do
     utxoValue (PublicKeyChainIndexTxOut _ v) = v
     utxoValue (ScriptChainIndexTxOut _ _ _ v) = v
 
-data TestContract (w :: Type) (e :: Type) (a :: Type) = TestContract
-  { tcContract :: TestContractConstraints w e a => TestRunner w e a
-  , tcExpected :: ExpectedOutcome w e a
-  , tcSetup :: IO (ClusterEnv, NonEmpty BpiWallet)
-  }
+-- | Test contract
+data TestContract (w :: Type) (e :: Type) (a :: Type)
+  = TestContract
+      (Predicate w e a)
+      -- ^ Info about check to perform and how to report results
+      (IO (ExecutionResult w e (a, NonEmpty Value)))
+      -- ^ Result of contract execution
   deriving stock (Typeable)
 
 type TestRunner (w :: Type) (e :: Type) (a :: Type) =
   ReaderT (ClusterEnv, NonEmpty BpiWallet) IO (ExecutionResult w e (a, NonEmpty Value))
-
-{- | Expected outcome of running contract.
-
- @since 0.2
--}
-data ExpectedOutcome w e a
-  = ExpectSuccess (a -> Bool) (w -> Bool) (NonEmpty (Maybe (ValueOrdering, Value)))
-  | ExpectFailure (FailureReason e -> Bool)
-  deriving stock (Typeable)
 
 instance
   forall (w :: Type) (e :: Type) (a :: Type).
   TestContractConstraints w e a =>
   IsTest (TestContract w e a)
   where
-  run _ TestContract {tcContract = testCase, tcSetup, tcExpected} _ = do
-    result <- runReaderT testCase =<< tcSetup
-
-    pure $ case (tcExpected, result) of
-      (ExpectSuccess {}, ExecutionResult (Left err) _) ->
-        testFailed $ "Contract failed with " ++ ppShow err
-      (ExpectFailure _, ExecutionResult (Right _) _) ->
-        testFailed "Expected a failing contract, but it succeeded."
-      (ExpectSuccess assertRes assertObsSt expectedVal, ExecutionResult (Right (res, values)) obsSt)
-        | not (assertRes res) ->
-          testFailed $ "Contract result assertion failed.\nGot: " ++ ppShow res
-        | not (assertObsSt obsSt) ->
-          testFailed $ "Observable state assertion failed.\nGot:" ++ ppShow obsSt
-        | otherwise -> case assertValues expectedVal values of
-          Left err -> testFailed $ Text.unpack err
-          Right () -> testPassed ""
-      (ExpectFailure assertErr, ExecutionResult (Left err) _)
-        | not (assertErr err) ->
-          testFailed $ "Error assertion failed.\nGot:" ++ ppShow err
-        | otherwise ->
-          testPassed ""
+  run _ (TestContract predicate runResult) _ = do
+    result <- runResult
+    pure $
+      bool
+        (testFailed $ debugInfo predicate result)
+        (testPassed "")
+        (pCheck predicate result)
 
   testOptions = Tagged []
 
-{- | Run a contract using the first wallet as own wallet, and return ExecutionResult.
- This could be used by itself, or combined with multiple other contracts.
-
- @since 0.2
--}
+-- | Run a contract using the first wallet as own wallet, and return `ExecutionResult`.
+-- This could be used by itself, or combined with multiple other contracts.
+--
+-- @since 0.2
 withContract ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
   TestContractConstraints w e a =>
@@ -357,11 +280,10 @@ withContract ::
   TestRunner w e a
 withContract = withContractAs 0
 
-{- | Run a contract using the nth wallet as own wallet, and return ExecutionResult.
- This could be used by itself, or combined with multiple other contracts.
-
- @since 0.2
--}
+-- | Run a contract using the nth wallet as own wallet, and return `ExecutionResult`.
+-- This could be used by itself, or combined with multiple other contracts.
+--
+-- @since 0.2
 withContractAs ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
   TestContractConstraints w e a =>
@@ -374,16 +296,14 @@ withContractAs walletIdx toContract = do
   let contract = wrapContract wallets (toContract (map ledgerPaymentPkh otherWallets))
   liftIO $ runContract cEnv ownWallet contract
   where
-    reorder i xss =
-      -- Allowing this to be partial intentionally
-      let (xs, y : ys) = NonEmpty.splitAt i xss
-       in y :| xs ++ ys
+    reorder i xss = case NonEmpty.splitAt i xss of
+      (xs, y : ys) -> y :| xs ++ ys
+      _ -> error $ "Should fail: bad wallet index for own wallet: " <> show i
 
-{- | Wrap test contracts to wait for transaction submission and
- to get the utxo amount at test wallets and wait for transaction.
-
- @since 0.2
--}
+-- | Wrap test contracts to wait for transaction submission and
+-- to get the utxo amount at test wallets and wait for transaction.
+--
+-- @since 0.2
 wrapContract ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
   TestContractConstraints w e a =>
@@ -456,84 +376,74 @@ compareValuesWith VLt = Value.lt
 compareValuesWith VGEq = Value.geq
 compareValuesWith VLEq = Value.leq
 
-{- | Create a wallet with the given amount of lovelace.
-
- @since 0.2
--}
+-- | Create a wallet with the given amount of lovelace.
+--
+-- @since 0.2
 initLovelace :: Positive -> TestWallets
 initLovelace initial = TestWallets $ TestWallet initial Nothing :| []
 
-{- | Create a wallet with the given amount of lovelace, and after contract execution
- compare the values at the wallet address with the given ordering and value.
-
- @since 0.2
--}
+-- | Create a wallet with the given amount of lovelace, and after contract execution
+-- compare the values at the wallet address with the given ordering and value.
+--
+-- @since 0.2
 initLovelaceAssertValueWith :: Positive -> ValueOrdering -> Value -> TestWallets
 initLovelaceAssertValueWith initial ord expect = TestWallets $ TestWallet initial (Just (ord, expect)) :| []
 
-{- | Create a wallet with the given amount of lovelace, and after contract execution
- check if values at the wallet address are equal to a given value.
-
- @since 0.2
--}
+-- | Create a wallet with the given amount of lovelace, and after contract execution
+-- check if values at the wallet address are equal to a given value.
+--
+-- @since 0.2
 initLovelaceAssertValue :: Positive -> Value -> TestWallets
 initLovelaceAssertValue initial = initLovelaceAssertValueWith initial VEq
 
-{- | Create a wallet with the given amount of lovelace, and after contract execution
- compare the values at the wallet address with the given ordering and lovelace amount.
-
- @since 0.2
--}
+-- | Create a wallet with the given amount of lovelace, and after contract execution
+-- compare the values at the wallet address with the given ordering and lovelace amount.
+--
+-- @since 0.2
 initAndAssertLovelaceWith :: Positive -> ValueOrdering -> Positive -> TestWallets
 initAndAssertLovelaceWith initial ord expect =
   initLovelaceAssertValueWith initial ord (Ada.lovelaceValueOf (fromIntegral expect))
 
-{- | Create a wallet with the given amount of lovelace, and after contract execution
- check if values at the wallet address are equal to a given lovelace amount.
-
- @since 0.2
--}
+-- | Create a wallet with the given amount of lovelace, and after contract execution
+-- check if values at the wallet address are equal to a given lovelace amount.
+--
+-- @since 0.2
 initAndAssertLovelace :: Positive -> Positive -> TestWallets
 initAndAssertLovelace initial expect =
   initLovelaceAssertValue initial (Ada.lovelaceValueOf (fromIntegral expect))
 
-{- | Create a wallet with the given amount of Ada.
-
- @since 0.2
--}
+-- | Create a wallet with the given amount of Ada.
+--
+-- @since 0.2
 initAda :: Positive -> TestWallets
 initAda initial = initLovelace (initial * 1_000_000)
 
-{- | Create a wallet with the given amount of Ada, and after contract execution
- compare the values at the wallet address with the given ordering and value.
-
- @since 0.2
--}
+-- | Create a wallet with the given amount of Ada, and after contract execution
+-- compare the values at the wallet address with the given ordering and value.
+--
+-- @since 0.2
 initAdaAssertValueWith :: Positive -> ValueOrdering -> Value -> TestWallets
 initAdaAssertValueWith initial = initLovelaceAssertValueWith (initial * 1_000_000)
 
-{- | Create a wallet with the given amount of Ada, and after contract execution
- check if values at the wallet address are equal to a given value.
-
- @since 0.2
--}
+-- | Create a wallet with the given amount of Ada, and after contract execution
+-- check if values at the wallet address are equal to a given value.
+--
+-- @since 0.2
 initAdaAssertValue :: Positive -> Value -> TestWallets
 initAdaAssertValue initial = initLovelaceAssertValue (initial * 1_000_000)
 
-{- | Create a wallet with the given amount of Ada, and after contract execution
- compare the values at the wallet address with the given ordering and ada amount.
-
- @since 0.2
--}
+-- | Create a wallet with the given amount of Ada, and after contract execution
+-- compare the values at the wallet address with the given ordering and ada amount.
+--
+-- @since 0.2
 initAndAssertAdaWith :: Positive -> ValueOrdering -> Positive -> TestWallets
 initAndAssertAdaWith initial ord expect =
   initAndAssertLovelaceWith (initial * 1_000_000) ord (expect * 1_000_000)
 
-{- | Create a wallet with the given amount of Ada, and after contract execution
- check if values at the wallet address are equal to a given ada amount.
-
- @since 0.2
--}
+-- | Create a wallet with the given amount of Ada, and after contract execution
+-- check if values at the wallet address are equal to a given ada amount.
+--
+-- @since 0.2
 initAndAssertAda :: Positive -> Positive -> TestWallets
 initAndAssertAda initial expect =
   initAndAssertLovelace (initial * 1_000_000) (expect * 1_000_000)

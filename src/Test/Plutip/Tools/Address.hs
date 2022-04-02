@@ -49,10 +49,9 @@ ledgerToCardanoMainnet' :: Ledger.Address -> Either Ledger.ToCardanoError Text
 ledgerToCardanoMainnet' addr =
   CAPI.serialiseAddress <$> Ledger.toCardanoAddress CAPI.Mainnet addr
 
-{- | Get `String` representation of address on mainnet
- mkMainnetAddress :: BpiWallet -> String
- mkMainnetAddress bw =
-   unpack
-     . CAPI.serialiseAddress
-     $ cardanoMainnetAddress bw
--}
+-- | Get `String` representation of address on mainnet
+-- mkMainnetAddress :: BpiWallet -> String
+-- mkMainnetAddress bw =
+--   unpack
+--     . CAPI.serialiseAddress
+--     $ cardanoMainnetAddress bw

@@ -29,9 +29,8 @@ import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as Setup
 import Test.Plutip.Internal.BotPlutusInterface.Types (BpiError (BotInterfaceDirMissing, SignKeySaveError))
 import Test.Plutip.Internal.Types (ClusterEnv, nodeSocket, supportDir)
 
-{- | Wallet that can be used by bot interface,
-  backed by `.skey` file when added to cluster with `addSomeWallet`
--}
+-- | Wallet that can be used by bot interface,
+--  backed by `.skey` file when added to cluster with `addSomeWallet`
 data BpiWallet = BpiWallet
   { walletPkh :: !PubKeyHash
   , vrfKey :: VerificationKey PaymentKey
@@ -65,9 +64,8 @@ eitherAddSomeWallet funds = do
           (supportDir cEnv)
           [(fundAddress, amt')]
 
-{- | Add wallet with arbitrary address and specified amount of Ada.
- (version of `eitherAddSomeWallet` that will throw an error in case of failure)
--}
+-- | Add wallet with arbitrary address and specified amount of Ada.
+-- (version of `eitherAddSomeWallet` that will throw an error in case of failure)
 addSomeWallet :: MonadIO m => Positive -> ReaderT ClusterEnv m BpiWallet
 addSomeWallet funds =
   eitherAddSomeWallet funds >>= either (error . show) pure

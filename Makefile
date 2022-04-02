@@ -39,8 +39,8 @@ requires_nix_shell:
 # Add folder locations to the list to be reformatted.
 fourmolu-format:
 	@ echo "> Formatting all .hs files"
-	fourmolu -i $$(find src/  -iregex ".*.hs")
-	fourmolu -i $$(find test/ -iregex ".*.hs")
+	fourmolu -o -XTypeApplications -o -XImportQualifiedPost -i $$(find src/  -iregex ".*.hs")
+	fourmolu -o -XTypeApplications -o -XImportQualifiedPost -i $$(find test/ -iregex ".*.hs")
 
 NIX_SOURCES := $(shell git ls-tree -r HEAD --full-tree --name-only | grep -E '.*\.nix' )
 

@@ -15,9 +15,8 @@ import System.Process.Typed (
  )
 import Test.Plutip.Internal.Types (ClusterEnv, nodeSocket)
 
-{- | Call `cardano-cli` as external process.
- `cardano-cli` must be available in shell
--}
+-- | Call `cardano-cli` as external process.
+-- `cardano-cli` must be available in shell
 debugCli ::
   ClusterEnv ->
   [String] ->
@@ -33,9 +32,8 @@ debugCli cEnv args = do
     ExitSuccess -> out
     ExitFailure _ -> err
 
-{- | Get UTxOs at address using `cardano-cli` as external process.
- `cardano-cli` must be available in shell
--}
+-- | Get UTxOs at address using `cardano-cli` as external process.
+-- `cardano-cli` must be available in shell
 utxoAtAddress :: ClusterEnv -> String -> IO ()
 utxoAtAddress ce addr = do
   res <- debugCli ce ["query", "utxo", "--mainnet", "--address", addr]

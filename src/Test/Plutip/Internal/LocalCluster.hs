@@ -39,7 +39,7 @@ import System.FilePath ((</>))
 import System.IO (stdout, hClose, openFile, IOMode (WriteMode), hFlush)
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BotSetup
 import Test.Plutip.Internal.Types (
-  ClusterEnv (ClusterEnv, chainIndexUrl, networkId, runningNode, supportDir, tracer),
+  ClusterEnv (ClusterEnv, bpiForceBudget, chainIndexUrl, networkId, runningNode, supportDir, tracer),
   RunningNode (RunningNode),
  )
 import Test.Plutip.Tools.CardanoApi qualified as Tools
@@ -51,14 +51,14 @@ import Data.Foldable (for_)
 import GHC.Stack.Types (HasCallStack)
 import Paths_plutip (getDataFileName)
 import Test.Plutip.Config (PlutipConfig (chainIndexPort, clusterDataDir, relayNodeLogs))
+import Test.Plutip.Config qualified as Config
 import Text.Printf (printf)
 
-{- | Starting a cluster with a setup action
- We're heavily depending on cardano-wallet local cluster tooling, however they don't allow the
- start and stop actions to be two separate processes, which is needed for tasty integration.
- Instead of rewriting and maintaining these, I introduced a semaphore mechanism to keep the
- cluster alive until the ClusterClosing action is called.
--}
+-- | Starting a cluster with a setup action
+-- We're heavily depending on cardano-wallet local cluster tooling, however they don't allow the
+-- start and stop actions to be two separate processes, which is needed for tasty integration.
+-- Instead of rewriting and maintaining these, I introduced a semaphore mechanism to keep the
+-- cluster alive until the ClusterClosing action is called.
 startCluster ::
   forall (a :: Type).
   PlutipConfig ->
@@ -119,6 +119,7 @@ withPlutusInterface conf action = do
               , networkId = CAPI.Mainnet
               , supportDir = dir
               , tracer = trCluster
+              , bpiForceBudget = Config.bpiForceBudget conf
               }
 
       BotSetup.runSetup cEnv -- run preparations to use `bot-plutus-interface`

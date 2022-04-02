@@ -4,11 +4,13 @@ module Test.Plutip.Internal.Types (
   FailureReason (..),
   RunningNode (..),
   nodeSocket,
+  nodeConfig,
   isExecutionError,
   isException,
   isSuccessful,
 ) where
 
+import Paths_plutip ( getDataFileName )
 import Cardano.Api (NetworkId)
 import Cardano.BM.Tracing (Trace)
 import Cardano.Launcher.Node (CardanoNodeConn)
@@ -34,6 +36,10 @@ data ClusterEnv = ClusterEnv
 -- | Helper function to get socket path from
 nodeSocket :: ClusterEnv -> CardanoNodeConn
 nodeSocket (ClusterEnv (RunningNode sp _ _) _ _ _ _ _) = sp
+
+-- | Helper function to get node config path from
+nodeConfig :: IO FilePath
+nodeConfig = getDataFileName "cluster-data/node.config"
 
 -- | Result of `Contract` execution. Returns contract observable state
 --    and either `Contract` return value, or error of type `FailureReason`.

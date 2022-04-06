@@ -50,13 +50,15 @@
           pkgs' = nixpkgsFor' system;
           plutus = import inputs.plutus { inherit system; };
           src = ./.;
-        in import ./nix/haskell.nix {
+        in
+        import ./nix/haskell.nix {
           inherit src inputs pkgs pkgs' system extraSources haskellModules;
           inherit (bot-plutus-interface) cabalProjectLocal;
         };
 
-    in {
-      inherit extraSources haskellModules; 
+    in
+    {
+      inherit extraSources haskellModules;
       inherit (bot-plutus-interface) cabalProjectLocal;
 
       project = perSystem projectFor;
@@ -74,11 +76,16 @@
 
       # This will build all of the project's executables and the tests
       check = perSystem (system:
-        (nixpkgsFor system).runCommand "combined-check" {
-          nativeBuildInputs = builtins.attrValues self.checks.${system}
-            ++ builtins.attrValues self.flake.${system}.packages
-            ++ [ self.devShell.${system}.inputDerivation ];
-        } "touch $out");
+        (nixpkgsFor system).runCommand "combined-check"
+          {
+            nativeBuildInputs = builtins.attrValues self.checks.${system}
+              ++ builtins.attrValues self.flake.${system}.packages
+              ++ [ self.devShell.${system}.inputDerivation self.devShell.${system}.nativeBuildInputs ];
+          } ''
+          cd ${self}
+          IN_NIX_SHELL=true make format_check cabalfmt_check nixpkgsfmt_check lint
+          mkdir $out
+        '');
 
       # NOTE `nix flake check` will not work at the moment due to use of
       # IFD in haskell.nix
@@ -86,5 +93,7 @@
       # Includes all of the packages in the `checks`, otherwise only the
       # test suite would be included
       checks = perSystem (system: self.flake.${system}.checks);
+
+      herculesCI.ciSystems = [ "x86_64-linux" ];
     };
 }

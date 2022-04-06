@@ -1,5 +1,12 @@
-{ src, inputs, pkgs, pkgs', system, extraSources, cabalProjectLocal
-, haskellModules }:
+{ src
+, inputs
+, pkgs
+, pkgs'
+, system
+, extraSources
+, cabalProjectLocal
+, haskellModules
+}:
 
 let
   project = pkgs.haskell-nix.cabalProject {
@@ -22,11 +29,13 @@ let
         # Haskell Tools
         haskellPackages.fourmolu
         haskellPackages.cabal-install
+        haskellPackages.cabal-fmt
+        nixpkgs-fmt
         hlint
         entr
         ghcid
         git
-        nixpkgs-fmt
+        fd
 
         # hls doesn't support preprocessors yet so this has to exist in PATH
         haskellPackages.record-dot-preprocessor
@@ -41,4 +50,5 @@ let
 
     modules = haskellModules;
   };
-in project
+in
+project

@@ -2,7 +2,6 @@ module Test.Plutip.Internal.LocalCluster (
   startCluster,
   stopCluster,
   withPlutusInterface,
-  -- withPlutusInterface',
 ) where
 
 import Cardano.Api qualified as CAPI

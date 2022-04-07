@@ -179,3 +179,12 @@ test-suite plutip-tests
     QuasiQuotes
     RecordWildCards
     TupleSections
+
+executable local-cluster
+  main-is: local-cluster/Main.hs
+  build-depends: 
+    , base
+    , data-default
+    , mtl
+    , plutip
+  ghc-options:        -Wall -threaded -rtsopts

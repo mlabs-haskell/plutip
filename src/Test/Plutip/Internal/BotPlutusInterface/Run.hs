@@ -30,6 +30,7 @@ import BotPlutusInterface.Types (
   ceContractState,
   cePABConfig,
   pcForceBudget,
+  pcOwnStakePubKeyHash,
  )
 import Control.Concurrent.STM (newTVarIO, readTVarIO)
 import Control.Monad (void)
@@ -108,6 +109,7 @@ runContract cEnv bpiWallet contract = do
               , pcLogLevel = Info
               , pcForceBudget = bpiForceBudget cEnv
               , pcOwnPubKeyHash = walletPkh bpiWallet
+              , pcOwnStakePubKeyHash = Nothing
               , pcTipPollingInterval = 1_000_000
               , pcPort = 9080
               , pcEnableTxEndpoint = False

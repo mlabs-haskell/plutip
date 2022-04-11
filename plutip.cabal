@@ -127,7 +127,8 @@ library
   ghc-options:
     -Wall -Wcompat -Wincomplete-uni-patterns -Wredundant-constraints
     -Wmissing-export-lists -Wmissing-deriving-strategies
-    -Wmissing-import-lists -Werror
+    -Wmissing-import-lists 
+    -- -Werror
 
   hs-source-dirs:  src/
   exposed-modules:

@@ -9,12 +9,14 @@ module Test.Plutip.Internal.Types (
   isSuccessful,
 ) where
 
+import BotPlutusInterface.Types (TxBudget)
 import Cardano.Api (NetworkId)
 import Cardano.BM.Tracing (Trace)
 import Cardano.Launcher.Node (CardanoNodeConn)
 import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (RunningNode))
 import Control.Exception (SomeException)
 import Data.Either (isRight)
+import Data.Map (Map)
 import Data.Text (Text)
 import Servant.Client (BaseUrl)
 
@@ -41,6 +43,7 @@ nodeSocket (ClusterEnv (RunningNode sp _ _) _ _ _ _ _) = sp
 data ExecutionResult w e a = ExecutionResult
   { -- | outcome of running contract.
     outcome :: Either (FailureReason e) a
+  , budgets :: Maybe (Map Text TxBudget)
   , -- | `Contract` observable state after execution (or up to the point where it failed)
     contractState :: w
   }

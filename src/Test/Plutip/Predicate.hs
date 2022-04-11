@@ -18,13 +18,19 @@ module Test.Plutip.Predicate (
 ) where
 
 import Data.List.NonEmpty (NonEmpty)
-import Ledger (Value)
+import Ledger (Value, TxOutRef, ExBudget (ExBudget), ExCPU (ExCPU))
 import Test.Plutip.Internal.Types (
-  ExecutionResult (contractState, outcome),
+  ExecutionResult (contractState, outcome, budgets),
   FailureReason (CaughtException, ContractExecutionError),
   isSuccessful,
  )
 import Text.Show.Pretty (ppShow)
+import Numeric.Positive (Positive)
+import Data.Map (Map)
+import Data.Map qualified as Map
+import Data.Text (Text)
+import BotPlutusInterface.Types (TxBudget, spendBudgets)
+import Data.Foldable (find)
 
 -- | Predicate is used to build test cases for Contract.
 --  List of predicates should be passed to `Test.Plutip.Contract.assertExecution`
@@ -199,3 +205,29 @@ failReasonSatisfies description p =
     sayType = \case
       CaughtException _ -> "Exception was caught: "
       ContractExecutionError _ -> "Error was thrown: "
+
+
+-- budgetsFitUnder :: Positive -> Positive -> Predicate w e a -- TODO make Positive
+budgetsFitUnder :: Integer -> Integer -> Predicate w e a
+budgetsFitUnder cpu mem =
+  let positive = "TBD positive"
+      negative = "TBD negative"
+      debugInfo er = "TBD debug info: " ++ show (budgets er)
+      pCheck er  = case failedBudget er of
+        Nothing -> True
+        Just _ -> False
+
+        
+      failedBudget er = budgets er >>= failedExB
+      
+      failedExB bs =  findFailing $ flatten bs
+
+      flatten :: Map Text TxBudget -> [(Text, TxOutRef, ExBudget)]
+      flatten bs =
+              foldMap (\(txId, vs) -> map (addToTuple txId) vs)
+              . Map.toList
+              . fmap (Map.toList . spendBudgets)
+              $ bs
+      addToTuple a (b,c) = (a,b,c)
+      findFailing = find (\(_,_,ExBudget (ExCPU cpu') _) -> toInteger cpu' < toInteger cpu )
+  in Predicate {..}

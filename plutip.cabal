@@ -168,7 +168,6 @@ test-suite plutip-tests
     , tasty-hunit
     , tasty-quickcheck
     , text
-    
 
   other-modules:
     Spec.Integration

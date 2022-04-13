@@ -1,3 +1,6 @@
+{-# LANGUAGE PatternSynonyms #-}
+{-# LANGUAGE ViewPatterns #-}
+
 -- | This module provides some predicates or assertions, that could be used together with
 --  `Test.Plutip.Contract.assertExecution` to run tests for Contract in private testnet.
 --
@@ -15,22 +18,26 @@ module Test.Plutip.Predicate (
   shouldThrow,
   stateSatisfies,
   stateIs,
+  budgetsFitUnder,
+  policyLimit,
+  scriptLimit,
 ) where
 
+import BotPlutusInterface.Types (TxBudget (TxBudget))
 import Data.List.NonEmpty (NonEmpty)
-import Ledger (Value, TxOutRef, ExBudget (ExBudget), ExCPU (ExCPU))
+import Data.Map (Map)
+import Data.Map qualified as Map
+import Debug.Trace (trace)
+import Ledger (ExBudget (ExBudget), ExCPU (ExCPU), ExMemory (ExMemory), TxId, Value)
+import PlutusCore.Evaluation.Machine.ExMemory (CostingInteger)
+import PlutusPrelude (pretty)
 import Test.Plutip.Internal.Types (
-  ExecutionResult (contractState, outcome, budgets),
+  ExecutionResult (contractState, outcome),
   FailureReason (CaughtException, ContractExecutionError),
+  budgets,
   isSuccessful,
  )
 import Text.Show.Pretty (ppShow)
-import Numeric.Positive (Positive)
-import Data.Map (Map)
-import Data.Map qualified as Map
-import Data.Text (Text)
-import BotPlutusInterface.Types (TxBudget, spendBudgets)
-import Data.Foldable (find)
 
 -- | Predicate is used to build test cases for Contract.
 --  List of predicates should be passed to `Test.Plutip.Contract.assertExecution`
@@ -206,28 +213,59 @@ failReasonSatisfies description p =
       CaughtException _ -> "Exception was caught: "
       ContractExecutionError _ -> "Error was thrown: "
 
-
--- budgetsFitUnder :: Positive -> Positive -> Predicate w e a -- TODO make Positive
-budgetsFitUnder :: Integer -> Integer -> Predicate w e a
-budgetsFitUnder cpu mem =
+budgetsFitUnder :: Limit 'Script -> Limit 'Policy -> Predicate w e a
+budgetsFitUnder (Limit sCpu sMem) (Limit pCpu pMem) =
   let positive = "TBD positive"
       negative = "TBD negative"
-      debugInfo er = "TBD debug info: " ++ show (budgets er)
-      pCheck er  = case failedBudget er of
-        Nothing -> True
-        Just _ -> False
+      debugInfo er =
+        "TBD debug info: "
+          ++ case budgets er of
+            Nothing ->
+              "No budgets available " -- case when exception happened during contract run and no result returned
+            Just (null -> True) ->
+              "Empty budgets map (no scripts or policies in contract?)" -- we expect at least some budgets
+            Just bs ->
+              "Budgets that didn't fit: "
+                ++ show (findTooBig bs)
+      pCheck er =
+          case budgets er of
+            Nothing -> False -- case when exception happened during contract run and no result returned
+            Just bsm ->
+              Prelude.not (null bsm) -- we expect at least some budgets
+                && null (findTooBig bsm)
 
-        
-      failedBudget er = budgets er >>= failedExB
-      
-      failedExB bs =  findFailing $ flatten bs
+      findTooBig :: Map TxId TxBudget -> [(String, String, ExBudget)]
+      findTooBig bsm =
+        [ (formatTxId txId, scriptOrPolicy, exBudget)
+        | (txId, TxBudget spnd mnt) <- Map.toList bsm
+        , (scriptOrPolicy, exBudget) <-
+            mconcat
+              [ formatSpends (filter' sCpu sMem spnd)
+              , formatMints (filter' pCpu pMem mnt)
+              ]
+        ]
 
-      flatten :: Map Text TxBudget -> [(Text, TxOutRef, ExBudget)]
-      flatten bs =
-              foldMap (\(txId, vs) -> map (addToTuple txId) vs)
-              . Map.toList
-              . fmap (Map.toList . spendBudgets)
-              $ bs
-      addToTuple a (b,c) = (a,b,c)
-      findFailing = find (\(_,_,ExBudget (ExCPU cpu') _) -> toInteger cpu' < toInteger cpu )
-  in Predicate {..}
+      formatSpends = Map.toList . Map.mapKeys (("TxOutRef " ++) . show . pretty)
+
+      formatMints = Map.toList . Map.mapKeys (("PolicyHash " ++) . show . pretty)
+
+      formatTxId = ("TxId " ++) . show . pretty
+
+      filter' cpu mem =
+        -- filter non-fitting
+        Map.filter (Prelude.not . fits cpu mem)
+
+      fits cpuLimit memLimit (ExBudget cpu' mem') =
+        cpu' <= cpuLimit && mem' <= memLimit
+   in Predicate {..}
+
+data LimitType = Script | Policy
+data Limit (a :: LimitType) = Limit ExCPU ExMemory
+
+scriptLimit :: CostingInteger -> CostingInteger -> Limit a
+scriptLimit cpu mem =
+  Limit (ExCPU cpu) (ExMemory mem)
+
+policyLimit :: CostingInteger -> CostingInteger -> Limit a
+policyLimit cpu mem =
+  Limit (ExCPU cpu) (ExMemory mem)

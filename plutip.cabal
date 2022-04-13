@@ -54,6 +54,7 @@ common common-imports
     , plutus-chain-index
     , plutus-chain-index-core
     , plutus-contract
+    , plutus-core
     , plutus-ledger
     , plutus-ledger-api
     , plutus-ledger-constraints
@@ -174,6 +175,7 @@ test-suite plutip-tests
   other-modules:
     Spec.Integration
     Spec.Test.Plutip.BotPlutusInterface
+    Spec.TestContract 
 
   default-extensions:
     OverloadedStrings

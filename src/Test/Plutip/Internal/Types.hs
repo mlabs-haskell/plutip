@@ -7,9 +7,10 @@ module Test.Plutip.Internal.Types (
   isExecutionError,
   isException,
   isSuccessful,
+  budgets,
 ) where
 
-import BotPlutusInterface.Types (TxBudget)
+import BotPlutusInterface.Types (TxBudget, TxStats (estimatedBudgets))
 import Cardano.Api (NetworkId)
 import Cardano.BM.Tracing (Trace)
 import Cardano.Launcher.Node (CardanoNodeConn)
@@ -18,6 +19,7 @@ import Control.Exception (SomeException)
 import Data.Either (isRight)
 import Data.Map (Map)
 import Data.Text (Text)
+import Ledger qualified
 import Servant.Client (BaseUrl)
 
 -- | Environment for actions that use local cluster
@@ -43,11 +45,15 @@ nodeSocket (ClusterEnv (RunningNode sp _ _) _ _ _ _ _) = sp
 data ExecutionResult w e a = ExecutionResult
   { -- | outcome of running contract.
     outcome :: Either (FailureReason e) a
-  , budgets :: Maybe (Map Text TxBudget)
+  , -- | stats returned by bot interface after contract being run
+    txStats :: Maybe TxStats
   , -- | `Contract` observable state after execution (or up to the point where it failed)
     contractState :: w
   }
   deriving stock (Show)
+
+budgets :: ExecutionResult w e a -> Maybe (Map Ledger.TxId TxBudget)
+budgets = fmap estimatedBudgets . txStats
 
 isSuccessful :: ExecutionResult w e b -> Bool
 isSuccessful = isRight . outcome

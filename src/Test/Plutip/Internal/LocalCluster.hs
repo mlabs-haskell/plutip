@@ -14,7 +14,7 @@ import Cardano.Wallet.Shelley.Launch (withSystemTempDir)
 
 import Cardano.BM.Data.Severity qualified as Severity
 import Cardano.BM.Data.Tracer (HasPrivacyAnnotation, HasSeverityAnnotation (getSeverityAnnotation))
-import Cardano.CLI (LogOutput (LogToFile, LogToStdStreams), withLoggingNamed)
+import Cardano.CLI (LogOutput (LogToFile), withLoggingNamed)
 import Cardano.Wallet.Shelley.Launch.Cluster (ClusterLog, localClusterConfigFromEnv, testMinSeverityFromEnv, walletMinSeverityFromEnv, withCluster)
 import Control.Concurrent.Async (async)
 import Control.Monad (unless, void)
@@ -26,6 +26,7 @@ import Data.Kind (Type)
 import Data.Maybe (catMaybes, fromMaybe, isJust)
 import Data.Text (Text, pack)
 import Data.Text.Class (ToText (toText))
+import GHC.IO.Handle (hDuplicate, hDuplicateTo, Handle)
 import Plutus.ChainIndex.App qualified as ChainIndex
 import Plutus.ChainIndex.Config (ChainIndexConfig (cicNetworkId, cicPort), cicDbPath, cicSocketPath)
 import Plutus.ChainIndex.Config qualified as ChainIndex
@@ -35,6 +36,7 @@ import System.Directory (copyFile, findExecutable)
 import System.Environment (setEnv)
 import System.Exit (die)
 import System.FilePath ((</>))
+import System.IO (stdout, hClose, openFile, IOMode (WriteMode), hFlush)
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BotSetup
 import Test.Plutip.Internal.Types (
   ClusterEnv (ClusterEnv, bpiForceBudget, chainIndexUrl, networkId, runningNode, supportDir, tracer),
@@ -42,6 +44,7 @@ import Test.Plutip.Internal.Types (
  )
 import Test.Plutip.Tools.CardanoApi qualified as Tools
 import UnliftIO.Concurrent (forkFinally)
+import UnliftIO.Exception (catchIO, finally, bracket)
 import UnliftIO.STM (TVar, atomically, newTVarIO, readTVar, retrySTM, writeTVar)
 
 import Data.Foldable (for_)
@@ -50,7 +53,6 @@ import Paths_plutip (getDataFileName)
 import Test.Plutip.Config (PlutipConfig (chainIndexPort, clusterDataDir, relayNodeLogs))
 import Test.Plutip.Config qualified as Config
 import Text.Printf (printf)
-import UnliftIO.Exception (catchIO)
 
 -- | Starting a cluster with a setup action
 -- We're heavily depending on cardano-wallet local cluster tooling, however they don't allow the
@@ -91,22 +93,23 @@ withPlutusInterface conf action = do
   -- current setup requires `cardano-node` and `cardano-cli` as external processes
   checkProcessesAvailable ["cardano-node", "cardano-cli"]
 
-  withLocalClusterSetup conf $ \dir clusterLogs _walletLogs -> do
+  withLocalClusterSetup conf $ \dir clusterLogs _walletLogs nodeConfigLogHdl -> do
     result <- withLoggingNamed "cluster" clusterLogs $ \(_, (_, trCluster)) -> do
       let tr' = contramap MsgCluster $ trMessageText trCluster
       clusterCfg <- localClusterConfigFromEnv
-      withCluster
+      withRedirectedStdoutHdl nodeConfigLogHdl $ \restoreStdout ->  withCluster
         tr'
         dir
         clusterCfg
         (const $ pure ()) -- faucet setup was here in `cardano-wallet` version
-        (\rn -> runActionWthSetup rn dir trCluster action)
+        (\rn -> restoreStdout $ runActionWthSetup rn dir trCluster action)
     handleLogs dir conf
     return result
   where
     runActionWthSetup rn dir trCluster userActon = do
       let tracer' = trMessageText trCluster
       waitForRelayNode tracer' rn
+      -- launch chain index in seperate thread, logs to stdout
       ciPort <- launchChainIndex conf rn dir
       traceWith tracer' (ChaiIndexStartedAt ciPort)
       let cEnv =
@@ -122,13 +125,26 @@ withPlutusInterface conf action = do
       BotSetup.runSetup cEnv -- run preparations to use `bot-plutus-interface`
       userActon cEnv -- executing user action on cluster
 
+-- Redirect stdout to a provided handle providing mask to temporarily revert back to initial stdout.
+withRedirectedStdoutHdl :: Handle -> ((forall b . IO b -> IO b) -> IO a) -> IO a
+withRedirectedStdoutHdl hdl action = do
+  old_stdout <- hDuplicate stdout
+  swapStdout hdl (action $ swapStdout old_stdout)
+  
+  where 
+    swapStdout tmphdl io = do 
+      hFlush stdout
+      old <- hDuplicate stdout
+      hDuplicateTo tmphdl stdout
+      io `finally` hDuplicateTo old stdout
+
 -- Do all the program setup required for running the local cluster, create a
--- temporary directory, log output configurations, and pass these to the given
+-- temporary directory, log output configurations, node_configuration.log handle, and pass these to the given
 -- main action.
 withLocalClusterSetup ::
   forall (a :: Type).
   PlutipConfig ->
-  (FilePath -> [LogOutput] -> [LogOutput] -> IO a) ->
+  (FilePath -> [LogOutput] -> [LogOutput] -> Handle -> IO a) ->
   IO a
 withLocalClusterSetup conf action = do
   -- Setting required environment variables
@@ -147,14 +163,17 @@ withLocalClusterSetup conf action = do
     -- produced by the local test cluster.
     withSystemTempDir stdoutTextTracer "test-cluster" $ \dir -> do
       let logOutputs name minSev =
-            [ LogToFile (dir </> name) (min minSev Severity.Info)
-            , LogToStdStreams minSev
-            ]
+            -- cluster logs to file only
+            [ LogToFile (dir </> name) (min minSev Severity.Info)]
 
       clusterLogs <- logOutputs "cluster.log" <$> testMinSeverityFromEnv
       walletLogs <- logOutputs "wallet.log" <$> walletMinSeverityFromEnv
 
-      action dir clusterLogs walletLogs
+      bracket
+        (openFile (dir </> "node_configuration.log") WriteMode) 
+        hClose
+        (action dir clusterLogs walletLogs)
+  
   where
     setClusterDataDir = do
       defaultClusterDataDir <- getDataFileName "cluster-data"

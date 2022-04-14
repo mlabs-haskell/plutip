@@ -3,6 +3,6 @@ cradle:
     - path: "./src"
       component: "lib:plutip"
     - path: "./test"
-      component: "test-suite:plutip-tests"\
+      component: "test-suite:plutip-tests"
     - path: "./local-cluster/"
       component: "exe:local-cluster"

@@ -27,16 +27,15 @@ import BotPlutusInterface.Types (TxBudget (TxBudget))
 import Data.List.NonEmpty (NonEmpty)
 import Data.Map (Map)
 import Data.Map qualified as Map
-import Debug.Trace (trace)
 import Ledger (ExBudget (ExBudget), ExCPU (ExCPU), ExMemory (ExMemory), TxId, Value)
 import PlutusCore.Evaluation.Machine.ExMemory (CostingInteger)
-import PlutusPrelude (pretty)
 import Test.Plutip.Internal.Types (
   ExecutionResult (contractState, outcome),
   FailureReason (CaughtException, ContractExecutionError),
   budgets,
   isSuccessful,
  )
+import Test.Plutip.Tools.Format (orefFmt, policyFmt, txIdFmt)
 import Text.Show.Pretty (ppShow)
 
 -- | Predicate is used to build test cases for Contract.
@@ -215,43 +214,42 @@ failReasonSatisfies description p =
 
 budgetsFitUnder :: Limit 'Script -> Limit 'Policy -> Predicate w e a
 budgetsFitUnder (Limit sCpu sMem) (Limit pCpu pMem) =
-  let positive = "TBD positive"
+  let positive = "Each validator and policy fits limits"
       negative = "TBD negative"
       debugInfo er =
         "TBD debug info: "
           ++ case budgets er of
             Nothing ->
-              "No budgets available " -- case when exception happened during contract run and no result returned
-            Just (null -> True) ->
-              "Empty budgets map (no scripts or policies in contract?)" -- we expect at least some budgets
-            Just bs ->
-              "Budgets that didn't fit: "
-                ++ show (findTooBig bs)
+              -- case when exception happened during contract run and no result returned
+              "No budgets available "
+            Just bs
+              | null bs ->
+                -- we expect at least some budgets
+                "Empty budgets map (no scripts or policies in contract?)"
+              | otherwise ->
+                "Budgets that didn't fit: " ++ show (findTooBig bs)
+
       pCheck er =
-          case budgets er of
-            Nothing -> False -- case when exception happened during contract run and no result returned
-            Just bsm ->
-              Prelude.not (null bsm) -- we expect at least some budgets
-                && null (findTooBig bsm)
+        case budgets er of
+          Nothing -> False -- case when exception happened during contract run and no result returned
+          Just bsm ->
+            Prelude.not (null bsm) -- we expect at least some budgets
+              && null (findTooBig bsm)
 
       findTooBig :: Map TxId TxBudget -> [(String, String, ExBudget)]
       findTooBig bsm =
-        [ (formatTxId txId, scriptOrPolicy, exBudget)
+        [ (txIdFmt txId, scriptOrPolicy, exBudget)
         | (txId, TxBudget spnd mnt) <- Map.toList bsm
         , (scriptOrPolicy, exBudget) <-
             mconcat
-              [ formatSpends (filter' sCpu sMem spnd)
-              , formatMints (filter' pCpu pMem mnt)
+              [ fmtWith orefFmt (filterBiggerThan sCpu sMem spnd)
+              , fmtWith policyFmt (filterBiggerThan pCpu pMem mnt)
               ]
         ]
 
-      formatSpends = Map.toList . Map.mapKeys (("TxOutRef " ++) . show . pretty)
+      fmtWith f = Map.toList . Map.mapKeys f
 
-      formatMints = Map.toList . Map.mapKeys (("PolicyHash " ++) . show . pretty)
-
-      formatTxId = ("TxId " ++) . show . pretty
-
-      filter' cpu mem =
+      filterBiggerThan cpu mem =
         -- filter non-fitting
         Map.filter (Prelude.not . fits cpu mem)
 
@@ -259,6 +257,8 @@ budgetsFitUnder (Limit sCpu sMem) (Limit pCpu pMem) =
         cpu' <= cpuLimit && mem' <= memLimit
    in Predicate {..}
 
+-- to protect from accidental `scriptLimit` <-> `policyLimit` swapping
+-- while making `budgetsFitUnder` predicate
 data LimitType = Script | Policy
 data Limit (a :: LimitType) = Limit ExCPU ExMemory
 

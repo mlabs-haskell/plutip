@@ -20,7 +20,7 @@ import Ouroboros.Consensus.HardFork.Combinator.AcrossEras (EraMismatch)
 import Ouroboros.Network.Protocol.LocalStateQuery.Type (AcquireFailure)
 import Test.Plutip.Internal.Types (ClusterEnv (runningNode))
 
-data CardanoApiError
+newtype CardanoApiError
   = SomeError String
   deriving stock (Eq, Show, Generic)
 

@@ -36,13 +36,32 @@ requires_nix_shell:
 	@ [ "$(IN_NIX_SHELL)" ] || echo "The $(MAKECMDGOALS) target must be run from inside a nix shell"
 	@ [ "$(IN_NIX_SHELL)" ] || (echo "    run 'nix develop' first" && false)
 
+FOURMOLU_EXTENSIONS := -o -XTypeApplications -o -XTemplateHaskell -o -XImportQualifiedPost -o -XPatternSynonyms -o -fplugin=RecordDotPreprocessor
+
 # Add folder locations to the list to be reformatted.
-fourmolu-format:
+format:
 	@ echo "> Formatting all .hs files"
-	fourmolu -o -XTypeApplications -o -XImportQualifiedPost -i $$(find src/  -iregex ".*.hs")
-	fourmolu -o -XTypeApplications -o -XImportQualifiedPost -i $$(find test/ -iregex ".*.hs")
+	fourmolu $(FOURMOLU_EXTENSIONS) --mode inplace --check-idempotence $$(find src/  -iregex ".*.hs") $$(find test/ -iregex ".*.hs")
 
-NIX_SOURCES := $(shell git ls-tree -r HEAD --full-tree --name-only | grep -E '.*\.nix' )
+format_check:
+	@ echo "> Checking format of all .hs files"
+	fourmolu $(FOURMOLU_EXTENSIONS) --mode check --check-idempotence $$(find src/  -iregex ".*.hs") $$(find test/ -iregex ".*.hs")
 
-nixfmt: requires_nix_shell
-	nixfmt $(NIX_SOURCES)
+NIX_SOURCES := $(shell fd -enix)
+
+nixpkgsfmt: requires_nix_shell
+	nixpkgs-fmt $(NIX_SOURCES)
+
+nixpkgsfmt_check: requires_nix_shell
+	nixpkgs-fmt --check $(NIX_SOURCES)
+
+CABAL_SOURCES := $(shell fd -ecabal)
+
+cabalfmt: requires_nix_shell
+	cabal-fmt --inplace $(CABAL_SOURCES)
+
+cabalfmt_check: requires_nix_shell
+	cabal-fmt --check $(CABAL_SOURCES)
+
+lint: requires_nix_shell
+	hlint $$(find src/  -iregex ".*.hs") $$(find test/ -iregex ".*.hs")

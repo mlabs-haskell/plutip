@@ -39,13 +39,14 @@ data BpiWallet = BpiWallet
   }
   deriving stock (Show)
 
--- | Add wallet with arbitrary address and specified amount of Ada.
+{-  Add wallet with arbitrary address and specified amount of Ada.
+  Each value specified in funds will be sent as separate UTXO.
 
-{- During wallet addition `.skey` file with required name generated and saved
+During wallet addition `.skey` file with required name generated and saved
  to be used by bot interface.
  Directory for files could be obtained with `Test.Plutip.BotPlutusInterface.Setup.keysDir`
 -}
-eitherAddSomeWallet :: MonadIO m => Positive -> ReaderT ClusterEnv m (Either BpiError BpiWallet)
+eitherAddSomeWallet :: MonadIO m => [Positive] -> ReaderT ClusterEnv m (Either BpiError BpiWallet)
 eitherAddSomeWallet funds = do
   bpiWallet <- createWallet
   saveWallet bpiWallet
@@ -56,17 +57,17 @@ eitherAddSomeWallet funds = do
     sendFunds wallet = do
       cEnv <- ask
       let fundAddress = mkMainnetAddress wallet
-          amt' = Coin . fromIntegral $ funds
+          toAmt = Coin . fromIntegral
       liftIO $
         sendFaucetFundsTo
           nullTracer -- todo: fix tracer to be not `nullTracer`
           (nodeSocket cEnv)
           (supportDir cEnv)
-          [(fundAddress, amt')]
+          [(fundAddress, toAmt v) | v <- funds]
 
 -- | Add wallet with arbitrary address and specified amount of Ada.
 -- (version of `eitherAddSomeWallet` that will throw an error in case of failure)
-addSomeWallet :: MonadIO m => Positive -> ReaderT ClusterEnv m BpiWallet
+addSomeWallet :: MonadIO m => [Positive] -> ReaderT ClusterEnv m BpiWallet
 addSomeWallet funds =
   eitherAddSomeWallet funds >>= either (error . show) pure
 

@@ -114,6 +114,7 @@ module Test.Plutip.Contract (
   ValueOrdering (VEq, VGt, VLt, VGEq, VLEq),
   assertValues,
   assertExecution,
+  ada,
 ) where
 
 import Control.Arrow (left)

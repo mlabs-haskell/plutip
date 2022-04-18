@@ -23,7 +23,7 @@ module Test.Plutip.Predicate (
   scriptLimit,
 ) where
 
-import BotPlutusInterface.Types (TxBudget (TxBudget), spendBudgets, mintBudgets)
+import BotPlutusInterface.Types (TxBudget (TxBudget), mintBudgets, spendBudgets)
 import Data.List.NonEmpty (NonEmpty)
 import Data.Map (Map)
 import Data.Map qualified as Map
@@ -221,32 +221,35 @@ budgetsFitUnder (Limit sCpu sMem) (Limit pCpu pMem) =
       negative = "TBD negative"
       debugInfo er =
         case budgets er of
-            Nothing ->
-              -- case when exception happened during contract run and no result returned
-              "No budgets available "
-            Just bs
-              | null bs ->
-                -- we expect at least some budgets
-                "Empty budgets map (no scripts or policies in contract?)"
-              | filtered <- processMap bs, Prelude.not (null filtered) ->
-                "Budgets that didn't fit:\n" ++ formatTxBudgets filtered
-              | otherwise -> ""
+          Nothing ->
+            -- case when exception happened during contract run and no result returned
+            "No budgets available "
+          Just bs
+            | null bs ->
+              -- we expect at least some budgets
+              "Empty budgets map (no scripts or policies in contract?)"
+            | filtered <- processMap bs
+              , Prelude.not (null filtered) ->
+              "Budgets that didn't fit:\n" ++ formatTxBudgets filtered
+            | otherwise -> ""
 
       -- TDOD: refactor; some tests won't hurt
       processMap :: Map TxId TxBudget -> Map TxId TxBudget
-      processMap = Map.foldMapWithKey 
-                      (\txId bdg -> 
-                          let overf = getOverf bdg 
-                          in if isEmpty overf
-                              then mempty
-                              else Map.singleton txId overf )
+      processMap =
+        Map.foldMapWithKey
+          ( \txId bdg ->
+              let overf = getOverf bdg
+               in if isEmpty overf
+                    then mempty
+                    else Map.singleton txId overf
+          )
       pCheck er =
         case budgets er of
           Nothing -> False -- case when exception happened during contract run and no result returned
           Just bsm ->
             null (processMap bsm)
-              -- TODO: second iteration over stats happens here,
-              -- maybe `pCheck` and `debugInfo` could be somehow combined to avoid this
+      -- TODO: second iteration over stats happens here,
+      -- maybe `pCheck` and `debugInfo` could be somehow combined to avoid this
 
       getOverf b =
         filterBudget (Prelude.not . fits sCpu sMem) (Prelude.not . fits pCpu pMem) b
@@ -268,13 +271,11 @@ policyLimit :: CostingInteger -> CostingInteger -> Limit a
 policyLimit cpu mem =
   Limit (ExCPU cpu) (ExMemory mem)
 
-
-
 filterBudget :: (ExBudget -> Bool) -> (ExBudget -> Bool) -> TxBudget -> TxBudget
 filterBudget spendFilter mintFilter txB =
   let newSb = Map.filter spendFilter (spendBudgets txB)
       newMb = Map.filter mintFilter (mintBudgets txB)
-  in TxBudget newSb newMb
+   in TxBudget newSb newMb
 
 -- TODO: remove after bpi update
 instance Semigroup TxBudget where
@@ -283,4 +284,4 @@ instance Semigroup TxBudget where
 instance Monoid TxBudget where
   mempty = TxBudget mempty mempty
 
-isEmpty (TxBudget s p) = null s && null p 
+isEmpty (TxBudget s p) = null s && null p

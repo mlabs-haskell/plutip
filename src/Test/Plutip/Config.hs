@@ -16,10 +16,8 @@ data PlutipConfig = PlutipConfig
     relayNodeLogs :: Maybe FilePath
   , -- | in case of `Nothing` port from `Plutus.ChainIndex.Config.defaultConfig` is used
     chainIndexPort :: Maybe Natural
-  , -- | set the budget estimation to a constant
-    bpiForceBudget :: Maybe (Integer, Integer)
   }
   deriving stock (Generic)
 
 instance Default PlutipConfig where
-  def = PlutipConfig Nothing Nothing Nothing Nothing
+  def = PlutipConfig Nothing Nothing Nothing

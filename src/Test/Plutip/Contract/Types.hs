@@ -65,7 +65,7 @@ newtype TestWallets = TestWallets {unTestWallets :: NonEmpty TestWallet}
   deriving newtype (Semigroup)
 
 data TestWallet = TestWallet
-  { twInitDistribuition :: Positive
+  { twInitDistribuition :: [Positive]
   , twExpected :: Maybe (ValueOrdering, Value)
   }
 

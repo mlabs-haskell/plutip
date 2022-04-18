@@ -30,7 +30,6 @@ import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
 import Plutus.V1.Ledger.Ada (lovelaceValueOf)
 import Spec.TestContract (lockThenSpend)
-import Test.Plutip.Config (PlutipConfig (bpiForceBudget))
 import Test.Plutip.Contract (
   ValueOrdering (VLt),
   assertExecution,
@@ -46,7 +45,7 @@ import Test.Plutip.Internal.Types (
   isException,
  )
 import Test.Plutip.LocalCluster (withConfiguredCluster)
-import Test.Plutip.Options (TxBudgetsReporting (OmitReport, VerboseReport))
+import Test.Plutip.Options (TxBudgetsReporting (VerboseReport))
 import Test.Plutip.Predicate (
   budgetsFitUnder,
   errorSatisfies,
@@ -69,45 +68,45 @@ test :: TestTree
 test =
   localOption VerboseReport $
     withConfiguredCluster
-      (def {bpiForceBudget = Just (100, 100)})
+      def
       "Basic integration: launch, add wallet, tx from wallet to wallet"
       [ -- Basic Succeed or Failed tests
         assertExecution
           "Contract 1"
-          (initAda 100)
+          (initAda (100 : replicate 10 7))
           (withContract $ const getUtxos)
           [ shouldSucceed
           , Predicate.not shouldFail
           ]
       , assertExecution
           "Contract 2"
-          (initAda 100)
+          (initAda [100])
           (withContract $ const getUtxosThrowsErr)
           [ shouldFail
           , Predicate.not shouldSucceed
           ]
       , assertExecution
           "Contract 3"
-          (initAda 100)
+          (initAda [100])
           (withContract $ const getUtxosThrowsEx)
           [ shouldFail
           , Predicate.not shouldSucceed
           ]
       , assertExecution
           "Pay negative amount"
-          (initAda 100)
+          (initAda [100])
           (withContract $ \[pkh1] -> payTo pkh1 (-10_000_000))
           [shouldFail]
       , -- Tests with wallet's Value assertions
         assertExecution
           "Pay from wallet to wallet"
-          (initAda 100 <> initAndAssertAda 100 110)
+          (initAda [100] <> initAndAssertAda [100, 13] 123)
           (withContract $ \[pkh1] -> payTo pkh1 10_000_000)
           [shouldSucceed]
       , assertExecution
           "Two contracts one after another"
-          ( initAndAssertAdaWith 100 VLt 100 -- own wallet (index 0 in wallets list)
-              <> initAndAssertAdaWith 100 VLt 100 -- wallet with index 1 in wallets list
+          ( initAndAssertAdaWith [100] VLt 100 -- own wallet (index 0 in wallets list)
+              <> initAndAssertAdaWith [100] VLt 100 -- wallet with index 1 in wallets list
           )
           ( do
               void $ -- run something prior to the contract which result will be checked
@@ -120,14 +119,14 @@ test =
       , -- Tests with assertions on Contract return value
         assertExecution
           "Initiate wallet and get UTxOs"
-          (initAda 100)
+          (initAda [100])
           (withContract $ const getUtxos)
           [ yieldSatisfies "Returns single UTxO" ((== 1) . Map.size)
           ]
       , let initFunds = 10_000_000
          in assertExecution
               "Should yield own initial Ada"
-              (initLovelace $ toEnum initFunds)
+              (initLovelace [toEnum initFunds])
               (withContract $ const ownValue)
               [ shouldYield (lovelaceValueOf $ toEnum initFunds)
               ]
@@ -135,7 +134,7 @@ test =
         let initFunds = 10_000_000
          in assertExecution
               "Puts own UTxOs Value to state"
-              (initLovelace $ toEnum initFunds)
+              (initLovelace [toEnum initFunds])
               (withContract $ const ownValueToState)
               [ stateIs [lovelaceValueOf $ toEnum initFunds]
               , Predicate.not $ stateSatisfies "length > 1" ((> 1) . length)
@@ -147,7 +146,7 @@ test =
               _ -> False
          in assertExecution
               ("Contract which throws `" <> show expectedErr <> "`")
-              (initAda 100)
+              (initAda [100])
               (withContract $ const getUtxosThrowsErr)
               [ shouldThrow expectedErr
               , errorSatisfies "Throws resolution error" isResolutionError
@@ -158,7 +157,7 @@ test =
               _ -> False
          in assertExecution
               "Contract which throws exception"
-              (initAda 100)
+              (initAda [100])
               (withContract $ const getUtxosThrowsEx)
               [ shouldFail
               , Predicate.not shouldSucceed
@@ -166,7 +165,7 @@ test =
               ]
       , assertExecution
           "Lock then spend contract"
-          (initAda 1000)
+          (initAda (replicate 3 300))
           (withContract $ const lockThenSpend)
           [ shouldSucceed
           , budgetsFitUnder

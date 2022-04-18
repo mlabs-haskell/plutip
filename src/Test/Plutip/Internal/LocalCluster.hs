@@ -39,7 +39,14 @@ import System.FilePath ((</>))
 import System.IO (IOMode (WriteMode), hClose, hFlush, openFile, stdout)
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BotSetup
 import Test.Plutip.Internal.Types (
-  ClusterEnv (ClusterEnv, bpiForceBudget, chainIndexUrl, networkId, runningNode, supportDir, tracer),
+  ClusterEnv (
+    ClusterEnv,
+    chainIndexUrl,
+    networkId,
+    runningNode,
+    supportDir,
+    tracer
+  ),
   RunningNode (RunningNode),
  )
 import Test.Plutip.Tools.CardanoApi qualified as Tools
@@ -51,7 +58,6 @@ import Data.Foldable (for_)
 import GHC.Stack.Types (HasCallStack)
 import Paths_plutip (getDataFileName)
 import Test.Plutip.Config (PlutipConfig (chainIndexPort, clusterDataDir, relayNodeLogs))
-import Test.Plutip.Config qualified as Config
 import Text.Printf (printf)
 
 -- | Starting a cluster with a setup action
@@ -120,7 +126,6 @@ withPlutusInterface conf action = do
               , networkId = CAPI.Mainnet
               , supportDir = dir
               , tracer = trCluster
-              , bpiForceBudget = Config.bpiForceBudget conf
               }
 
       BotSetup.runSetup cEnv -- run preparations to use `bot-plutus-interface`

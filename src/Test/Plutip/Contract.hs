@@ -167,6 +167,8 @@ import Test.Tasty.HUnit (assertFailure, testCase)
 import Test.Tasty.Providers (IsTest (run, testOptions), TestTree, singleTest, testPassed)
 import Test.Tasty.Runners (Result (resultDescription), TestTree (TestGroup))
 
+import Test.Plutip.Tools (ada)
+
 type TestRunner (w :: Type) (e :: Type) (a :: Type) =
   ReaderT (ClusterEnv, NonEmpty BpiWallet) IO (ExecutionResult w e (a, NonEmpty Value))
 

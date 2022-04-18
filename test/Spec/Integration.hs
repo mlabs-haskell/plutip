@@ -46,7 +46,7 @@ import Test.Plutip.Internal.Types (
   isException,
  )
 import Test.Plutip.LocalCluster (withConfiguredCluster)
-import Test.Plutip.Options (TxBudgetsLog (Verbose, Omit))
+import Test.Plutip.Options (TxBudgetsReporting (OmitReport, VerboseReport))
 import Test.Plutip.Predicate (
   budgetsFitUnder,
   errorSatisfies,
@@ -70,7 +70,7 @@ import Text.Printf (printf)
 
 test :: TestTree
 test =
-  localOption Verbose  $
+  localOption VerboseReport $
     withConfiguredCluster
       (def {bpiForceBudget = Just (100, 100)})
       "Basic integration: launch, add wallet, tx from wallet to wallet"
@@ -168,7 +168,7 @@ test =
               , failReasonSatisfies "Throws ErrorCall" checkException
               ]
       , assertExecution
-          "LOck then spend contract"
+          "Lock then spend contract"
           (initAda 1000)
           (withContract $ const lockThenSpend)
           [ shouldSucceed

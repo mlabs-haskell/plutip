@@ -158,9 +158,9 @@ import Test.Plutip.Internal.Types (
   ExecutionResult (outcome),
   budgets,
  )
-import Test.Plutip.Options (TxBudgetsLog (Omit, Verbose))
+import Test.Plutip.Options (TxBudgetsReporting (OmitReport, VerboseReport))
 import Test.Plutip.Predicate (Predicate, pTag)
-import Test.Plutip.Tools.Format (formatTxBudgtes)
+import Test.Plutip.Tools.Format (formatTxBudgets)
 import Test.Tasty (askOption, testGroup, withResource)
 import Test.Tasty.HUnit (assertFailure, testCase)
 import Test.Tasty.Providers (IsTest (run, testOptions), TestTree, singleTest, testPassed)
@@ -284,15 +284,15 @@ wrapContract bpiWallets contract = do
 
 -- little hack to print stats; not exported
 -- not made to be accessible by user directly
-handleStatsPrinting :: 
+handleStatsPrinting ::
   forall (w :: Type) (e :: Type) (a :: Type).
   TestContractConstraints w e a =>
   IO (ExecutionResult w e (a, NonEmpty Value)) ->
-  TestTree -> 
+  TestTree ->
   TestTree
 handleStatsPrinting ioRes tree = askOption $ \case
-  Omit -> tree
-  Verbose -> case tree of
+  OmitReport -> tree
+  VerboseReport -> case tree of
     TestGroup name cases -> TestGroup name (cases ++ [statsPrinter])
     _ -> tree
   where
@@ -310,11 +310,16 @@ instance
     pure $ addBudgetIngo res (testPassed "")
     where
       addBudgetIngo runRes tastyRes =
-        let add =
-              maybe
+        let add = case budgets runRes of
+              Nothing ->
+                -- case when exception happened during contract run and no result returned
                 "No budgets to report"
-                formatTxBudgtes
-                (budgets runRes)
+              Just bs
+                | null bs ->
+                  -- we expect at least some budgets
+                  "Empty budgets map (no scripts or policies in contract?)"
+                | otherwise ->
+                  formatTxBudgets bs
          in tastyRes {resultDescription = resultDescription tastyRes ++ add}
 
   testOptions = Tagged []

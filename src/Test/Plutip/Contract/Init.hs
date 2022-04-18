@@ -1,7 +1,15 @@
 module Test.Plutip.Contract.Init (
-
-  initLovelace, initLovelaceAssertValueWith, initLovelaceAssertValue, initAndAssertLovelaceWith, initAndAssertLovelace, initAda, initAdaAssertValueWith, initAdaAssertValue, initAndAssertAdaWith, initAndAssertAda) where
-
+  initLovelace,
+  initLovelaceAssertValueWith,
+  initLovelaceAssertValue,
+  initAndAssertLovelaceWith,
+  initAndAssertLovelace,
+  initAda,
+  initAdaAssertValueWith,
+  initAdaAssertValue,
+  initAndAssertAdaWith,
+  initAndAssertAda,
+) where
 
 import Data.List.NonEmpty (NonEmpty ((:|)))
 
@@ -10,11 +18,11 @@ import Ledger.Ada qualified as Ada
 
 import Numeric.Positive (Positive)
 
-import Test.Plutip.Contract.Types
-    ( ValueOrdering(VEq),
-      TestWallet(TestWallet),
-      TestWallets(TestWallets) )
-
+import Test.Plutip.Contract.Types (
+  TestWallet (TestWallet),
+  TestWallets (TestWallets),
+  ValueOrdering (VEq),
+ )
 
 -- | Create a wallet with the given amount of lovelace.
 --

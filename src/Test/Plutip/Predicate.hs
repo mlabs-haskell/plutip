@@ -23,7 +23,7 @@ module Test.Plutip.Predicate (
   scriptLimit,
 ) where
 
-import BotPlutusInterface.Types (TxBudget (TxBudget))
+import BotPlutusInterface.Types (TxBudget (TxBudget), spendBudgets, mintBudgets)
 import Data.List.NonEmpty (NonEmpty)
 import Data.Map (Map)
 import Data.Map qualified as Map
@@ -35,7 +35,7 @@ import Test.Plutip.Internal.Types (
   budgets,
   isSuccessful,
  )
-import Test.Plutip.Tools.Format (orefFmt, policyFmt, txIdFmt)
+import Test.Plutip.Tools.Format (formatTxBudgets)
 import Text.Show.Pretty (ppShow)
 
 -- | Predicate is used to build test cases for Contract.
@@ -212,13 +212,15 @@ failReasonSatisfies description p =
       CaughtException _ -> "Exception was caught: "
       ContractExecutionError _ -> "Error was thrown: "
 
+-- | Check if:
+--
+-- @since 0.2
 budgetsFitUnder :: Limit 'Script -> Limit 'Policy -> Predicate w e a
 budgetsFitUnder (Limit sCpu sMem) (Limit pCpu pMem) =
   let positive = "Each validator and policy fits limits"
       negative = "TBD negative"
       debugInfo er =
-        "TBD debug info: "
-          ++ case budgets er of
+        case budgets er of
             Nothing ->
               -- case when exception happened during contract run and no result returned
               "No budgets available "
@@ -226,32 +228,28 @@ budgetsFitUnder (Limit sCpu sMem) (Limit pCpu pMem) =
               | null bs ->
                 -- we expect at least some budgets
                 "Empty budgets map (no scripts or policies in contract?)"
-              | otherwise ->
-                "Budgets that didn't fit: " ++ show (findTooBig bs)
+              | filtered <- processMap bs, Prelude.not (null filtered) ->
+                "Budgets that didn't fit:\n" ++ formatTxBudgets filtered
+              | otherwise -> ""
 
+      -- TDOD: refactor; some tests won't hurt
+      processMap :: Map TxId TxBudget -> Map TxId TxBudget
+      processMap = Map.foldMapWithKey 
+                      (\txId bdg -> 
+                          let overf = getOverf bdg 
+                          in if isEmpty overf
+                              then mempty
+                              else Map.singleton txId overf )
       pCheck er =
         case budgets er of
           Nothing -> False -- case when exception happened during contract run and no result returned
           Just bsm ->
-            Prelude.not (null bsm) -- we expect at least some budgets
-              && null (findTooBig bsm)
+            null (processMap bsm)
+              -- TODO: second iteration over stats happens here,
+              -- maybe `pCheck` and `debugInfo` could be somehow combined to avoid this
 
-      findTooBig :: Map TxId TxBudget -> [(String, String, ExBudget)]
-      findTooBig bsm =
-        [ (txIdFmt txId, scriptOrPolicy, exBudget)
-        | (txId, TxBudget spnd mnt) <- Map.toList bsm
-        , (scriptOrPolicy, exBudget) <-
-            mconcat
-              [ fmtWith orefFmt (filterBiggerThan sCpu sMem spnd)
-              , fmtWith policyFmt (filterBiggerThan pCpu pMem mnt)
-              ]
-        ]
-
-      fmtWith f = Map.toList . Map.mapKeys f
-
-      filterBiggerThan cpu mem =
-        -- filter non-fitting
-        Map.filter (Prelude.not . fits cpu mem)
+      getOverf b =
+        filterBudget (Prelude.not . fits sCpu sMem) (Prelude.not . fits pCpu pMem) b
 
       fits cpuLimit memLimit (ExBudget cpu' mem') =
         cpu' <= cpuLimit && mem' <= memLimit
@@ -269,3 +267,20 @@ scriptLimit cpu mem =
 policyLimit :: CostingInteger -> CostingInteger -> Limit a
 policyLimit cpu mem =
   Limit (ExCPU cpu) (ExMemory mem)
+
+
+
+filterBudget :: (ExBudget -> Bool) -> (ExBudget -> Bool) -> TxBudget -> TxBudget
+filterBudget spendFilter mintFilter txB =
+  let newSb = Map.filter spendFilter (spendBudgets txB)
+      newMb = Map.filter mintFilter (mintBudgets txB)
+  in TxBudget newSb newMb
+
+-- TODO: remove after bpi update
+instance Semigroup TxBudget where
+  TxBudget s m <> TxBudget s' m' = TxBudget (s <> s') (m <> m')
+
+instance Monoid TxBudget where
+  mempty = TxBudget mempty mempty
+
+isEmpty (TxBudget s p) = null s && null p 

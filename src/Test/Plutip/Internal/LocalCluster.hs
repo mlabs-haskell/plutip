@@ -26,7 +26,7 @@ import Data.Kind (Type)
 import Data.Maybe (catMaybes, fromMaybe, isJust)
 import Data.Text (Text, pack)
 import Data.Text.Class (ToText (toText))
-import GHC.IO.Handle (hDuplicate, hDuplicateTo, Handle)
+import GHC.IO.Handle (Handle, hDuplicate, hDuplicateTo)
 import Plutus.ChainIndex.App qualified as ChainIndex
 import Plutus.ChainIndex.Config (ChainIndexConfig (cicNetworkId, cicPort), cicDbPath, cicSocketPath)
 import Plutus.ChainIndex.Config qualified as ChainIndex
@@ -36,7 +36,7 @@ import System.Directory (copyFile, findExecutable)
 import System.Environment (setEnv)
 import System.Exit (die)
 import System.FilePath ((</>))
-import System.IO (stdout, hClose, openFile, IOMode (WriteMode), hFlush)
+import System.IO (IOMode (WriteMode), hClose, hFlush, openFile, stdout)
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BotSetup
 import Test.Plutip.Internal.Types (
   ClusterEnv (ClusterEnv, bpiForceBudget, chainIndexUrl, networkId, runningNode, supportDir, tracer),
@@ -44,7 +44,7 @@ import Test.Plutip.Internal.Types (
  )
 import Test.Plutip.Tools.CardanoApi qualified as Tools
 import UnliftIO.Concurrent (forkFinally)
-import UnliftIO.Exception (catchIO, finally, bracket)
+import UnliftIO.Exception (bracket, catchIO, finally)
 import UnliftIO.STM (TVar, atomically, newTVarIO, readTVar, retrySTM, writeTVar)
 
 import Data.Foldable (for_)
@@ -97,12 +97,13 @@ withPlutusInterface conf action = do
     result <- withLoggingNamed "cluster" clusterLogs $ \(_, (_, trCluster)) -> do
       let tr' = contramap MsgCluster $ trMessageText trCluster
       clusterCfg <- localClusterConfigFromEnv
-      withRedirectedStdoutHdl nodeConfigLogHdl $ \restoreStdout ->  withCluster
-        tr'
-        dir
-        clusterCfg
-        (const $ pure ()) -- faucet setup was here in `cardano-wallet` version
-        (\rn -> restoreStdout $ runActionWthSetup rn dir trCluster action)
+      withRedirectedStdoutHdl nodeConfigLogHdl $ \restoreStdout ->
+        withCluster
+          tr'
+          dir
+          clusterCfg
+          (const $ pure ()) -- faucet setup was here in `cardano-wallet` version
+          (\rn -> restoreStdout $ runActionWthSetup rn dir trCluster action)
     handleLogs dir conf
     return result
   where
@@ -126,13 +127,12 @@ withPlutusInterface conf action = do
       userActon cEnv -- executing user action on cluster
 
 -- Redirect stdout to a provided handle providing mask to temporarily revert back to initial stdout.
-withRedirectedStdoutHdl :: Handle -> ((forall b . IO b -> IO b) -> IO a) -> IO a
+withRedirectedStdoutHdl :: Handle -> ((forall b. IO b -> IO b) -> IO a) -> IO a
 withRedirectedStdoutHdl hdl action = do
   old_stdout <- hDuplicate stdout
   swapStdout hdl (action $ swapStdout old_stdout)
-  
-  where 
-    swapStdout tmphdl io = do 
+  where
+    swapStdout tmphdl io = do
       hFlush stdout
       old <- hDuplicate stdout
       hDuplicateTo tmphdl stdout
@@ -164,16 +164,15 @@ withLocalClusterSetup conf action = do
     withSystemTempDir stdoutTextTracer "test-cluster" $ \dir -> do
       let logOutputs name minSev =
             -- cluster logs to file only
-            [ LogToFile (dir </> name) (min minSev Severity.Info)]
+            [LogToFile (dir </> name) (min minSev Severity.Info)]
 
       clusterLogs <- logOutputs "cluster.log" <$> testMinSeverityFromEnv
       walletLogs <- logOutputs "wallet.log" <$> walletMinSeverityFromEnv
 
       bracket
-        (openFile (dir </> "node_configuration.log") WriteMode) 
+        (openFile (dir </> "node_configuration.log") WriteMode)
         hClose
         (action dir clusterLogs walletLogs)
-  
   where
     setClusterDataDir = do
       defaultClusterDataDir <- getDataFileName "cluster-data"

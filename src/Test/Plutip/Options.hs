@@ -1,5 +1,5 @@
 module Test.Plutip.Options (
-  TxBudgetsLog (..),
+  TxBudgetsReporting (..),
 ) where
 
 import Data.Tagged (Tagged (Tagged))
@@ -13,13 +13,13 @@ import Test.Tasty.Options (
   ),
  )
 
-data TxBudgetsLog -- TODO: better naming
-  = Omit
-  | Verbose
+data TxBudgetsReporting
+  = OmitReport
+  | VerboseReport
   deriving stock (Show)
 
-instance IsOption TxBudgetsLog where
-  defaultValue = Omit
+instance IsOption TxBudgetsReporting where
+  defaultValue = OmitReport
   parseValue = const Nothing
   optionName = Tagged "print-budgets"
   optionHelp = Tagged "no cli parsing yet"

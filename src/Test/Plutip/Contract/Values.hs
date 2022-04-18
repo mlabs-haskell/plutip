@@ -1,6 +1,7 @@
 module Test.Plutip.Contract.Values (
-
-  valueAt, assertValues) where
+  valueAt,
+  assertValues,
+) where
 
 import Data.Aeson.Extras (encodeByteString)
 import Data.Either (fromRight)
@@ -20,10 +21,10 @@ import Ledger.Value qualified as Value
 import Plutus.Contract (AsContractError, Contract, utxosAt)
 import PlutusTx.Builtins (fromBuiltin)
 
-import Test.Plutip.Contract.Types ( 
-  ValueOrdering(VEq, VGt, VLt, VGEq, VLEq), 
+import Test.Plutip.Contract.Types (
+  ValueOrdering (VEq, VGEq, VGt, VLEq, VLt),
   compareValuesWith,
-  )
+ )
 
 valueAt ::
   forall (w :: Type) (s :: Row Type) (e :: Type).
@@ -78,5 +79,3 @@ assertValues expected values =
         tokenNameStr =
           let bs = fromBuiltin $ unTokenName name
            in fromRight (encodeByteString bs) $ decodeUtf8' bs
-
-

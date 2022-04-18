@@ -161,7 +161,7 @@ import Test.Plutip.Internal.Types (
  )
 import Test.Plutip.Options (TxBudgetsReporting (OmitReport, VerboseReport))
 import Test.Plutip.Predicate (Predicate, pTag)
-import Test.Plutip.Tools.Format (formatTxBudgets)
+import Test.Plutip.Tools.Format (fmtTxBudgets)
 import Test.Tasty (askOption, testGroup, withResource)
 import Test.Tasty.HUnit (assertFailure, testCase)
 import Test.Tasty.Providers (IsTest (run, testOptions), TestTree, singleTest, testPassed)
@@ -322,7 +322,7 @@ instance
                   -- we expect at least some budgets
                   "Empty budgets map (no scripts or policies in contract?)"
                 | otherwise ->
-                  formatTxBudgets bs
+                  fmtTxBudgets bs
          in tastyRes {resultDescription = resultDescription tastyRes ++ add}
 
   testOptions = Tagged []

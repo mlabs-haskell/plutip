@@ -1,4 +1,7 @@
-module Test.Plutip.Tools.Format where
+module Test.Plutip.Tools.Format (
+  fmtExBudget,
+  fmtTxBudgets,
+) where
 
 import BotPlutusInterface.Types (TxBudget (TxBudget))
 import Data.Bifunctor (bimap)
@@ -8,8 +11,9 @@ import Data.Text qualified as Text
 import Ledger (ExBudget (ExBudget), ExCPU (ExCPU), ExMemory (ExMemory), MintingPolicyHash, TxId, TxOutRef)
 import PlutusPrelude (pretty)
 
-formatTxBudgets :: Map TxId TxBudget -> String
-formatTxBudgets budgets =
+-- TODO: ppShow ?
+fmtTxBudgets :: Map TxId TxBudget -> String
+fmtTxBudgets budgets =
   let preformattedList = map glue (Map.toList budgets)
    in Text.unpack
         . Text.intercalate "\n"
@@ -34,13 +38,13 @@ formatTxBudgets budgets =
 
 formatBudget :: TxBudget -> [(String, String)]
 formatBudget (TxBudget spend mint) =
-  let spending = bimap orefFmt sayExBudget <$> Map.toList spend
-      minting = bimap policyFmt sayExBudget <$> Map.toList mint
+  let spending = bimap orefFmt fmtExBudget <$> Map.toList spend
+      minting = bimap policyFmt fmtExBudget <$> Map.toList mint
    in spending ++ minting
 
-sayExBudget :: ExBudget -> String
-sayExBudget (ExBudget (ExCPU cpu) (ExMemory mem)) =
-  "CPU " ++ show cpu ++ " | " ++ "MEM " ++ show mem
+fmtExBudget :: ExBudget -> String
+fmtExBudget (ExBudget (ExCPU cpu) (ExMemory mem)) =
+  "(cpu " ++ show cpu ++ " | " ++ "mem " ++ show mem ++ ")"
 
 orefFmt :: TxOutRef -> [Char]
 orefFmt = ("TxOutRef " ++) . show . pretty
@@ -50,5 +54,3 @@ policyFmt = ("PolicyHash " ++) . show . pretty
 
 txIdFmt :: TxId -> [Char]
 txIdFmt = ("TxId " ++) . show . pretty
-
-fmtWith f = Map.toList . Map.mapKeys f

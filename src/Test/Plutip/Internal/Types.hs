@@ -10,7 +10,7 @@ module Test.Plutip.Internal.Types (
   budgets,
 ) where
 
-import BotPlutusInterface.Types (TxBudget, TxStats (estimatedBudgets))
+import BotPlutusInterface.Types (ContractStats, TxBudget, estimatedBudgets)
 import Cardano.Api (NetworkId)
 import Cardano.BM.Tracing (Trace)
 import Cardano.Launcher.Node (CardanoNodeConn)
@@ -44,14 +44,14 @@ data ExecutionResult w e a = ExecutionResult
   { -- | outcome of running contract.
     outcome :: Either (FailureReason e) a
   , -- | stats returned by bot interface after contract being run
-    txStats :: Maybe TxStats
+    txStats :: ContractStats
   , -- | `Contract` observable state after execution (or up to the point where it failed)
     contractState :: w
   }
   deriving stock (Show)
 
-budgets :: ExecutionResult w e a -> Maybe (Map Ledger.TxId TxBudget)
-budgets = fmap estimatedBudgets . txStats
+budgets :: ExecutionResult w e a -> Map Ledger.TxId TxBudget
+budgets = estimatedBudgets . txStats
 
 isSuccessful :: ExecutionResult w e b -> Bool
 isSuccessful = isRight . outcome

@@ -24,6 +24,7 @@ module Test.Plutip.Predicate (
   scriptLimit,
   assertOverallBudget,
   overallBudgetFits,
+  noBudgetsMessage,
 ) where
 
 import BotPlutusInterface.Types (TxBudget (TxBudget), mintBudgets, spendBudgets)
@@ -223,51 +224,41 @@ failReasonSatisfies description p =
 -- @since 0.2
 overallBudgetFits :: ExCPU -> ExMemory -> Predicate w e a
 overallBudgetFits cpuLimit memLimit =
-  let predicate' = assertOverallBudget (<= cpuLimit) (<= memLimit)
-   in predicate'
-        { positive = "Budget should fit " ++ fmtExBudget (ExBudget cpuLimit memLimit)
-        }
-
+  let p = 
+        assertOverallBudget
+          ("Budget should fit " ++ fmtExBudget (ExBudget cpuLimit memLimit))
+          (<= cpuLimit) (<= memLimit)
+  in p {negative = "Budget should NOT fit " ++ fmtExBudget (ExBudget cpuLimit memLimit)}
+  
 -- | Check if overall cpu and mem budgets satisfy their predicates.
 -- (more general version of `overallBudgetFits`)
 --
 -- If heck fails, all collected budgets will be printed to output.
 --
 -- @since 0.2
-assertOverallBudget :: (ExCPU -> Bool) -> (ExMemory -> Bool) -> Predicate w e a
-assertOverallBudget cpuCheck memCheck =
-  let positive = "CPU and MEM budget assertion should hold"
-      negative = "TBD negative"
-      debugInfo er =
-        case budgets er of
-          -- case when exception happened during contract run and no result returned
-          -- we expect at least some budgets if we planning to assert something
-          Nothing ->
-            "No budgets available"
-          Just bs
-            | null bs ->
-              -- we expect at least some budgets if we planning to assert something
-              "Empty budgets map (no scripts or policies in contract?)"
-            | otherwise ->
-              let budget = foldMap sumBudgets bs
-               in mconcat
-                    [ "Overall budget: "
-                    , fmtExBudget budget
-                    , "\nBudget details:\n"
-                    , fmtTxBudgets bs
-                    ]
+assertOverallBudget :: String -> (ExCPU -> Bool) -> (ExMemory -> Bool) -> Predicate w e a
+assertOverallBudget description cpuCheck memCheck =
+  let positive = description
+      negative = ("Should violate '" <> description <> "'")
+      debugInfo (budgets -> bs)
+        | null bs =
+          -- at least some budgets expected for assertion
+          noBudgetsMessage
+        | otherwise =
+          let budget = foldMap sumBudgets bs
+           in mconcat
+                [ "Overall budget: "
+                , fmtExBudget budget
+                , "\nBudget details:\n"
+                , fmtTxBudgets bs
+                ]
 
-      pCheck er =
-        case budgets er of
-          -- case when exception happened during contract run and no result returned
-          -- we expect at least some budgets if we planning to assert something
-          Nothing -> False
-          Just bs
-            -- we expect at least some budgets if we planning to assert something
-            | null bs -> False
-            | otherwise ->
-              let ExBudget cpu mem = foldMap sumBudgets bs
-               in cpuCheck cpu && memCheck mem
+      pCheck (budgets -> bs)
+        -- at least some budgets expected for assertion
+        | null bs = False
+        | otherwise =
+          let ExBudget cpu mem = foldMap sumBudgets bs
+           in cpuCheck cpu && memCheck mem
 
       sumBudgets :: TxBudget -> ExBudget
       sumBudgets (TxBudget spend mint) =
@@ -283,33 +274,26 @@ assertOverallBudget cpuCheck memCheck =
 -- @since 0.2
 budgetsFitUnder :: Limit 'Script -> Limit 'Policy -> Predicate w e a
 budgetsFitUnder (Limit sCpu sMem) (Limit pCpu pMem) =
-  let positive = 
+  let positive =
         mconcat
-          [ "Each script fits ", fmtExBudget (ExBudget sCpu sMem)
-          , " and each policy fits ", fmtExBudget (ExBudget pCpu pMem)
+          [ "Each script fits "
+          , fmtExBudget (ExBudget sCpu sMem)
+          , " and each policy fits "
+          , fmtExBudget (ExBudget pCpu pMem)
           ]
       negative = "TBD negative"
-      debugInfo er =
-        case budgets er of
-          Nothing ->
-            -- case when exception happened during contract run and no result returned
-            "No budgets available"
-          Just bs
-            | null bs ->
-              -- we expect at least some budgets
-              "Empty budgets info (no scripts or policies in contract?)"
-            | filtered <- processMap bs
-              , Prelude.not (null filtered) ->
-              "Budgets that didn't fit the limit :\n" ++ fmtTxBudgets filtered
-            | otherwise ->
-              -- show at least some debug info
-              "Collected budgets:\n" ++ fmtTxBudgets bs
+      debugInfo (budgets -> bs)
+        | null bs =
+          -- at least some budgets expected for assertion
+          noBudgetsMessage
+        | filtered <- processMap bs
+          , Prelude.not (null filtered) =
+          "Budgets that didn't fit the limit :\n" ++ fmtTxBudgets filtered
+        | otherwise =
+          -- show at least some debug info
+          "Collected budgets:\n" ++ fmtTxBudgets bs
 
-      pCheck er =
-        case budgets er of
-          Nothing -> False -- case when exception happened during contract run and no result returned
-          Just bsm ->
-            null (processMap bsm)
+      pCheck (budgets -> bs) = null (processMap bs)
       -- TODO: second iteration over stats happens here,
       -- maybe `pCheck` and `debugInfo` could be somehow combined to avoid this
 
@@ -335,6 +319,10 @@ budgetsFitUnder (Limit sCpu sMem) (Limit pCpu pMem) =
         cpu' <= cpuLimit && mem' <= memLimit
    in Predicate {..}
 
+
+noBudgetsMessage :: String
+noBudgetsMessage = "Empty budgets data (probably, no scripts or policies in contract or contract failed)"
+
 -- to protect from accidental `scriptLimit` <-> `policyLimit` swapping
 -- while making `budgetsFitUnder` predicate
 data LimitType = Script | Policy
@@ -357,11 +345,5 @@ filterBudget spendFilter mintFilter txB =
       newMb = Map.filter mintFilter (mintBudgets txB)
    in TxBudget newSb newMb
 
--- TODO: remove after bpi update
-instance Semigroup TxBudget where
-  TxBudget s m <> TxBudget s' m' = TxBudget (s <> s') (m <> m')
-
-instance Monoid TxBudget where
-  mempty = TxBudget mempty mempty
-
+isEmpty :: TxBudget -> Bool
 isEmpty (TxBudget s p) = null s && null p

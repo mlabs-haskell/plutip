@@ -10,8 +10,8 @@ import Data.Map qualified as Map
 import Data.Text qualified as Text
 import Ledger (ExBudget (ExBudget), ExCPU (ExCPU), ExMemory (ExMemory), MintingPolicyHash, TxId, TxOutRef)
 import PlutusPrelude (pretty)
+import Data.Bool (bool)
 
--- TODO: ppShow ?
 fmtTxBudgets :: Map TxId TxBudget -> String
 fmtTxBudgets budgets =
   let preformattedList = map glue (Map.toList budgets)
@@ -22,25 +22,29 @@ fmtTxBudgets budgets =
   where
     glue :: (TxId, TxBudget) -> String
     glue (txId, bds) =
-      mconcat
-        (("Budget for " ++ txIdFmt txId ++ "\n") : if null r then ["  Empty"] else r) -- TODO:refactor, hlint did that
+        mconcat
+          [ "Budget for ", txIdFmt txId, "\n"
+          , bool  budget' " Empty" (null budget') 
+          ]
       where
-        bs' :: [(String, String)]
-        bs' = formatBudget bds
+        budget' = formatBudget bds
 
-        f :: (String, String) -> String
-        f (refOrHash, budget) =
-          "  " ++ refOrHash ++ "\n"
-            ++ "   "
-            ++ budget
-            ++ "\n"
-        r = map f bs'
-
-formatBudget :: TxBudget -> [(String, String)]
+formatBudget :: TxBudget -> String
 formatBudget (TxBudget spend mint) =
-  let spending = bimap orefFmt fmtExBudget <$> Map.toList spend
-      minting = bimap policyFmt fmtExBudget <$> Map.toList mint
-   in spending ++ minting
+  foldMap combine stringified
+  where 
+    combine (refOrHash, budget) =
+      mconcat
+            [ pad 1 ++ refOrHash ++ "\n"
+            , pad 2 ++ budget ++ "\n"
+            ] 
+
+    spending = bimap orefFmt fmtExBudget <$> Map.toList spend
+    minting = bimap policyFmt fmtExBudget <$> Map.toList mint
+    stringified = spending ++ minting
+
+    pad n = replicate n ' '
+  
 
 fmtExBudget :: ExBudget -> String
 fmtExBudget (ExBudget (ExCPU cpu) (ExMemory mem)) =

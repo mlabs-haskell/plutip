@@ -1,4 +1,7 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+
+{-# HLINT ignore "Functor law" #-}
 
 module Test.Plutip.Internal.BotPlutusInterface.Run (runContract, runContract_) where
 
@@ -26,13 +29,12 @@ import BotPlutusInterface.Types (
     pcTipPollingInterval,
     pcTxFileDir
   ),
-  ceContractInstanceId,
   ceContractState,
-  cePABConfig,
+  ceContractStats,
+  pcCollectStats,
   pcOwnStakePubKeyHash,
  )
-import Cardano.Api.ProtocolParameters (ProtocolParameters)
-import Control.Concurrent.STM (TVar, newTVarIO, readTVarIO)
+import Control.Concurrent.STM (newTVarIO, readTVarIO)
 import Control.Exception (try)
 import Control.Monad (void)
 import Control.Monad.Catch (SomeException)
@@ -75,47 +77,52 @@ runContract cEnv bpiWallet contract = do
   pparams <-
     fromRight (error "Could not read protocol parameters file.")
       <$> liftIO (eitherDecodeFileStrict' (BIS.pParamsFile cEnv))
-  contractState <- liftIO $ newTVarIO (ContractState Active (mempty :: w))
-  runContract' pparams contractState
+
+  contactEnv <- liftIO $ mkEnv (mkPabConfig pparams)
+
+  runContract' contactEnv
   where
-    runContract' :: ProtocolParameters -> TVar (ContractState w) -> m (ExecutionResult w e a)
-    runContract' pparams contractState = do
-      contractInstanceID <- liftIO $ ContractInstanceId <$> UUID.nextRandom
-      let pabConf =
-            PABConfig
-              { pcCliLocation = Local
-              , pcChainIndexUrl = chainIndexUrl cEnv
-              , pcNetwork = networkId cEnv
-              , pcProtocolParams = pparams
-              , pcSlotConfig = def
-              , pcScriptFileDir = Text.pack $ BIS.scriptsDir cEnv
-              , pcSigningKeyFileDir = Text.pack $ BIS.keysDir cEnv
-              , pcTxFileDir = Text.pack $ BIS.txsDir cEnv
-              , pcDryRun = False
-              , pcProtocolParamsFile = Text.pack $ BIS.pParamsFile cEnv
-              , pcLogLevel = Info
-              , -- , pcForceBudget = bpiForceBudget cEnv
-                pcOwnPubKeyHash = walletPkh bpiWallet
-              , pcOwnStakePubKeyHash = Nothing
-              , pcTipPollingInterval = 1_000_000
-              , pcPort = 9080
-              , pcEnableTxEndpoint = False
-              }
-          contractEnv =
-            ContractEnvironment
-              { cePABConfig = pabConf
-              , ceContractState = contractState
-              , ceContractInstanceId = contractInstanceID
-              }
+    mkEnv pabConf =
+      ContractEnvironment pabConf
+        <$> ContractInstanceId
+        <$> UUID.nextRandom
+        <*> newTVarIO (ContractState Active (mempty :: w))
+        <*> newTVarIO mempty
 
-      res <- liftIO $ try @SomeException (BIC.runContract' contractEnv contract)
+    mkPabConfig pparams =
+      PABConfig
+        { pcCliLocation = Local
+        , pcChainIndexUrl = chainIndexUrl cEnv
+        , pcNetwork = networkId cEnv
+        , pcProtocolParams = pparams
+        , pcSlotConfig = def
+        , pcScriptFileDir = Text.pack $ BIS.scriptsDir cEnv
+        , pcSigningKeyFileDir = Text.pack $ BIS.keysDir cEnv
+        , pcTxFileDir = Text.pack $ BIS.txsDir cEnv
+        , pcDryRun = False
+        , pcProtocolParamsFile = Text.pack $ BIS.pParamsFile cEnv
+        , pcLogLevel = Info
+        , -- , pcForceBudget = bpiForceBudget cEnv
+          pcOwnPubKeyHash = walletPkh bpiWallet
+        , pcOwnStakePubKeyHash = Nothing
+        , pcTipPollingInterval = 1_000_000
+        , pcPort = 9080
+        , pcEnableTxEndpoint = False
+        , pcCollectStats = True
+        }
 
-      let resultWoState = case res of
+    runContract' :: ContractEnvironment w -> m (ExecutionResult w e a)
+    runContract' contractEnv = do
+      res <- liftIO $ try @SomeException (BIC.runContract contractEnv contract)
+
+      let partialResult = case res of
             Left e ->
-              ExecutionResult (Left $ CaughtException e) Nothing
-            Right (Left e, budgets) ->
-              ExecutionResult (Left $ ContractExecutionError e) (Just budgets)
-            Right (Right a, budgets) ->
-              ExecutionResult (Right a) (Just budgets)
-      endState <- liftIO (readTVarIO contractState)
-      return $ resultWoState (csObservableState endState)
+              ExecutionResult (Left $ CaughtException e)
+            Right (Left e) ->
+              ExecutionResult (Left $ ContractExecutionError e)
+            Right (Right a) ->
+              ExecutionResult (Right a)
+
+      endState <- liftIO (readTVarIO $ ceContractState contractEnv)
+      stats <- liftIO (readTVarIO $ ceContractStats contractEnv)
+      return $ partialResult stats (csObservableState endState)

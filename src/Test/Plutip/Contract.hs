@@ -160,12 +160,12 @@ import Test.Plutip.Internal.Types (
   budgets,
  )
 import Test.Plutip.Options (TxBudgetsReporting (OmitReport, VerboseReport))
-import Test.Plutip.Predicate (Predicate, pTag)
+import Test.Plutip.Predicate (Predicate, noBudgetsMessage, pTag)
 import Test.Plutip.Tools.Format (fmtTxBudgets)
 import Test.Tasty (askOption, testGroup, withResource)
 import Test.Tasty.HUnit (assertFailure, testCase)
 import Test.Tasty.Providers (IsTest (run, testOptions), TestTree, singleTest, testPassed)
-import Test.Tasty.Runners (Result (resultDescription), TestTree (TestGroup))
+import Test.Tasty.Runners (TestTree (TestGroup))
 
 import Test.Plutip.Tools (ada)
 
@@ -285,8 +285,8 @@ wrapContract bpiWallets contract = do
   values <- traverse (valueAt . (`pubKeyHashAddress` Nothing)) walletPkhs
   pure (res, values)
 
--- little hack to print stats; not exported
--- not made to be accessible by user directly
+-- A way print stats
+-- not exported, not made to be accessible by user directly
 handleStatsPrinting ::
   forall (w :: Type) (e :: Type) (a :: Type).
   TestContractConstraints w e a =>
@@ -308,21 +308,11 @@ instance
   TestContractConstraints w e a =>
   IsTest (StatsReport w e a)
   where
-  run _ (StatsReport ioRes) _ = do
-    res <- ioRes
-    pure $ addBudgetIngo res (testPassed "")
+  run _ (StatsReport ioRes) _ =
+    testPassed . mkDescription <$> ioRes
     where
-      addBudgetIngo runRes tastyRes =
-        let add = case budgets runRes of
-              Nothing ->
-                -- case when exception happened during contract run and no result returned
-                "No budgets to report"
-              Just bs
-                | null bs ->
-                  -- we expect at least some budgets
-                  "Empty budgets map (no scripts or policies in contract?)"
-                | otherwise ->
-                  fmtTxBudgets bs
-         in tastyRes {resultDescription = resultDescription tastyRes ++ add}
+      mkDescription runRes =
+        let bs = budgets runRes
+         in bool (fmtTxBudgets bs) noBudgetsMessage (null bs)
 
   testOptions = Tagged []

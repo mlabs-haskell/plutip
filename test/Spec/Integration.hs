@@ -165,7 +165,8 @@ test =
               , Predicate.not shouldSucceed
               , failReasonSatisfies "Throws ErrorCall" checkException
               ]
-      , assertExecution
+      , -- tests with assertions on execution budget
+        assertExecution
           "Lock then spend contract"
           (initAda (replicate 3 300))
           (withContract $ const lockThenSpend)
@@ -174,8 +175,9 @@ test =
               (scriptLimit 426019962 1082502)
               (policyLimit 428879716 1098524)
           , assertOverallBudget
-                "Assert CPU == 1156006922 and MEM == 2860068"
-                (== 1156006922) (== 2860068)
+              "Assert CPU == 1156006922 and MEM == 2860068"
+              (== 1156006922)
+              (== 2860068)
           , overallBudgetFits 1156006922 2860068
           ]
       ]

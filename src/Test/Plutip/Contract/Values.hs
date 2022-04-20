@@ -1,3 +1,6 @@
+-- | Helper contract for collecting `Value` at wallet's address
+-- and assertion to perform on collected `Value`.
+-- Both used by other modules of framework.
 module Test.Plutip.Contract.Values (
   valueAt,
   assertValues,

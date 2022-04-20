@@ -1,3 +1,4 @@
+-- | Wallets initiation
 module Test.Plutip.Contract.Init (
   initLovelace,
   initLovelaceAssertValueWith,

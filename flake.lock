@@ -79,17 +79,17 @@
         "servant-purescript": "servant-purescript"
       },
       "locked": {
-        "lastModified": 1650375562,
-        "narHash": "sha256-K3Uf1jsZU11RpM+H74fD0sZEmMWLhcxFePEoaqL6Lwk=",
+        "lastModified": 1650461631,
+        "narHash": "sha256-anSJAahD/5W+4KZHLS/sJ9UBghglCxb1TevQ+Tk+ags=",
         "owner": "mlabs-haskell",
         "repo": "bot-plutus-interface",
-        "rev": "690dfb030f1b2988162b6cca8206b9805ac162b0",
+        "rev": "452d940cfc0bc6e4c1a8f9bc1fab8c292664e592",
         "type": "github"
       },
       "original": {
         "owner": "mlabs-haskell",
         "repo": "bot-plutus-interface",
-        "rev": "690dfb030f1b2988162b6cca8206b9805ac162b0",
+        "rev": "452d940cfc0bc6e4c1a8f9bc1fab8c292664e592",
         "type": "github"
       }
     },

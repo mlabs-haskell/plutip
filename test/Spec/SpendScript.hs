@@ -1,16 +1,31 @@
+-- | Test contract for execution budget assertions
 module Spec.SpendScript (lockThenSpend) where
 
 import Data.Map qualified as Map
 import Data.Text (Text)
-import Ledger (CardanoTx)
 import Ledger.Constraints qualified as Constraints
-import Plutus.Contract (Contract, submitTx)
+import Plutus.Contract (
+  Contract,
+  awaitTxConfirmed,
+  submitTx,
+  submitTxConstraintsWith,
+ )
 import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
 
-import Ledger (Address, ScriptContext, TxId, Validator, getCardanoTxId, scriptAddress, unitDatum, unitRedeemer, validatorHash)
+import Ledger (
+  Address,
+  CardanoTx,
+  ScriptContext,
+  TxId,
+  Validator,
+  getCardanoTxId,
+  scriptAddress,
+  unitDatum,
+  unitRedeemer,
+  validatorHash,
+ )
 import Ledger.Typed.Scripts.Validators qualified as Validators
-import Plutus.Contract (awaitTxConfirmed, submitTxConstraintsWith)
 import Plutus.V1.Ledger.Ada qualified as Value
 import PlutusTx qualified
 

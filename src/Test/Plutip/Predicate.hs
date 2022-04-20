@@ -1,5 +1,3 @@
-{-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE PatternSynonyms #-}
 {-# LANGUAGE ViewPatterns #-}
 
 -- | This module provides some predicates or assertions, that could be used together with
@@ -224,12 +222,13 @@ failReasonSatisfies description p =
 -- @since 0.2
 overallBudgetFits :: ExCPU -> ExMemory -> Predicate w e a
 overallBudgetFits cpuLimit memLimit =
-  let p = 
+  let p =
         assertOverallBudget
           ("Budget should fit " ++ fmtExBudget (ExBudget cpuLimit memLimit))
-          (<= cpuLimit) (<= memLimit)
-  in p {negative = "Budget should NOT fit " ++ fmtExBudget (ExBudget cpuLimit memLimit)}
-  
+          (<= cpuLimit)
+          (<= memLimit)
+   in p {negative = "Budget should NOT fit " ++ fmtExBudget (ExBudget cpuLimit memLimit)}
+
 -- | Check if overall cpu and mem budgets satisfy their predicates.
 -- (more general version of `overallBudgetFits`)
 --
@@ -319,7 +318,6 @@ budgetsFitUnder (Limit sCpu sMem) (Limit pCpu pMem) =
         cpu' <= cpuLimit && mem' <= memLimit
    in Predicate {..}
 
-
 noBudgetsMessage :: String
 noBudgetsMessage = "Empty budgets data (probably, no scripts or policies in contract or contract failed)"
 
@@ -329,10 +327,12 @@ data LimitType = Script | Policy
 data Limit (a :: LimitType) = Limit ExCPU ExMemory
   deriving stock (Show)
 
+-- | Construct script limit for `budgetsFitUnder`
 scriptLimit :: CostingInteger -> CostingInteger -> Limit a
 scriptLimit cpu mem =
   Limit (ExCPU cpu) (ExMemory mem)
 
+-- | Construct policy limit for `budgetsFitUnder`
 policyLimit :: CostingInteger -> CostingInteger -> Limit a
 policyLimit cpu mem =
   Limit (ExCPU cpu) (ExMemory mem)

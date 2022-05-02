@@ -54,6 +54,7 @@ common common-imports
     , plutus-chain-index
     , plutus-chain-index-core
     , plutus-contract
+    , plutus-core
     , plutus-ledger
     , plutus-ledger-api
     , plutus-ledger-constraints
@@ -133,6 +134,9 @@ library
   exposed-modules:
     Test.Plutip.Config
     Test.Plutip.Contract
+    Test.Plutip.Contract.Init
+    Test.Plutip.Contract.Types
+    Test.Plutip.Contract.Values
     Test.Plutip.Internal.BotPlutusInterface.Keys
     Test.Plutip.Internal.BotPlutusInterface.Run
     Test.Plutip.Internal.BotPlutusInterface.Setup
@@ -141,12 +145,14 @@ library
     Test.Plutip.Internal.LocalCluster
     Test.Plutip.Internal.Types
     Test.Plutip.LocalCluster
+    Test.Plutip.Options
     Test.Plutip.Predicate
     Test.Plutip.Tools
     Test.Plutip.Tools.Address
     Test.Plutip.Tools.CardanoApi
     Test.Plutip.Tools.ChainIndex
     Test.Plutip.Tools.DebugCli
+    Test.Plutip.Tools.Format
 
   other-modules:   Paths_plutip
 
@@ -172,6 +178,7 @@ test-suite plutip-tests
   other-modules:
     Spec.Integration
     Spec.Test.Plutip.BotPlutusInterface
+    Spec.TestContract 
 
   default-extensions:
     OverloadedStrings

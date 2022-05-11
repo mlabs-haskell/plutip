@@ -54,6 +54,7 @@ import UnliftIO.Concurrent (forkFinally)
 import UnliftIO.Exception (bracket, catchIO, finally)
 import UnliftIO.STM (TVar, atomically, newTVarIO, readTVar, retrySTM, writeTVar)
 
+import Cardano.Api (PaymentKey, SigningKey)
 import Data.Foldable (for_)
 import GHC.Stack.Types (HasCallStack)
 import Paths_plutip (getDataFileName)
@@ -68,13 +69,14 @@ import Text.Printf (printf)
 startCluster ::
   forall (a :: Type).
   PlutipConfig ->
+  [SigningKey PaymentKey] ->
   ReaderT ClusterEnv IO a ->
   IO (TVar (ClusterStatus a), a)
-startCluster conf onClusterStart = do
+startCluster conf sKeys onClusterStart = do
   status <- newTVarIO ClusterStarting
   void $
     forkFinally
-      ( withPlutusInterface conf $ \clusterEnv -> do
+      ( withPlutusInterface conf sKeys $ \clusterEnv -> do
           res <- runReaderT onClusterStart clusterEnv
           atomically $ writeTVar status (ClusterStarted res)
           atomically $ readTVar status >>= \case ClusterClosing -> pure (); _ -> retrySTM
@@ -94,8 +96,8 @@ stopCluster status = do
    `plutus-apps` local cluster: https://github.com/input-output-hk/plutus-apps/blob/75a581c6eb98d36192ce3d3f86ea60a04bc4a52a/plutus-pab/src/Plutus/PAB/LocalCluster/Run.hs
    `cardano-wallet` local cluster: https://github.com/input-output-hk/cardano-wallet/blob/99b13e50f092ffca803fd38b9e435c24dae05c91/lib/shelley/exe/local-cluster.hs
 -}
-withPlutusInterface :: forall (a :: Type). PlutipConfig -> (ClusterEnv -> IO a) -> IO a
-withPlutusInterface conf action = do
+withPlutusInterface :: forall (a :: Type). PlutipConfig -> [SigningKey PaymentKey] -> (ClusterEnv -> IO a) -> IO a
+withPlutusInterface conf sKeys action = do
   -- current setup requires `cardano-node` and `cardano-cli` as external processes
   checkProcessesAvailable ["cardano-node", "cardano-cli"]
 
@@ -128,7 +130,7 @@ withPlutusInterface conf action = do
               , tracer = trCluster
               }
 
-      BotSetup.runSetup cEnv -- run preparations to use `bot-plutus-interface`
+      BotSetup.runSetup cEnv sKeys -- run preparations to use `bot-plutus-interface`
       userActon cEnv -- executing user action on cluster
 
 -- Redirect stdout to a provided handle providing mask to temporarily revert back to initial stdout.

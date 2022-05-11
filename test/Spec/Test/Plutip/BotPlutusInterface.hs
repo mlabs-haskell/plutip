@@ -18,7 +18,7 @@ import Test.Tasty.HUnit (assertBool, testCase)
 
 test :: TestTree
 test = testCase "Bot interface integration" $ do
-  withPlutusInterface def $ \cEnv -> do
+  withPlutusInterface def [] $ \cEnv -> do
     liftIO $
       doesDirectoryExist (keysDir cEnv)
         >>= assertBool "Required directory not found after setup run"

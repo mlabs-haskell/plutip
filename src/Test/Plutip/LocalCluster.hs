@@ -10,6 +10,7 @@ module Test.Plutip.LocalCluster (
   withConfiguredCluster,
 ) where
 
+import Cardano.Api (PaymentKey, SigningKey)
 import Control.Concurrent (threadDelay)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ReaderT, ask)
@@ -53,7 +54,7 @@ withCluster ::
   String ->
   [(TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)] ->
   TestTree
-withCluster = withConfiguredCluster def
+withCluster = withConfiguredCluster def []
 
 -- | Spin up a local cluster and create a test group with the contracts inside it.
 -- The cluster is reused by all the test cases, but the wallets are isolated, so contracts won't
@@ -71,11 +72,12 @@ withCluster = withConfiguredCluster def
 -- @since 0.2
 withConfiguredCluster ::
   PlutipConfig ->
+  [SigningKey PaymentKey] ->
   String ->
   [(TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)] ->
   TestTree
-withConfiguredCluster conf name testCases =
-  withResource (startCluster conf setup) (stopCluster . fst) $
+withConfiguredCluster conf sKeys name testCases =
+  withResource (startCluster conf sKeys setup) (stopCluster . fst) $
     \getResource ->
       testGroup name $
         imap

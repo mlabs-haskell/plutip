@@ -79,17 +79,17 @@
         "servant-purescript": "servant-purescript"
       },
       "locked": {
-        "lastModified": 1651488509,
-        "narHash": "sha256-WVTYecS6UY0rcxofYj6gBe9yag7Lo63pu/VsC9iyqqs=",
+        "lastModified": 1652452640,
+        "narHash": "sha256-9BlhmP2NZV8C1UZA7O06/B5Z+jp0Wx3WlXoiLOJhCd4=",
         "owner": "mlabs-haskell",
         "repo": "bot-plutus-interface",
-        "rev": "9ca5939b3b6ef1d052318f25ac88444baea52d8b",
+        "rev": "168d740056ff55cbc866482315a4a28a283a9df8",
         "type": "github"
       },
       "original": {
         "owner": "mlabs-haskell",
         "repo": "bot-plutus-interface",
-        "rev": "9ca5939b3b6ef1d052318f25ac88444baea52d8b",
+        "rev": "168d740056ff55cbc866482315a4a28a283a9df8",
         "type": "github"
       }
     },
@@ -927,34 +927,34 @@
     "plutus": {
       "flake": false,
       "locked": {
-        "lastModified": 1642505687,
-        "narHash": "sha256-Pl3M9rMEoiEKRsTdDr4JwNnRo5Xs4uN66uVpOfaMCfE=",
-        "owner": "input-output-hk",
+        "lastModified": 1646406347,
+        "narHash": "sha256-F3qhDJYisd3IapOskQMMccqK+iyKS3rB6vlzW8cEdA0=",
+        "owner": "mlabs-haskell",
         "repo": "plutus",
-        "rev": "cc72a56eafb02333c96f662581b57504f8f8992f",
+        "rev": "1a3c3a761cf048371c52a34b004f8b3fcf0dab43",
         "type": "github"
       },
       "original": {
-        "owner": "input-output-hk",
+        "owner": "mlabs-haskell",
         "repo": "plutus",
-        "rev": "cc72a56eafb02333c96f662581b57504f8f8992f",
+        "rev": "1a3c3a761cf048371c52a34b004f8b3fcf0dab43",
         "type": "github"
       }
     },
     "plutus-apps": {
       "flake": false,
       "locked": {
-        "lastModified": 1644841368,
-        "narHash": "sha256-OX4+S7fFUqXRz935wQqdcEm1I6aqg0udSdP19XJtSAk=",
-        "owner": "input-output-hk",
+        "lastModified": 1647352219,
+        "narHash": "sha256-quJeOzNGT1Ath7zjc1VHdEiJwZaSSXyn0sdVZwVofwI=",
+        "owner": "mlabs-haskell",
         "repo": "plutus-apps",
-        "rev": "7f543e21d4945a2024e46c572303b9c1684a5832",
+        "rev": "82c0725c4d05398ae76d71927cc60aa23db1a11d",
         "type": "github"
       },
       "original": {
-        "owner": "input-output-hk",
+        "owner": "mlabs-haskell",
         "repo": "plutus-apps",
-        "rev": "7f543e21d4945a2024e46c572303b9c1684a5832",
+        "rev": "82c0725c4d05398ae76d71927cc60aa23db1a11d",
         "type": "github"
       }
     },

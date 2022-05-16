@@ -5,6 +5,7 @@ module Test.Plutip.Internal.BotPlutusInterface.Setup (
   pParamsFile,
   scriptsDir,
   txsDir,
+  metadataDir,
 ) where
 
 import Cardano.Launcher.Node (nodeSocketFile)
@@ -27,6 +28,9 @@ scriptsDir' = workDir' </> "result-scripts"
 txsDir' :: FilePath
 txsDir' = workDir' </> "txs"
 
+metadataDir' :: FilePath
+metadataDir' = workDir' </> "metadata"
+
 -- | Creates directories necessary for bot interface
 runSetup :: ClusterEnv -> IO ()
 runSetup cEnv = do
@@ -43,6 +47,7 @@ runSetup cEnv = do
         [ keysDir
         , scriptsDir
         , txsDir
+        , metadataDir
         ]
     saveProtocolParams = do
       ps <- queryProtocolParams cEnv
@@ -59,6 +64,9 @@ scriptsDir cEnv = supportDir cEnv </> scriptsDir'
 
 txsDir :: ClusterEnv -> FilePath
 txsDir cEnv = supportDir cEnv </> txsDir'
+
+metadataDir :: ClusterEnv -> FilePath
+metadataDir cEnv = supportDir cEnv </> metadataDir'
 
 -- | Check if required by bot interface directories exist
 directoryIsSet :: ClusterEnv -> IO Bool

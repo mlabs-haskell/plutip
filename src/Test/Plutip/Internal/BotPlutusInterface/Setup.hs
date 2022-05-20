@@ -7,7 +7,7 @@ module Test.Plutip.Internal.BotPlutusInterface.Setup (
   txsDir,
 ) where
 
-import Cardano.Api (Error (displayError), PaymentKey, SigningKey)
+import Cardano.Api (AsType (AsPaymentKey, AsSigningKey), Error (displayError), PaymentKey, SigningKey)
 import Cardano.Api qualified as CAPI
 import Cardano.Launcher.Node (nodeSocketFile)
 import Data.Aeson (encodeFile)
@@ -33,7 +33,7 @@ txsDir' :: FilePath
 txsDir' = workDir' </> "txs"
 
 -- | Creates directories necessary for bot interface, and add given extra signing keys.
-runSetup :: ClusterEnv -> [SigningKey PaymentKey] -> IO ()
+runSetup :: ClusterEnv -> [Either FilePath (SigningKey PaymentKey)] -> IO ()
 runSetup cEnv extraSigners = do
   createRequiredDirs
   saveProtocolParams
@@ -55,7 +55,12 @@ runSetup cEnv extraSigners = do
       case ps of
         Left e -> error $ show e
         Right params -> encodeFile (pParamsFile cEnv) params
-    addExtraSigner sKey = do
+    addExtraSigner (Left sKeyPath) = do
+      res <- CAPI.readFileTextEnvelope (AsSigningKey AsPaymentKey) sKeyPath
+      case res of
+        Left fileError -> error $ displayError fileError
+        Right sKey -> addExtraSigner $ Right sKey
+    addExtraSigner (Right sKey) = do
       let vKey = CAPI.getVerificationKey sKey
           pkh = PubKeyHash . PlutusTx.toBuiltin . CAPI.serialiseToRawBytes $ CAPI.verificationKeyHash vKey
           keyFilename = "signing-key-" <> show pkh <> ".skey"
@@ -65,7 +70,7 @@ runSetup cEnv extraSigners = do
           Nothing
           sKey
       case g of
-        Left fileError -> print $ displayError fileError
+        Left fileError -> error $ displayError fileError
         Right _ -> pure ()
 
 -- | Get directory for `.skey`'s of crated wallets for current cluster environment

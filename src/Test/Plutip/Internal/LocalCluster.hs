@@ -1,3 +1,5 @@
+{-# LANGUAGE NamedFieldPuns #-}
+
 module Test.Plutip.Internal.LocalCluster (
   startCluster,
   stopCluster,
@@ -54,11 +56,10 @@ import UnliftIO.Concurrent (forkFinally)
 import UnliftIO.Exception (bracket, catchIO, finally)
 import UnliftIO.STM (TVar, atomically, newTVarIO, readTVar, retrySTM, writeTVar)
 
-import Cardano.Api (PaymentKey, SigningKey)
 import Data.Foldable (for_)
 import GHC.Stack.Types (HasCallStack)
 import Paths_plutip (getDataFileName)
-import Test.Plutip.Config (PlutipConfig (chainIndexPort, clusterDataDir, relayNodeLogs))
+import Test.Plutip.Config (PlutipConfig (PlutipConfig, chainIndexPort, clusterDataDir, relayNodeLogs), extraSigners)
 import Text.Printf (printf)
 
 -- | Starting a cluster with a setup action
@@ -69,14 +70,13 @@ import Text.Printf (printf)
 startCluster ::
   forall (a :: Type).
   PlutipConfig ->
-  [SigningKey PaymentKey] ->
   ReaderT ClusterEnv IO a ->
   IO (TVar (ClusterStatus a), a)
-startCluster conf sKeys onClusterStart = do
+startCluster conf onClusterStart = do
   status <- newTVarIO ClusterStarting
   void $
     forkFinally
-      ( withPlutusInterface conf sKeys $ \clusterEnv -> do
+      ( withPlutusInterface conf $ \clusterEnv -> do
           res <- runReaderT onClusterStart clusterEnv
           atomically $ writeTVar status (ClusterStarted res)
           atomically $ readTVar status >>= \case ClusterClosing -> pure (); _ -> retrySTM
@@ -96,8 +96,8 @@ stopCluster status = do
    `plutus-apps` local cluster: https://github.com/input-output-hk/plutus-apps/blob/75a581c6eb98d36192ce3d3f86ea60a04bc4a52a/plutus-pab/src/Plutus/PAB/LocalCluster/Run.hs
    `cardano-wallet` local cluster: https://github.com/input-output-hk/cardano-wallet/blob/99b13e50f092ffca803fd38b9e435c24dae05c91/lib/shelley/exe/local-cluster.hs
 -}
-withPlutusInterface :: forall (a :: Type). PlutipConfig -> [SigningKey PaymentKey] -> (ClusterEnv -> IO a) -> IO a
-withPlutusInterface conf sKeys action = do
+withPlutusInterface :: forall (a :: Type). PlutipConfig -> (ClusterEnv -> IO a) -> IO a
+withPlutusInterface conf@PlutipConfig {extraSigners} action = do
   -- current setup requires `cardano-node` and `cardano-cli` as external processes
   checkProcessesAvailable ["cardano-node", "cardano-cli"]
 
@@ -130,7 +130,7 @@ withPlutusInterface conf sKeys action = do
               , tracer = trCluster
               }
 
-      BotSetup.runSetup cEnv sKeys -- run preparations to use `bot-plutus-interface`
+      BotSetup.runSetup cEnv extraSigners -- run preparations to use `bot-plutus-interface`
       userActon cEnv -- executing user action on cluster
 
 -- Redirect stdout to a provided handle providing mask to temporarily revert back to initial stdout.

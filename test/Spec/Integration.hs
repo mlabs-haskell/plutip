@@ -71,7 +71,6 @@ test =
   localOption VerboseReport $
     withConfiguredCluster
       def
-      []
       "Basic integration: launch, add wallet, tx from wallet to wallet"
       [ -- Basic Succeed or Failed tests
         assertExecution

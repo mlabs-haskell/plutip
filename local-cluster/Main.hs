@@ -19,7 +19,7 @@ import Test.Plutip.LocalCluster (
 main :: IO ()
 main = do
   (st, _) <- startCluster def $ do
-    w <- addSomeWallet (toAda 10000)
+    w <- addSomeWallet [toAda 10000]
     waitSeconds 2 -- let wallet Tx finish
     separate
     liftIO $ do

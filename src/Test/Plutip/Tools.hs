@@ -1,16 +1,16 @@
 module Test.Plutip.Tools (
-  ada,
   waitSeconds,
+  ada,
 ) where
 
 import Control.Concurrent (threadDelay)
-import Numeric.Natural (Natural)
-
--- | Library functions works with amounts in `Lovelace`.
--- This function helps to specify amounts in `Ada` easier.
-ada :: Natural -> Natural
-ada = (* 1_000_000)
+import Numeric.Positive (Positive)
 
 -- | Suspend execution for n seconds (via `threadDelay`)
 waitSeconds :: Int -> IO ()
 waitSeconds = threadDelay . (* 1000000)
+
+-- | Library functions works with amounts in `Lovelace`.
+-- This function helps to specify amounts in `Ada` easier.
+ada :: Positive -> Positive
+ada = (* 1_000_000)

@@ -9,6 +9,8 @@ Current version of `Plutip` requires some initial setup to be prepared to functi
 - `cardano-cli` executable available in the environment
 - `cardano-node` executable available in the environment
 
+And the following ghc flag must to be set for the test execution: `-Wall -threaded -rtsopts`
+
 ## Usage
 
 Plutip provides a tasty interface for executing Plutus contracts on a local cluster.

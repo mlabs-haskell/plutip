@@ -20,7 +20,7 @@ import Data.Default (def)
 import Data.List.NonEmpty (NonEmpty)
 import Numeric.Natural (Natural)
 import Test.Plutip.Config (PlutipConfig)
-import Test.Plutip.Contract (TestWallet (twInitDistribuition), TestWallets (unTestWallets))
+import Test.Plutip.Contract (TestWallet (twInitDistribuition), TestWallets (unTestWallets), ada)
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   BpiWallet,
   addSomeWallet,
@@ -30,7 +30,6 @@ import Test.Plutip.Internal.BotPlutusInterface.Wallet (
  )
 import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)
 import Test.Plutip.Internal.Types (ClusterEnv)
-import Test.Plutip.Tools (ada)
 import Test.Tasty (testGroup, withResource)
 import Test.Tasty.Providers (TestTree)
 

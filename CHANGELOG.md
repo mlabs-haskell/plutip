@@ -26,6 +26,10 @@ This format is based on [Keep A Changelog](https://keepachangelog.com/en/1.0.0).
     - `shouldThrow`
     - `errorSatisfies`
     - `failReasonSatisfies`
+  - Assertions for testing contract execution budget
+    - `overallBudgetFits`
+    - `assertOverallBudget`
+    - `budgetsFitUnder`
   - Combining arbitrary assertions together
   - Building arbitrary assertions with `Predicate`  
   - Initialising wallets and asserting them after contract execution:

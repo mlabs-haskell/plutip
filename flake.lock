@@ -79,17 +79,17 @@
         "servant-purescript": "servant-purescript"
       },
       "locked": {
-        "lastModified": 1648141255,
-        "narHash": "sha256-bZZpLB4DvFgjjrRZ4q9NtnxRNFvbjO17xBIJed9y49E=",
+        "lastModified": 1651488509,
+        "narHash": "sha256-WVTYecS6UY0rcxofYj6gBe9yag7Lo63pu/VsC9iyqqs=",
         "owner": "mlabs-haskell",
         "repo": "bot-plutus-interface",
-        "rev": "0e3a56cad635288adecc98f41dc90d4d4a86755b",
+        "rev": "9ca5939b3b6ef1d052318f25ac88444baea52d8b",
         "type": "github"
       },
       "original": {
         "owner": "mlabs-haskell",
         "repo": "bot-plutus-interface",
-        "rev": "0e3a56cad635288adecc98f41dc90d4d4a86755b",
+        "rev": "9ca5939b3b6ef1d052318f25ac88444baea52d8b",
         "type": "github"
       }
     },
@@ -391,11 +391,11 @@
     "flake-compat_2": {
       "flake": false,
       "locked": {
-        "lastModified": 1641205782,
-        "narHash": "sha256-4jY7RCWUoZ9cKD8co0/4tFARpWB+57+r1bLLvXNJliY=",
+        "lastModified": 1650374568,
+        "narHash": "sha256-Z+s0J8/r907g149rllvwhb4pKi8Wam5ij0st8PwAh+E=",
         "owner": "edolstra",
         "repo": "flake-compat",
-        "rev": "b7547d3eed6f32d06102ead8991ec52ab0a4f1a7",
+        "rev": "b4a34015c698c7793d592d66adbab377907a2be8",
         "type": "github"
       },
       "original": {

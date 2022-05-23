@@ -1,3 +1,5 @@
+{-# LANGUAGE ViewPatterns #-}
+
 -- | This module provides some predicates or assertions, that could be used together with
 --  `Test.Plutip.Contract.assertExecution` to run tests for Contract in private testnet.
 --
@@ -15,15 +17,27 @@ module Test.Plutip.Predicate (
   shouldThrow,
   stateSatisfies,
   stateIs,
+  budgetsFitUnder,
+  policyLimit,
+  scriptLimit,
+  assertOverallBudget,
+  overallBudgetFits,
+  noBudgetsMessage,
 ) where
 
+import BotPlutusInterface.Types (TxBudget (TxBudget), mintBudgets, spendBudgets)
 import Data.List.NonEmpty (NonEmpty)
-import Ledger (Value)
+import Data.Map (Map)
+import Data.Map qualified as Map
+import Ledger (ExBudget (ExBudget), ExCPU (ExCPU), ExMemory (ExMemory), TxId, Value)
+import PlutusCore.Evaluation.Machine.ExMemory (CostingInteger)
 import Test.Plutip.Internal.Types (
   ExecutionResult (contractState, outcome),
   FailureReason (CaughtException, ContractExecutionError),
+  budgets,
   isSuccessful,
  )
+import Test.Plutip.Tools.Format (fmtExBudget, fmtTxBudgets)
 import Text.Show.Pretty (ppShow)
 
 -- | Predicate is used to build test cases for Contract.
@@ -199,3 +213,137 @@ failReasonSatisfies description p =
     sayType = \case
       CaughtException _ -> "Exception was caught: "
       ContractExecutionError _ -> "Error was thrown: "
+
+-- | Check if overall budget (sum of all CPU and MEM budgets) less than or equal
+--  to specified limits.
+--
+-- If heck fails, all collected budgets will be printed to output.
+--
+-- @since 0.2
+overallBudgetFits :: ExCPU -> ExMemory -> Predicate w e a
+overallBudgetFits cpuLimit memLimit =
+  let p =
+        assertOverallBudget
+          ("Budget should fit " ++ fmtExBudget (ExBudget cpuLimit memLimit))
+          (<= cpuLimit)
+          (<= memLimit)
+   in p {negative = "Budget should NOT fit " ++ fmtExBudget (ExBudget cpuLimit memLimit)}
+
+-- | Check if overall cpu and mem budgets satisfy their predicates.
+-- (more general version of `overallBudgetFits`)
+--
+-- If heck fails, all collected budgets will be printed to output.
+--
+-- @since 0.2
+assertOverallBudget :: String -> (ExCPU -> Bool) -> (ExMemory -> Bool) -> Predicate w e a
+assertOverallBudget description cpuCheck memCheck =
+  let positive = description
+      negative = ("Should violate '" <> description <> "'")
+      debugInfo (budgets -> bs)
+        | null bs =
+          -- at least some budgets expected for assertion
+          noBudgetsMessage
+        | otherwise =
+          let budget = foldMap sumBudgets bs
+           in mconcat
+                [ "Overall budget: "
+                , fmtExBudget budget
+                , "\nBudget details:\n"
+                , fmtTxBudgets bs
+                ]
+
+      pCheck (budgets -> bs)
+        -- at least some budgets expected for assertion
+        | null bs = False
+        | otherwise =
+          let ExBudget cpu mem = foldMap sumBudgets bs
+           in cpuCheck cpu && memCheck mem
+
+      sumBudgets :: TxBudget -> ExBudget
+      sumBudgets (TxBudget spend mint) =
+        mconcat $ Map.elems spend ++ Map.elems mint
+   in Predicate {..}
+
+-- | More precise fitting assertion: it checks each script
+-- and minting policy budget if they fit specified limits. Limits are specified
+-- separately for scripts and minting policies.
+
+-- If check fails, any budget that didn't fit limit, will be printed to output.
+--
+-- @since 0.2
+budgetsFitUnder :: Limit 'Script -> Limit 'Policy -> Predicate w e a
+budgetsFitUnder (Limit sCpu sMem) (Limit pCpu pMem) =
+  let positive =
+        mconcat
+          [ "Each script fits "
+          , fmtExBudget (ExBudget sCpu sMem)
+          , " and each policy fits "
+          , fmtExBudget (ExBudget pCpu pMem)
+          ]
+      negative = "TBD negative"
+      debugInfo (budgets -> bs)
+        | null bs =
+          -- at least some budgets expected for assertion
+          noBudgetsMessage
+        | filtered <- processMap bs
+          , Prelude.not (null filtered) =
+          "Budgets that didn't fit the limit :\n" ++ fmtTxBudgets filtered
+        | otherwise =
+          -- show at least some debug info
+          "Collected budgets:\n" ++ fmtTxBudgets bs
+
+      pCheck (budgets -> bs) = null (processMap bs)
+      -- TODO: second iteration over stats happens here,
+      -- maybe `pCheck` and `debugInfo` could be somehow combined to avoid this
+
+      -- process a map with budgets collecting only those that do not fit into the specified limit
+      processMap :: Map TxId TxBudget -> Map TxId TxBudget
+      processMap =
+        Map.foldMapWithKey
+          ( \txId bdg ->
+              let badOnes = findNonFitting bdg
+               in if isEmpty badOnes
+                    then -- if transaction doesn't have "bad" budgets,
+                    -- it won't be included into debug info
+                      mempty
+                    else Map.singleton txId badOnes
+          )
+
+      -- "filter" `TxBudget` by removing only script or minting budgets
+      -- that fit limits
+      findNonFitting b =
+        filterBudget (Prelude.not . fits sCpu sMem) (Prelude.not . fits pCpu pMem) b
+
+      fits cpuLimit memLimit (ExBudget cpu' mem') =
+        cpu' <= cpuLimit && mem' <= memLimit
+   in Predicate {..}
+
+noBudgetsMessage :: String
+noBudgetsMessage = "Empty budgets data (probably, no scripts or policies in contract or contract failed)"
+
+-- to protect from accidental `scriptLimit` <-> `policyLimit` swapping
+-- while making `budgetsFitUnder` predicate
+data LimitType = Script | Policy
+data Limit (a :: LimitType) = Limit ExCPU ExMemory
+  deriving stock (Show)
+
+-- | Construct script limit for `budgetsFitUnder`
+scriptLimit :: CostingInteger -> CostingInteger -> Limit a
+scriptLimit cpu mem =
+  Limit (ExCPU cpu) (ExMemory mem)
+
+-- | Construct policy limit for `budgetsFitUnder`
+policyLimit :: CostingInteger -> CostingInteger -> Limit a
+policyLimit cpu mem =
+  Limit (ExCPU cpu) (ExMemory mem)
+
+-- | Modifies ("filters") `TxBudget` in such a way, that it contains only
+-- script and minting policy budgets that satisfy predicates.
+filterBudget :: (ExBudget -> Bool) -> (ExBudget -> Bool) -> TxBudget -> TxBudget
+filterBudget spendFilter mintFilter txB =
+  let newSb = Map.filter spendFilter (spendBudgets txB)
+      newMb = Map.filter mintFilter (mintBudgets txB)
+   in TxBudget newSb newMb
+
+isEmpty :: TxBudget -> Bool
+isEmpty (TxBudget s p) = null s && null p

@@ -1,25 +1,26 @@
 {-# LANGUAGE NumericUnderscores #-}
+
 module Main (main) where
 
-import Test.Plutip.LocalCluster
-    ( addSomeWallet,
-      mkMainnetAddress,
-      startCluster,
-      stopCluster,
-      waitSeconds )
-import Data.Default (def)
 import Control.Monad (void)
-import Control.Monad.Reader (ReaderT (ReaderT))
-import Test.Plutip.Internal.Types ( nodeSocket )
 import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Reader (ReaderT (ReaderT))
+import Data.Default (def)
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (walletPkh)
+import Test.Plutip.Internal.Types (nodeSocket)
+import Test.Plutip.LocalCluster (
+  addSomeWallet,
+  mkMainnetAddress,
+  startCluster,
+  stopCluster,
+  waitSeconds,
+ )
 
 main :: IO ()
 main = do
   (st, _) <- startCluster def $ do
     w <- addSomeWallet (toAda 10000)
     waitSeconds 2 -- let wallet Tx finish
-
     separate
     liftIO $ do
       putStrLn $ "Wallet PKH: " ++ show (walletPkh w)
@@ -27,7 +28,7 @@ main = do
     prtNodeRelatedInfo
     separate
 
-  putStrLn "Cluster is running. Press Enter to stop." 
+  putStrLn "Cluster is running. Press Enter to stop."
     >> void getLine
   putStrLn "Stopping cluster"
 

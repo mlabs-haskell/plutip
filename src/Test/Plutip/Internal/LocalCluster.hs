@@ -80,9 +80,9 @@ startCluster conf onClusterStart = do
           atomically $ writeTVar status (ClusterStarted res)
           atomically $ readTVar status >>= \case ClusterClosing -> pure (); _ -> retrySTM
       )
-      ( \e -> do
+      ( \result -> do
           atomically (writeTVar status ClusterClosed)
-          either (throwTo tid) pure e
+          either (throwTo tid) pure result
       )
 
   setupRes <- atomically $ readTVar status >>= \case ClusterStarted v -> pure v; _ -> retrySTM

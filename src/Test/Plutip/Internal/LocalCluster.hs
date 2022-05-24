@@ -49,7 +49,7 @@ import Test.Plutip.Internal.Types (
   RunningNode (RunningNode),
  )
 import Test.Plutip.Tools.CardanoApi qualified as Tools
-import UnliftIO.Concurrent (forkFinally)
+import UnliftIO.Concurrent (forkFinally, myThreadId, throwTo)
 import UnliftIO.Exception (bracket, catchIO, finally)
 import UnliftIO.STM (TVar, atomically, newTVarIO, readTVar, retrySTM, writeTVar)
 
@@ -71,6 +71,7 @@ startCluster ::
   IO (TVar (ClusterStatus a), a)
 startCluster conf onClusterStart = do
   status <- newTVarIO ClusterStarting
+  tid <- myThreadId
   void $
     forkFinally
       ( withPlutusInterface conf $ \clusterEnv -> do
@@ -78,7 +79,10 @@ startCluster conf onClusterStart = do
           atomically $ writeTVar status (ClusterStarted res)
           atomically $ readTVar status >>= \case ClusterClosing -> pure (); _ -> retrySTM
       )
-      (either (error . show) (const (atomically (writeTVar status ClusterClosed))))
+      ( \result -> do
+          atomically (writeTVar status ClusterClosed)
+          either (throwTo tid) pure result
+      )
 
   setupRes <- atomically $ readTVar status >>= \case ClusterStarted v -> pure v; _ -> retrySTM
   pure (status, setupRes)

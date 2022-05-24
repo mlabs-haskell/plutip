@@ -32,6 +32,7 @@ import BotPlutusInterface.Types (
   ceContractState,
   ceContractStats,
   pcCollectStats,
+  pcMetadataDir,
   pcOwnStakePubKeyHash,
  )
 import Control.Concurrent.STM (newTVarIO, readTVarIO)
@@ -108,6 +109,7 @@ runContract cEnv bpiWallet contract = do
         , pcTipPollingInterval = 1_000_000
         , pcPort = 9080
         , pcEnableTxEndpoint = False
+        , pcMetadataDir = Text.pack $ BIS.metadataDir cEnv
         , pcCollectStats = True
         }
 

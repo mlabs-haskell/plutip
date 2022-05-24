@@ -6,4 +6,3 @@ cradle:
       component: "test-suite:plutip-tests"
     - path: "./local-cluster/"
       component: "exe:local-cluster"
-

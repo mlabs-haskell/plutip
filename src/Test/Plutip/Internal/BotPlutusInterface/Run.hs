@@ -52,11 +52,12 @@ import Plutus.PAB.Core.ContractInstance.STM (Activity (Active))
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BIS
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet (walletPkh))
 import Test.Plutip.Internal.Types (
-  ClusterEnv (chainIndexUrl, networkId),
+  ClusterEnv (chainIndexUrl, networkId, pabRequestsLogLevel),
   ExecutionResult (ExecutionResult),
   FailureReason (CaughtException, ContractExecutionError),
  )
 import Wallet.Types (ContractInstanceId (ContractInstanceId))
+import Data.Maybe (fromMaybe)
 
 runContract_ ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (m :: Type -> Type).
@@ -102,7 +103,7 @@ runContract cEnv bpiWallet contract = do
         , pcTxFileDir = Text.pack $ BIS.txsDir cEnv
         , pcDryRun = False
         , pcProtocolParamsFile = Text.pack $ BIS.pParamsFile cEnv
-        , pcLogLevel = Info
+        , pcLogLevel = fromMaybe Info (pabRequestsLogLevel cEnv)
         , -- , pcForceBudget = bpiForceBudget cEnv
           pcOwnPubKeyHash = walletPkh bpiWallet
         , pcOwnStakePubKeyHash = Nothing

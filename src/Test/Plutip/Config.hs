@@ -5,6 +5,7 @@ module Test.Plutip.Config (
 import Data.Default (Default, def)
 import GHC.Generics (Generic)
 import GHC.Natural (Natural)
+import BotPlutusInterface.Types (LogLevel)
 
 -- | Plutip configurable options
 --
@@ -16,8 +17,10 @@ data PlutipConfig = PlutipConfig
     relayNodeLogs :: Maybe FilePath
   , -- | in case of `Nothing` port from `Plutus.ChainIndex.Config.defaultConfig` is used
     chainIndexPort :: Maybe Natural
+  , -- | PAB requests log level, outputed messily into stdout. Defaults to Info. Options: Error | Warn | Notice | Info | Debug.
+    pabRequestsLogLevel :: Maybe LogLevel
   }
   deriving stock (Generic)
 
 instance Default PlutipConfig where
-  def = PlutipConfig Nothing Nothing Nothing
+  def = PlutipConfig Nothing Nothing Nothing Nothing

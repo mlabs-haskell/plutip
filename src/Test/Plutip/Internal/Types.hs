@@ -10,7 +10,7 @@ module Test.Plutip.Internal.Types (
   budgets,
 ) where
 
-import BotPlutusInterface.Types (ContractStats, TxBudget, estimatedBudgets)
+import BotPlutusInterface.Types (ContractStats, TxBudget, estimatedBudgets, LogLevel)
 import Cardano.Api (NetworkId)
 import Cardano.BM.Tracing (Trace)
 import Cardano.Launcher.Node (CardanoNodeConn)
@@ -31,11 +31,12 @@ data ClusterEnv = ClusterEnv
     -- files created by `cardano-cli`, `chain-index` and `bot-plutus-interface`
     supportDir :: FilePath
   , tracer :: Trace IO Text -- not really used anywhere now
+  , pabRequestsLogLevel :: Maybe LogLevel -- passed from PlutipConfig
   }
 
 -- | Helper function to get socket path from
 nodeSocket :: ClusterEnv -> CardanoNodeConn
-nodeSocket (ClusterEnv (RunningNode sp _ _) _ _ _ _) = sp
+nodeSocket (ClusterEnv (RunningNode sp _ _) _ _ _ _ _) = sp
 
 -- | Result of `Contract` execution. Returns contract observable state
 --    and either `Contract` return value, or error of type `FailureReason`.

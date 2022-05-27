@@ -44,7 +44,7 @@ import Test.Plutip.Internal.Types (
     networkId,
     runningNode,
     supportDir,
-    tracer
+    tracer, pabRequestsLogLevel
   ),
   RunningNode (RunningNode),
  )
@@ -58,6 +58,7 @@ import GHC.Stack.Types (HasCallStack)
 import Paths_plutip (getDataFileName)
 import Test.Plutip.Config (PlutipConfig (chainIndexPort, clusterDataDir, relayNodeLogs))
 import Text.Printf (printf)
+import qualified Test.Plutip.Config as Config
 
 -- | Starting a cluster with a setup action
 -- We're heavily depending on cardano-wallet local cluster tooling, however they don't allow the
@@ -129,6 +130,7 @@ withPlutusInterface conf action = do
               , networkId = CAPI.Mainnet
               , supportDir = dir
               , tracer = trCluster
+              , pabRequestsLogLevel = Config.pabRequestsLogLevel conf
               }
 
       BotSetup.runSetup cEnv -- run preparations to use `bot-plutus-interface`

@@ -17,6 +17,7 @@ import Ledger (
   ciTxOutValue,
   pubKeyHashAddress,
  )
+import Ledger.Ada (lovelaceValueOf)
 import Ledger.Ada qualified as Ada
 import Ledger.Constraints (MkTxError (OwnPubKeyMissing))
 import Ledger.Constraints qualified as Constraints
@@ -28,7 +29,6 @@ import Plutus.Contract (
  )
 import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
-import Plutus.V1.Ledger.Ada (lovelaceValueOf)
 import Spec.TestContract (lockThenSpend)
 import Test.Plutip.Contract (
   ValueOrdering (VLt),

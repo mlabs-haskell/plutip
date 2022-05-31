@@ -1,8 +1,14 @@
-index-state: 2022-01-22T00:00:00Z
+index-state: 2022-02-22T20:47:03Z
 
 packages: ./.
 
 tests: true
 benchmarks: true
 
-allow-newer: size-based:template-haskell
+allow-newer:
+    *:aeson
+  , size-based:template-haskell
+
+constraints:
+    aeson >= 2
+  , hedgehog >= 1.1

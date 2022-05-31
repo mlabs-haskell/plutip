@@ -19,7 +19,7 @@ let
     shell = {
       additional = ps: [ ps.bot-plutus-interface ];
 
-      withHoogle = true;
+      withHoogle = false;
 
       tools.haskell-language-server = "latest";
 

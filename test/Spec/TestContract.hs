@@ -15,8 +15,9 @@ import Ledger (
   TxOutRef,
   getCardanoTxId,
   pubKeyHashAddress,
-  scriptAddress,
+  scriptHashAddress,
  )
+import Ledger.Ada (adaValueOf)
 import Ledger.Constraints qualified as Constraints
 import Ledger.Scripts qualified as Scripts
 import Ledger.Typed.Scripts (TypedValidator, Validator, ValidatorTypes, mkUntypedMintingPolicy)
@@ -26,8 +27,6 @@ import Plutus.Contract (Contract, awaitTxConfirmed, submitTx, submitTxConstraint
 import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
 import Plutus.Script.Utils.V1.Scripts qualified as ScriptUtils
-import Plutus.V1.Ledger.Ada (adaValueOf)
-import Plutus.V1.Ledger.Ada qualified as Value
 import Plutus.V1.Ledger.Value qualified as Value
 import PlutusTx qualified
 import PlutusTx.Prelude qualified as PP
@@ -50,12 +49,12 @@ lockAtScript = do
         Constraints.mustPayToOtherScript
           (ScriptUtils.validatorHash validator)
           Scripts.unitDatum
-          (Value.adaValueOf 10)
+          (adaValueOf 10)
   let constr2 =
         Constraints.mustPayToOtherScript
           (ScriptUtils.validatorHash $ validator2 2)
           Scripts.unitDatum
-          (Value.adaValueOf 10)
+          (adaValueOf 10)
   tx <- submitTx (constr <> constr2)
   awaitTxConfirmed $ getCardanoTxId tx
   pure (getCardanoTxId tx, tx)
@@ -119,7 +118,7 @@ validator :: Validator
 validator = TypedScripts.validatorScript typedValidator
 
 validatorAddr :: Address
-validatorAddr = scriptAddress validator
+validatorAddr = scriptHashAddress $ ScriptUtils.validatorHash validator
 
 {-# INLINEABLE mkValidator2 #-}
 mkValidator2 :: Integer -> () -> () -> ScriptContext -> Bool
@@ -149,7 +148,7 @@ validator2 :: Integer -> Validator
 validator2 = TypedScripts.validatorScript . typedValidator2
 
 validatorAddr2 :: Integer -> Address
-validatorAddr2 = scriptAddress . validator2
+validatorAddr2 = scriptHashAddress . ScriptUtils.validatorHash . validator2
 
 -- minting policy
 {-# INLINEABLE mkPolicy #-}

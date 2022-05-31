@@ -30,6 +30,7 @@ import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
 import Plutus.V1.Ledger.Ada (lovelaceValueOf)
 import Spec.TestContract.LockSpendMint (lockThenSpend)
+import Spec.TestContract.ValidateTimeRange (failingTimeContract, successTimeContract)
 import Test.Plutip.Contract (
   ValueOrdering (VLt),
   assertExecution,
@@ -180,6 +181,17 @@ test =
               (== 2860068)
           , overallBudgetFits 1156006922 2860068
           ]
+      , -- regression tests for time <-> slot converions
+        assertExecution
+          "Fails because outside validity interval"
+          (initAda [100])
+          (withContract $ const failingTimeContract)
+          [shouldFail]
+      , assertExecution
+          "Passes validation with exact time range checks"
+          (initAda [100])
+          (withContract $ const successTimeContract)
+          [shouldSucceed]
       ]
 
 getUtxos :: Contract [Value] EmptySchema Text (Map TxOutRef ChainIndexTxOut)

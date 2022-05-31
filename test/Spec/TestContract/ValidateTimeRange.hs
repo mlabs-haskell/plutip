@@ -1,43 +1,39 @@
 -- | Purpose of this Contract is to test that "POSIXTime -> Slot -> POSIXTime"
 -- conversion works propperly by exercising `POSIXTimaRange` in validator script
-module Spec.TestContract.ValidateTimeRange
-  ( unlockWithTimeCheck,
-    timeDebugLight,
-    splitUtxo,
-    lockAtScript,
-  )
-where
+module Spec.TestContract.ValidateTimeRange (
+  failingTimeContract,
+  successTimeContract,
+) where
 
 import Control.Monad (void)
 import Data.Map qualified as Map
 import Data.Text (Text)
 import Data.Text qualified as Text
-import Ledger
-  ( Address,
-    Extended (Finite),
-    Interval (Interval),
-    LowerBound (LowerBound),
-    POSIXTime (POSIXTime),
-    POSIXTimeRange,
-    Redeemer (Redeemer),
-    ScriptContext (scriptContextTxInfo),
-    TxInfo (txInfoValidRange),
-    UpperBound (UpperBound),
-    Validator,
-    always,
-    lowerBound,
-    scriptAddress,
-    strictUpperBound,
-    unitDatum,
-    validatorHash,
-    getCardanoTxId
-  )
+import Ledger (
+  Address,
+  Extended (Finite),
+  Interval (Interval),
+  LowerBound (LowerBound),
+  POSIXTime (POSIXTime),
+  POSIXTimeRange,
+  Redeemer (Redeemer),
+  ScriptContext (scriptContextTxInfo),
+  TxInfo (txInfoValidRange),
+  UpperBound (UpperBound),
+  Validator,
+  always,
+  getCardanoTxId,
+  lowerBound,
+  scriptAddress,
+  strictUpperBound,
+  unitDatum,
+  validatorHash,
+ )
 import Ledger.Constraints qualified as Constraints
 import Ledger.Typed.Scripts.Validators qualified as Validators
-import Plutus.Contract (Contract, submitTx, submitTxConstraintsWith)
+import Plutus.Contract (Contract, awaitTxConfirmed, submitTx, submitTxConstraintsWith)
 import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
-import Plutus.V1.Ledger.Ada (adaValueOf)
 import Plutus.V1.Ledger.Ada qualified as Value
 import Plutus.V1.Ledger.Interval (member)
 import PlutusTx qualified
@@ -47,9 +43,9 @@ import Prelude qualified as Hask
 data TestTime
 
 data TimeRedeemer = TimeRedeemer
-  { start :: POSIXTime,
-    end :: POSIXTime,
-    range :: POSIXTimeRange
+  { start :: POSIXTime
+  , end :: POSIXTime
+  , range :: POSIXTimeRange
   }
 
 PlutusTx.unstableMakeIsData ''TimeRedeemer
@@ -57,7 +53,7 @@ PlutusTx.makeLift ''TimeRedeemer
 
 {-# INLINEABLE mkValidator #-}
 mkValidator :: () -> TimeRedeemer -> ScriptContext -> Bool
-mkValidator _ !timeRmr !ctx =
+mkValidator _ timeRmr ctx =
   rangeIsBound
     && startInRange
     && endInNotRange
@@ -121,8 +117,8 @@ validatorAddr :: Address
 validatorAddr = scriptAddress validator
 
 ------------------------------------------
-timeDebugLight :: Contract () EmptySchema Text Hask.String
-timeDebugLight = do
+failingTimeContract :: Contract () EmptySchema Text Hask.String
+failingTimeContract = do
   startTime <- Contract.currentTime
   let noOfSlots = 10
       slotLen = 1000
@@ -136,20 +132,24 @@ timeDebugLight = do
           <> Constraints.mustValidateIn validInterval
 
   void $ Contract.awaitTime (endTime + POSIXTime 4_000)
-  !tx <- submitTx constr
-  -- awaitTxConfirmed $ getCardanoTxId tx
+  tx <- submitTx constr
+  awaitTxConfirmed $ getCardanoTxId tx
   pure "Light debug done"
 
-splitUtxo :: Contract () EmptySchema Text ()
-splitUtxo = do
-  ownPkh <- Contract.ownPaymentPubKeyHash
-  let txc =
-        Hask.mconcat $
-          Hask.replicate 5 (Constraints.mustPayToPubKey ownPkh (adaValueOf 10))
-  !tx <- submitTx txc
-  pure ()
+successTimeContract :: Contract () EmptySchema Text ()
+successTimeContract = lockAtScript >> unlockWithTimeCheck
 
-unlockWithTimeCheck :: Contract () EmptySchema Text Hask.String
+lockAtScript :: Contract () EmptySchema Text ()
+lockAtScript = do
+  let constr =
+        Constraints.mustPayToOtherScript
+          (validatorHash validator)
+          unitDatum
+          (Value.adaValueOf 10)
+  tx <- submitTx constr
+  Contract.awaitTxConfirmed $ getCardanoTxId tx
+
+unlockWithTimeCheck :: Contract () EmptySchema Text ()
 unlockWithTimeCheck = do
   startTime <- Contract.currentTime
   let noOfSlots = 500
@@ -167,30 +167,15 @@ unlockWithTimeCheck = do
 
       let txc =
             Hask.mconcat
-              [ Constraints.mustSpendScriptOutput oref rmr,
-                Constraints.mustValidateIn rmrInterval
+              [ Constraints.mustSpendScriptOutput oref rmr
+              , Constraints.mustValidateIn rmrInterval
               ]
 
           lkps =
             Hask.mconcat
-              [ Constraints.otherScript validator,
-                Constraints.unspentOutputs (Map.fromList utxos)
+              [ Constraints.otherScript validator
+              , Constraints.unspentOutputs (Map.fromList utxos)
               ]
-      !tx <- submitTxConstraintsWith @TestTime lkps txc
-      -- Contract.awaitTxConfirmed (getCardanoTxId tx)
-      utxosAfterSpent <- Map.toList <$> Contract.utxosAt validatorAddr
-      pure (Hask.show utxosAfterSpent)
+      tx <- submitTxConstraintsWith @TestTime lkps txc
+      Contract.awaitTxConfirmed (getCardanoTxId tx)
     rest -> Contract.throwError $ "Unlocking error: Unwanted set of utxos: " Hask.<> Text.pack (Hask.show rest)
-  where
-    -- wait = void . Contract.waitNSlots
-
-lockAtScript :: Contract () EmptySchema Text Hask.String
-lockAtScript = do
-  let constr =
-        Constraints.mustPayToOtherScript
-          (validatorHash validator)
-          unitDatum
-          (Value.adaValueOf 10)
-  !tx <- submitTx constr
-  -- Contract.awaitTxConfirmed $ getCardanoTxId tx
-  pure "Lock done"

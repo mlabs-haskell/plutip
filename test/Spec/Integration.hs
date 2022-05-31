@@ -29,7 +29,7 @@ import Plutus.Contract (
 import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
 import Plutus.V1.Ledger.Ada (lovelaceValueOf)
-import Spec.TestContract (lockThenSpend)
+import Spec.TestContract.LockSpendMint (lockThenSpend)
 import Test.Plutip.Contract (
   ValueOrdering (VLt),
   assertExecution,

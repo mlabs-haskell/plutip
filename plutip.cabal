@@ -178,7 +178,8 @@ test-suite plutip-tests
   other-modules:
     Spec.Integration
     Spec.Test.Plutip.BotPlutusInterface
-    Spec.TestContract 
+    Spec.TestContract.LockSpendMint
+    Spec.TestContract.ValidateTimeRange
 
   default-extensions:
     OverloadedStrings
@@ -187,10 +188,11 @@ test-suite plutip-tests
     TupleSections
 
 executable local-cluster
-  main-is: local-cluster/Main.hs
-  build-depends: 
+  main-is:       local-cluster/Main.hs
+  build-depends:
     , base
     , data-default
     , mtl
     , plutip
-  ghc-options:        -Wall -threaded -rtsopts
+
+  ghc-options:   -Wall -threaded -rtsopts

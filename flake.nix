@@ -36,11 +36,27 @@
       }];
 
       haskellModules = bot-plutus-interface.haskellModules ++ [
-        ({ config, ... }: {
-          packages.plutip.components.tests."plutip-tests".build-tools = [
-            config.hsPkgs.cardano-cli.components.exes.cardano-cli
-            config.hsPkgs.cardano-node.components.exes.cardano-node
-          ];
+        ({ config, pkgs, ... }:{
+          packages.plutip.components.tests.plutip-tests = {
+            pkgconfig = [[ pkgs.makeWrapper ]];
+            postInstall = with pkgs; ''
+              wrapProgram $out/bin/plutip-tests \
+                --prefix PATH : "${lib.makeBinPath [
+                  config.hsPkgs.cardano-cli.components.exes.cardano-cli
+                  config.hsPkgs.cardano-node.components.exes.cardano-node
+                ]}"
+            '';
+          };
+          packages.plutip.components.exes.local-cluster = {
+            pkgconfig = [[ pkgs.makeWrapper ]];
+            postInstall = with pkgs; ''
+              wrapProgram $out/bin/local-cluster \
+                --prefix PATH : "${lib.makeBinPath [
+                  config.hsPkgs.cardano-cli.components.exes.cardano-cli
+                  config.hsPkgs.cardano-node.components.exes.cardano-node
+                ]}"
+            '';
+          };
         })
       ];
 

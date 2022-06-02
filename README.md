@@ -4,7 +4,7 @@ A Cardano tool to spin up private network and run Plutus contracts on it
 
 ## Requirements
 
-Current version of `Plutip` requires some initial setup to be prepared to function properly:
+If your project is importing and making use of `Plutip`s library you will need to make sure that the following executables are present in your `PATH`:
 
 - `cardano-cli` executable available in the environment
 - `cardano-node` executable available in the environment

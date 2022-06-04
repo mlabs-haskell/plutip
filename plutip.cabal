@@ -63,6 +63,7 @@ common common-imports
     , plutus-tx-plugin
     , positive
     , pretty-show
+    , prettyprinter
     , retry
     , row-types
     , servant-client

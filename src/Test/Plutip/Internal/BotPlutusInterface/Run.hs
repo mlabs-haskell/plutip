@@ -10,7 +10,7 @@ import BotPlutusInterface.Types (
   CLILocation (Local),
   ContractEnvironment (ContractEnvironment),
   ContractState (ContractState, csObservableState),
-  LogLevel (Info),
+  LogLevel (Error),
   PABConfig (
     PABConfig,
     pcChainIndexUrl,
@@ -25,7 +25,6 @@ import BotPlutusInterface.Types (
     pcProtocolParamsFile,
     pcScriptFileDir,
     pcSigningKeyFileDir,
-    pcSlotConfig,
     pcTipPollingInterval,
     pcTxFileDir
   ),
@@ -33,7 +32,7 @@ import BotPlutusInterface.Types (
   ceContractStats,
   pcCollectStats,
   pcMetadataDir,
-  pcOwnStakePubKeyHash,
+  pcOwnStakePubKeyHash, pcCollectLogs, ceContractLogs
  )
 import Control.Concurrent.STM (newTVarIO, readTVarIO)
 import Control.Exception (try)
@@ -41,7 +40,6 @@ import Control.Monad (void)
 import Control.Monad.Catch (SomeException)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Data.Aeson (ToJSON, eitherDecodeFileStrict')
-import Data.Default (def)
 import Data.Either.Combinators (fromRight)
 import Data.Kind (Type)
 import Data.Row (Row)
@@ -89,6 +87,7 @@ runContract cEnv bpiWallet contract = do
         <$> UUID.nextRandom
         <*> newTVarIO (ContractState Active (mempty :: w))
         <*> newTVarIO mempty
+        <*> newTVarIO mempty
 
     mkPabConfig pparams =
       PABConfig
@@ -96,13 +95,12 @@ runContract cEnv bpiWallet contract = do
         , pcChainIndexUrl = chainIndexUrl cEnv
         , pcNetwork = networkId cEnv
         , pcProtocolParams = pparams
-        , pcSlotConfig = def
         , pcScriptFileDir = Text.pack $ BIS.scriptsDir cEnv
         , pcSigningKeyFileDir = Text.pack $ BIS.keysDir cEnv
         , pcTxFileDir = Text.pack $ BIS.txsDir cEnv
         , pcDryRun = False
         , pcProtocolParamsFile = Text.pack $ BIS.pParamsFile cEnv
-        , pcLogLevel = Info
+        , pcLogLevel = Error
         , -- , pcForceBudget = bpiForceBudget cEnv
           pcOwnPubKeyHash = walletPkh bpiWallet
         , pcOwnStakePubKeyHash = Nothing
@@ -111,6 +109,7 @@ runContract cEnv bpiWallet contract = do
         , pcEnableTxEndpoint = False
         , pcMetadataDir = Text.pack $ BIS.metadataDir cEnv
         , pcCollectStats = True
+        , pcCollectLogs = True
         }
 
     runContract' :: ContractEnvironment w -> m (ExecutionResult w e a)
@@ -127,4 +126,5 @@ runContract cEnv bpiWallet contract = do
 
       endState <- liftIO (readTVarIO $ ceContractState contractEnv)
       stats <- liftIO (readTVarIO $ ceContractStats contractEnv)
-      return $ partialResult stats (csObservableState endState)
+      logs <- liftIO (readTVarIO $ ceContractLogs contractEnv)
+      return $ partialResult stats (csObservableState endState) logs

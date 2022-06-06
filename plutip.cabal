@@ -178,6 +178,7 @@ test-suite plutip-tests
   other-modules:
     Spec.Integration
     Spec.Test.Plutip.BotPlutusInterface
+    Spec.TestContract.AlwaysFail
     Spec.TestContract.LockSpendMint
     Spec.TestContract.ValidateTimeRange
 

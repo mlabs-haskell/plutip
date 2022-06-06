@@ -160,7 +160,6 @@ unlockWithTimeCheck = do
   utxos <- Map.toList <$> Contract.utxosAt validatorAddr
   case utxos of
     [(oref, _)] -> do
-      -- let rmrInterval = interval startTime endTime
       let rmrInterval = Interval (lowerBound startTime) (strictUpperBound endTime)
           rmr' = TimeRedeemer startTime endTime rmrInterval
           rmr = Redeemer $ PlutusTx.toBuiltinData rmr'

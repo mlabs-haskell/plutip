@@ -17,7 +17,7 @@ data PlutipConfig = PlutipConfig
   , -- | in case of `Nothing` port from `Plutus.ChainIndex.Config.defaultConfig` is used
     chainIndexPort :: Maybe Natural
   }
-  deriving stock (Generic)
+  deriving stock (Generic, Show)
 
 instance Default PlutipConfig where
   def = PlutipConfig Nothing Nothing Nothing

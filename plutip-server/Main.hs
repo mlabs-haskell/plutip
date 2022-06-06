@@ -1,0 +1,92 @@
+{-# LANGUAGE NumericUnderscores #-}
+module Main (main) where
+
+import Api (app)
+import Control.Applicative ((<**>))
+import Control.Concurrent.MVar (newEmptyMVar)
+import Data.Function ((&))
+import Network.HTTP.Types (Status)
+import Network.Wai (Request)
+import Network.Wai.Handler.Warp (
+  Port,
+  Settings,
+  defaultSettings,
+  runSettings,
+  setLogger,
+  setPort,
+ )
+import Network.Wai.Logger (withStdoutLogger)
+import Options.Applicative qualified as Options
+import System.Exit (die)
+import Types (ServerOptions(ServerOptions, port), Env(Env, options, status))
+
+main :: IO ()
+main = do
+  serverOptions@ServerOptions {port} <- Options.execParser opts
+  withStdoutLogger $ \logger -> do
+    putStrLn $ "Plutip server starting on port " <> show port
+    runSettings (mkSettings port logger)
+      . app
+      =<< either die pure
+      =<< newEnvIO serverOptions
+  where
+    mkSettings ::
+      Port -> (Request -> Status -> Maybe Integer -> IO ()) -> Settings
+    mkSettings port logger = defaultSettings & setPort port & setLogger logger
+
+newEnvIO :: ServerOptions -> IO (Either String Env)
+newEnvIO options = do
+  status <- newEmptyMVar
+  pure . Right $ Env { status, options }
+
+opts :: Options.ParserInfo ServerOptions
+opts =
+  Options.info (serverOptionsParser <**> Options.helper) $
+    Options.fullDesc
+      <> Options.progDesc
+        "plutip-server is used for integration with cardano-transaction-lib"
+
+serverOptionsParser :: Options.Parser ServerOptions
+serverOptionsParser =
+  ServerOptions
+    <$> Options.option
+      Options.auto
+      ( Options.long "port"
+          <> Options.short 'p'
+          <> Options.help "Server port"
+          <> Options.showDefault
+          <> Options.value 8081
+          <> Options.metavar "INT"
+      )
+    <*> Options.option
+      Options.auto
+      ( Options.long "node-logs"
+        <> Options.help "Relay node log file to write to"
+        <> Options.showDefault
+        <> Options.value Nothing
+      )
+
+  -- (st, _) <- startCluster def $ do
+  --   w <- addSomeWallet [ toAda 10000 ]
+
+  --   waitSeconds 2 -- let wallet Tx finish
+
+  --   separate
+  --   liftIO $ do
+  --     putStrLn $ "Wallet PKH: " ++ show (walletPkh w)
+  --     putStrLn $ "Wallet mainnet address: " ++ show (mkMainnetAddress w)
+  --   prtNodeRelatedInfo
+  --   separate
+
+  -- putStrLn "Cluster is running. Press Enter to stop."
+  --   >> void getLine
+  -- putStrLn "Stopping cluster"
+
+  -- stopCluster st
+  -- where
+  --   prtNodeRelatedInfo = ReaderT $ \cEnv -> do
+  --     putStrLn $ "Node socket: " <> show (nodeSocket cEnv)
+
+  --   separate = liftIO $ putStrLn "\n------------\n"
+
+  --   toAda = (* 1_000_000)

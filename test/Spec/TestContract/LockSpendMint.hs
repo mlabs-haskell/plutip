@@ -1,4 +1,4 @@
-module Spec.TestContract (lockThenSpend) where
+module Spec.TestContract.LockSpendMint (lockThenSpend) where
 
 import Control.Monad (void)
 import Data.Map qualified as Map

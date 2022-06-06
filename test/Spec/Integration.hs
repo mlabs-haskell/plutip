@@ -7,7 +7,7 @@ import Data.Default (Default (def))
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Maybe (isJust)
-import Data.Text (Text)
+import Data.Text (Text, isInfixOf, pack)
 import Ledger (
   CardanoTx,
   ChainIndexTxOut,
@@ -29,7 +29,9 @@ import Plutus.Contract (
 import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
 import Plutus.V1.Ledger.Ada (lovelaceValueOf)
-import Spec.TestContract (lockThenSpend)
+import Spec.TestContract.AlwaysFail (lockThenFailToSpend)
+import Spec.TestContract.LockSpendMint (lockThenSpend)
+import Spec.TestContract.ValidateTimeRange (failingTimeContract, successTimeContract)
 import Test.Plutip.Contract (
   ValueOrdering (VLt),
   assertExecution,
@@ -64,7 +66,6 @@ import Test.Plutip.Predicate (
  )
 import Test.Plutip.Predicate qualified as Predicate
 import Test.Tasty (TestTree, localOption)
-import Text.Printf (printf)
 
 test :: TestTree
 test =
@@ -180,12 +181,31 @@ test =
               (== 2860068)
           , overallBudgetFits 1156006922 2860068
           ]
+      , -- regression tests for time <-> slot converions
+        assertExecution
+          "Fails because outside validity interval"
+          (initAda [100])
+          (withContract $ const failingTimeContract)
+          [shouldFail]
+      , assertExecution
+          "Passes validation with exact time range checks"
+          (initAda [100])
+          (withContract $ const successTimeContract)
+          [shouldSucceed]
+      , -- always fail validation test
+        let errCheck e = "I always fail" `isInfixOf` pack (show e)
+         in assertExecution
+              "Always fails to validate"
+              (initAda [100])
+              (withContract $ const lockThenFailToSpend)
+              [ shouldFail
+              , errorSatisfies "Fail validation with 'I always fail'" errCheck
+              ]
       ]
 
 getUtxos :: Contract [Value] EmptySchema Text (Map TxOutRef ChainIndexTxOut)
 getUtxos = do
   pkh <- Contract.ownPaymentPubKeyHash
-  Contract.logInfo @String $ printf "Own PKH: %s" (show pkh)
   utxosAt $ pubKeyHashAddress pkh Nothing
 
 getUtxosThrowsErr :: Contract () EmptySchema ContractError (Map TxOutRef ChainIndexTxOut)

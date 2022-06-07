@@ -28,11 +28,13 @@ import BotPlutusInterface.Types (
     pcTipPollingInterval,
     pcTxFileDir
   ),
+  ceContractLogs,
   ceContractState,
   ceContractStats,
+  pcCollectLogs,
   pcCollectStats,
   pcMetadataDir,
-  pcOwnStakePubKeyHash, pcCollectLogs, ceContractLogs
+  pcOwnStakePubKeyHash,
  )
 import Control.Concurrent.STM (newTVarIO, readTVarIO)
 import Control.Exception (try)

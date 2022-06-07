@@ -10,7 +10,7 @@ module Test.Plutip.Internal.Types (
   budgets,
 ) where
 
-import BotPlutusInterface.Types (ContractStats, TxBudget, estimatedBudgets, LogsList)
+import BotPlutusInterface.Types (ContractStats, LogsList, TxBudget, estimatedBudgets)
 import Cardano.Api (NetworkId)
 import Cardano.BM.Tracing (Trace)
 import Cardano.Launcher.Node (CardanoNodeConn)

@@ -125,7 +125,7 @@ test =
         [ yieldSatisfies "Returns single UTxO" ((== 1) . Map.size)
         ]
     , let initFunds = 10_000_000
-        in assertExecution
+       in assertExecution
             "Should yield own initial Ada"
             (initLovelace [toEnum initFunds])
             (withContract $ const ownValue)
@@ -133,7 +133,7 @@ test =
             ]
     , -- Tests with assertions on state
       let initFunds = 10_000_000
-        in assertExecution
+       in assertExecution
             "Puts own UTxOs Value to state"
             (initLovelace [toEnum initFunds])
             (withContract $ const ownValueToState)
@@ -145,7 +145,7 @@ test =
           isResolutionError = \case
             ConstraintResolutionContractError _ -> True
             _ -> False
-        in assertExecution
+       in assertExecution
             ("Contract which throws `" <> show expectedErr <> "`")
             (initAda [100])
             (withContract $ const getUtxosThrowsErr)
@@ -156,7 +156,7 @@ test =
     , let checkException = \case
             CaughtException e -> isJust @ErrorCall (fromException e)
             _ -> False
-        in assertExecution
+       in assertExecution
             "Contract which throws exception"
             (initAda [100])
             (withContract $ const getUtxosThrowsEx)
@@ -192,7 +192,7 @@ test =
         [shouldSucceed]
     , -- always fail validation test
       let errCheck e = "I always fail" `isInfixOf` pack (show e)
-        in assertExecution
+       in assertExecution
             "Always fails to validate"
             (initAda [100])
             (withContract $ const lockThenFailToSpend)

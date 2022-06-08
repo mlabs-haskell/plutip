@@ -232,16 +232,19 @@ assertExecutionWith options tag testWallets testRunner predicates =
             maybeAddValuesCheck
               ioRes
               testWallets
-              ((toCase ioRes <$> predicates) <> (optionToTestTree ioRes <$> options))
+              ((toCase ioRes <$> predicates) <> ((`optionToTestTree` ioRes) <$> options))
 
     -- wraps IO with result of contract execution into single test
     toCase ioRes p =
       singleTest (pTag p) (TestContract p ioRes)
 
-    optionToTestTree ioRes BudgetCounting = singleTest "Budget stats" $ StatsReport ioRes
-    optionToTestTree ioRes Tracing = singleTest "BPI logs (PAB requests/responses)" $ LogsReport DisplayAllTrace ioRes
-    optionToTestTree ioRes (TracingButOnlyContext logCtx logLvl) =
-      singleTest "BPI logs (PAB requests/responses)" $ LogsReport (DisplayOnlyFromContext logCtx logLvl) ioRes
+    optionToTestTree = \case
+      BudgetCounting -> singleTest "Budget stats" . StatsReport
+      Tracing -> singleTest logsName . LogsReport DisplayAllTrace
+      TracingButOnlyContext logCtx logLvl ->
+        singleTest logsName . LogsReport (DisplayOnlyFromContext logCtx logLvl)
+
+    logsName = "BPI logs (PAB requests/responses)"
 
 -- | Adds test case with assertions on values if any assertions were added
 --  by `initAndAssert...` functions during wallets setup
@@ -338,11 +341,12 @@ data LogsReport w e a = LogsReport LogsReportOption (IO (ExecutionResult w e (a,
 
 -- | TraceOption stripped to what LogsReport wants to know.
 data LogsReportOption
-  = -- | Display logs collected by BPI during contract execution.
+  = -- | Display all logs collected by BPI during contract execution.
     DisplayAllTrace
-  | -- | Upper bound
+  | -- | Display filtered logs
     DisplayOnlyFromContext
       LogContext
+      -- ^ upper bound on LogLevel
       LogLevel
 
 instance
@@ -353,9 +357,10 @@ instance
   run _ (LogsReport option ioRes) _ =
     testPassed . ppShowLogs <$> ioRes
     where
-      ppShowLogs = render . vcat . zipWith indexedMsg [0 ..] . map (\(_, _, msg) -> msg) . filterOrDont option . getLogsList . contractLogs
-      filterOrDont DisplayAllTrace = id -- don't
-      filterOrDont (DisplayOnlyFromContext logCtx logLvl) = filter (\(ctx, lvl, _) -> ctx == logCtx && logLvl >= lvl)
+      ppShowLogs = render . vcat . zipWith indexedMsg [0 ..] . map (\(_, _, msg) -> msg) . filterOrDont . getLogsList . contractLogs
+      filterOrDont = case option of
+        DisplayAllTrace -> id -- don't
+        DisplayOnlyFromContext logCtx logLvl -> filter (\(ctx, lvl, _) -> ctx == logCtx && logLvl >= lvl)
 
       indexedMsg :: Int -> Doc ann -> Doc ann
       indexedMsg i msg = pretty i <> pretty ("." :: String) <+> msg

@@ -6,7 +6,7 @@ import BotPlutusInterface.Types (LogContext, LogLevel)
 
 -- | Extra options for `assertExecutionWith`.
 data TraceOption
-  = -- | Display logs collected by BPI during contract execution.
+  = -- | Display all logs collected by BPI during contract execution.
     Tracing
   | -- | Like `Tracing` but choose which context and log level to display.
     TracingButOnlyContext

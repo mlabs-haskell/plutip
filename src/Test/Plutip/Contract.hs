@@ -42,7 +42,7 @@
 -- To display information useful for debugging together with test results use `assertExecutionWith`
 -- and provide it with options:
 --
---    - BudgetCounting, for displaying transaction execution budgets end enabling assertions for them
+--    - BudgetCounting, for displaying transaction execution budgets and enabling assertions for them
 --    - Tracing, for displaying contract execution trace
 --    - TracingButOnlyContext, like Tracing but filter what to show
 --

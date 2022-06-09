@@ -1,5 +1,6 @@
 module Spec.Integration (test) where
 
+import BotPlutusInterface.Types (LogContext (ContractLog), LogLevel (Debug))
 import Control.Exception (ErrorCall, Exception (fromException))
 import Control.Lens ((^.))
 import Control.Monad (void)
@@ -35,6 +36,7 @@ import Spec.TestContract.ValidateTimeRange (failingTimeContract, successTimeCont
 import Test.Plutip.Contract (
   ValueOrdering (VLt),
   assertExecution,
+  assertExecutionWith,
   initAda,
   initAndAssertAda,
   initAndAssertAdaWith,
@@ -47,6 +49,7 @@ import Test.Plutip.Internal.Types (
   isException,
  )
 import Test.Plutip.LocalCluster (withConfiguredCluster)
+import Test.Plutip.Options (TraceOption (ShowBudgets, ShowTraceButOnlyContext))
 import Test.Plutip.Predicate (
   assertOverallBudget,
   budgetsFitUnder,
@@ -86,10 +89,11 @@ test =
         [ shouldFail
         , Predicate.not shouldSucceed
         ]
-    , assertExecution
+    , assertExecutionWith
+        [ShowTraceButOnlyContext ContractLog Debug]
         "Contract 3"
         (initAda [100])
-        (withContract $ const getUtxosThrowsEx)
+        (withContract $ const $ Contract.logInfo @Text "Some contract log with Info level." >> getUtxosThrowsEx)
         [ shouldFail
         , Predicate.not shouldSucceed
         ]
@@ -165,7 +169,8 @@ test =
             , failReasonSatisfies "Throws ErrorCall" checkException
             ]
     , -- tests with assertions on execution budget
-      assertExecution
+      assertExecutionWith
+        [ShowBudgets] -- this influences displaying the budgets only and is not necessary for budget assertions
         "Lock then spend contract"
         (initAda (replicate 3 300))
         (withContract $ const lockThenSpend)

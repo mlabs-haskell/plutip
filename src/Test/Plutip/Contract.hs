@@ -42,9 +42,9 @@
 -- To display information useful for debugging together with test results use `assertExecutionWith`
 -- and provide it with options:
 --
---    - BudgetCounting, for displaying transaction execution budgets and enabling assertions for them
---    - Tracing, for displaying contract execution trace
---    - TracingButOnlyContext, like Tracing but filter what to show
+--    - ShowBudgets, for displaying transaction execution budgets
+--    - ShowTrace, for displaying contract execution trace
+--    - ShowTraceButOnlyContext, like ShowTrace but filter what to show
 --
 --  Note that @[PaymentPubKeyHash]@ does not include the contract's own wallet,
 --  for that you can use `Plutus.Contract.ownPaymentPubKeyHash` inside the Contract monad.
@@ -70,7 +70,7 @@
 --  will be used as "own" wallet, e.g.:
 --
 --    > assertExecutionWith
---    >   [BudgetCounting, TracingButOnlyContext ContractLog Error]
+--    >   [ShowBudgets, ShowTraceButOnlyContext ContractLog Error]
 --    >   "Send some Ada"
 --    >   (initAda 100 <> initAda 101 <> initAda 102)
 --    >   (withContractAs 1 $ \[pkh0, pkh2] ->
@@ -173,7 +173,7 @@ import Test.Plutip.Internal.Types (
   ExecutionResult (contractLogs, outcome),
   budgets,
  )
-import Test.Plutip.Options (TraceOption (BudgetCounting, Tracing, TracingButOnlyContext))
+import Test.Plutip.Options (TraceOption (ShowBudgets, ShowTrace, ShowTraceButOnlyContext))
 import Test.Plutip.Predicate (Predicate, noBudgetsMessage, pTag)
 import Test.Plutip.Tools (ada)
 import Test.Plutip.Tools.Format (fmtTxBudgets)
@@ -210,9 +210,9 @@ assertExecution = assertExecutionWith mempty
 
 -- | Version of assertExecution parametrised with a list of extra TraceOption's.
 --
--- > assertExecutionWith [Tracing, BudgetCounting]
+-- > assertExecutionWith [ShowTrace, ShowBudgets]
 --
--- to print additional transaction budget estimations and contract execution logs
+-- to print additional transaction budget calculations and contract execution logs
 assertExecutionWith ::
   forall (w :: Type) (e :: Type) (a :: Type).
   TestContractConstraints w e a =>
@@ -239,9 +239,9 @@ assertExecutionWith options tag testWallets testRunner predicates =
       singleTest (pTag p) (TestContract p ioRes)
 
     optionToTestTree = \case
-      BudgetCounting -> singleTest "Budget stats" . StatsReport
-      Tracing -> singleTest logsName . LogsReport DisplayAllTrace
-      TracingButOnlyContext logCtx logLvl ->
+      ShowBudgets -> singleTest "Budget stats" . StatsReport
+      ShowTrace -> singleTest logsName . LogsReport DisplayAllTrace
+      ShowTraceButOnlyContext logCtx logLvl ->
         singleTest logsName . LogsReport (DisplayOnlyFromContext logCtx logLvl)
 
     logsName = "BPI logs (PAB requests/responses)"

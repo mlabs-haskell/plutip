@@ -24,7 +24,11 @@ import Types
   , ServerOptions(ServerOptions, nodeLogs)
   , Env(status)
   , Lovelace(unLovelace)
-  , ClusterStartupFailureReason(NodeConfigNotFound, ClusterIsRunningAlready)
+  , ClusterStartupFailureReason
+    ( ClusterIsRunningAlready
+    , NegativeLovelaces
+    , NodeConfigNotFound
+    )
   )
 import Cardano.Api (serialiseToCBOR)
 import Cardano.Launcher.Node (nodeSocketFile)
@@ -36,7 +40,7 @@ import Control.Monad.Extra (unlessM)
 import Control.Monad.IO.Class (liftIO)
 import Data.ByteString.Base16 qualified as Base16
 import Data.Default (def)
-import Data.Functor ((<&>))
+import Data.Foldable (for_)
 import Data.Text.Encoding qualified as Text
 import Data.Traversable (for)
 import System.Directory (doesFileExist)
@@ -51,6 +55,11 @@ startClusterHandler :: ServerOptions -> StartClusterRequest -> AppM StartCluster
 startClusterHandler
   ServerOptions { nodeLogs }
   StartClusterRequest { keysToGenerate } = interpret $ do
+  -- Check that lovelace amounts are positive
+  for_ keysToGenerate $ \lovelaceAmounts -> do
+    for_ lovelaceAmounts $ \lovelaces -> do
+      unless (unLovelace lovelaces > 0) $ do
+        throwError NegativeLovelaces
   statusMVar <- asks status
   isClusterDown <- liftIO $ isEmptyMVar statusMVar
   unless isClusterDown $ throwError ClusterIsRunningAlready
@@ -65,17 +74,17 @@ startClusterHandler
   -- safeguard against directory tree structure changes
   unlessM (liftIO $ doesFileExist nodeConfigPath) $ throwError NodeConfigNotFound
   pure $ ClusterStartupSuccess
-    { privateKeys = getKeys res
+    { privateKeys = getWalletPrivateKey <$> snd res
     , nodeSocketPath = getNodeSocketFile clusterEnv
     , nodeConfigPath = nodeConfigPath
     , keysDirectory = keysDir clusterEnv
     }
   where
-    setup :: ReaderT ClusterEnv IO (ClusterEnv, [(Int, BpiWallet)])
+    setup :: ReaderT ClusterEnv IO (ClusterEnv, [BpiWallet])
     setup = do
       env <- ask
       wallets <- do
-        for keysToGenerate $ traverse $ \lovelaceAmounts -> do
+        for keysToGenerate $ \lovelaceAmounts -> do
           addSomeWallet (fromInteger . unLovelace <$> lovelaceAmounts)
       waitSeconds 2 -- wait for transactions to submit
       pure (env, wallets)
@@ -83,11 +92,8 @@ startClusterHandler
     getNodeConfigFile =
       -- assumption is that node.config lies in the same directory as node.socket
       flip replaceFileName "node.config" . getNodeSocketFile
-    getKeys :: (ClusterEnv, [(Int, BpiWallet)]) -> [(Int, PrivateKey)]
-    getKeys (_, kvs) = kvs <&> \(idx, wallet) ->
-      ( idx
-      , Text.decodeUtf8 . Base16.encode $ serialiseToCBOR (signKey wallet)
-      )
+    getWalletPrivateKey :: BpiWallet -> PrivateKey
+    getWalletPrivateKey = Text.decodeUtf8 . Base16.encode . serialiseToCBOR . signKey
     interpret = fmap (either ClusterStartupFailure id) . runExceptT
 
 stopClusterHandler :: StopClusterRequest -> AppM StopClusterResponse

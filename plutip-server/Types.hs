@@ -1,6 +1,10 @@
 module Types
   ( AppM(AppM)
-  , ClusterStartupFailureReason(NodeConfigNotFound, ClusterIsRunningAlready)
+  , ClusterStartupFailureReason
+    ( ClusterIsRunningAlready
+    , NegativeLovelaces
+    , NodeConfigNotFound
+    )
   , Env(Env, status, options)
   , ErrorMessage
   , Lovelace(unLovelace)
@@ -41,7 +45,7 @@ import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet)
 -- cluster at any given moment).
 -- This MVar is used by start/stop handlers.
 -- The payload of ClusterStatus is irrelevant.
-type ClusterStatusRef = MVar (TVar (ClusterStatus (ClusterEnv, [(Int, BpiWallet)])))
+type ClusterStatusRef = MVar (TVar (ClusterStatus (ClusterEnv, [BpiWallet])))
 
 data Env = Env
   { status :: ClusterStatusRef
@@ -86,9 +90,8 @@ instance FromJSON Lovelace where
 
 newtype StartClusterRequest
   = StartClusterRequest
-    { keysToGenerate
-      :: [(Int, [Lovelace])]
-    -- ^ Numeric ID, Lovelace amounts of UTXOs
+    { keysToGenerate :: [[Lovelace]]
+    -- ^ Lovelace amounts for each UTXO of each wallet
     }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
@@ -98,7 +101,7 @@ type PrivateKey = Text
 
 data ClusterStartupFailureReason
   = ClusterIsRunningAlready
-  | NegativeLovelaces { keyId :: Int }
+  | NegativeLovelaces
   | NodeConfigNotFound
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
@@ -106,7 +109,7 @@ data ClusterStartupFailureReason
 data StartClusterResponse
   = ClusterStartupFailure ClusterStartupFailureReason
   | ClusterStartupSuccess
-    { privateKeys :: [ (Int, PrivateKey) ]
+    { privateKeys :: [PrivateKey]
     , nodeSocketPath :: FilePath
     , nodeConfigPath :: FilePath
     , keysDirectory :: FilePath

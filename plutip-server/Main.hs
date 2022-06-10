@@ -55,7 +55,7 @@ serverOptionsParser =
           <> Options.short 'p'
           <> Options.help "Server port"
           <> Options.showDefault
-          <> Options.value 8081
+          <> Options.value 8082
           <> Options.metavar "INT"
       )
     <*> Options.option

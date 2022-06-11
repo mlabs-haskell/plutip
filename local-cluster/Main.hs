@@ -6,7 +6,8 @@ import Control.Monad (void)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ReaderT (ReaderT))
 import Data.Default (def)
-import Test.Plutip.Internal.BotPlutusInterface.Wallet (walletPkh)
+import Ledger.Crypto (pubKeyHash)
+import Test.Plutip.Internal.BotPlutusInterface.Wallet (walletPubKey)
 import Test.Plutip.Internal.Types (nodeSocket)
 import Test.Plutip.LocalCluster (
   addSomeWallet,
@@ -23,7 +24,8 @@ main = do
     waitSeconds 2 -- let wallet Tx finish
     separate
     liftIO $ do
-      putStrLn $ "Wallet PKH: " ++ show (walletPkh w)
+      putStrLn $ "Wallet public key: " ++ show (walletPubKey w)
+      putStrLn $ "Wallet PKH: " ++ show (pubKeyHash (walletPubKey w))
       putStrLn $ "Wallet mainnet address: " ++ show (mkMainnetAddress w)
     prtNodeRelatedInfo
     separate

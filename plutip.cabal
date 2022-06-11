@@ -195,5 +195,6 @@ executable local-cluster
     , data-default
     , mtl
     , plutip
+    , plutus-ledger
 
   ghc-options:   -Wall -threaded -rtsopts

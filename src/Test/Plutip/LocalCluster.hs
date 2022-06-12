@@ -5,7 +5,7 @@ module Test.Plutip.LocalCluster (
   waitSeconds,
   mkMainnetAddress,
   cardanoMainnetAddress,
-  ledgerPaymentPkh,
+  ledgerPaymentPubKey,
   withCluster,
   withConfiguredCluster,
   startCluster,
@@ -25,7 +25,7 @@ import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   BpiWallet,
   addSomeWallet,
   cardanoMainnetAddress,
-  ledgerPaymentPkh,
+  ledgerPaymentPubKey,
   mkMainnetAddress,
  )
 import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)

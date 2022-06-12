@@ -31,7 +31,7 @@ This format is based on [Keep A Changelog](https://keepachangelog.com/en/1.0.0).
     - `assertOverallBudget`
     - `budgetsFitUnder`
   - Combining arbitrary assertions together
-  - Building arbitrary assertions with `Predicate`  
+  - Building arbitrary assertions with `Predicate`
   - Initialising wallets and asserting them after contract execution:
     - `initAda`
     - `initLovelace`
@@ -43,6 +43,7 @@ This format is based on [Keep A Changelog](https://keepachangelog.com/en/1.0.0).
     - `initAdaAssertValueWith`
     - `initLovelaceAssertValue`
     - `initLovelaceAssertValueWith`
+- Expose wallet `PaymentPubKey` instead of `PaymentPubKeyHash`
 
 ## 0.1 -- 2022-02-14
 

@@ -15,6 +15,7 @@ import Ledger (
   TxOutRef,
   Value,
   ciTxOutValue,
+  paymentPubKeyHash,
   pubKeyHashAddress,
  )
 import Ledger.Ada qualified as Ada
@@ -98,13 +99,13 @@ test =
       , assertExecution
           "Pay negative amount"
           (initAda [100])
-          (withContract $ \[pkh1] -> payTo pkh1 (-10_000_000))
+          (withContract $ \[pubKey1] -> payTo (paymentPubKeyHash pubKey1) (-10_000_000))
           [shouldFail]
       , -- Tests with wallet's Value assertions
         assertExecution
           "Pay from wallet to wallet"
           (initAda [100] <> initAndAssertAda [100, 13] 123)
-          (withContract $ \[pkh1] -> payTo pkh1 10_000_000)
+          (withContract $ \[pubKey1] -> payTo (paymentPubKeyHash pubKey1) 10_000_000)
           [shouldSucceed]
       , assertExecution
           "Two contracts one after another"
@@ -114,9 +115,9 @@ test =
           ( do
               void $ -- run something prior to the contract which result will be checked
                 withContract $
-                  \[pkh1] -> payTo pkh1 10_000_000
+                  \[pubKey1] -> payTo (paymentPubKeyHash pubKey1) 10_000_000
               withContractAs 1 $ -- run contract which result will be checked
-                \[pkh1] -> payTo pkh1 10_000_000
+                \[pubKey1] -> payTo (paymentPubKeyHash pubKey1) 10_000_000
           )
           [shouldSucceed]
       , -- Tests with assertions on Contract return value

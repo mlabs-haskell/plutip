@@ -37,26 +37,26 @@
 --
 --  To use multiple wallets, you can use the `Semigroup` instance of `TestWallets`. To reference the
 --  wallet inside the contract, the following callback function is used together with `withContract`:
---  @[PaymentPubKeyHash] -> Contract w s e a@.
+--  @[PaymentPubKey] -> Contract w s e a@.
 --
---  Note that @[PaymentPubKeyHash]@ does not include the contract's own wallet,
---  for that you can use `Plutus.Contract.ownPaymentPubKeyHash` inside the Contract monad.
+--  Note that @[PaymentPubKey]@ does not include the contract's own wallet,
+--  for that you can use `Plutus.Contract.ownPaymentPubKey` inside the Contract monad.
 --
 --  When contract supplied to test with `withContract`,
 --  the 1st initiated wallet will be used as "own" wallet, e.g.:
 --
 --    > assertExecution  "Send some Ada"
 --    >   (initAda 100 <> initAda 101 <> initAda 102)
---    >   (withContract $ \[pkh1, pkh2] ->
---    >     payToPubKey pkh1 (Ada.lovelaceValueOf amt))
+--    >   (withContract $ \[pubKey1, pubKey2] ->
+--    >     payToPubKey pubKey1 (Ada.lovelaceValueOf amt))
 --    >   [shouldSucceed]
 --
 --  Here:
 --
 --  - 3 wallets will be initialised with 100, 101 and 102 Ada respectively
 --  - wallet with 100 Ada will be used as own wallet to run the contract
---  - `pkh1` - `PaymentPubKeyHash` of wallet with 101 Ada
---  - `pkh2` - `PaymentPubKeyHash` of wallet with 102 Ada
+--  - `pubKey1` - `PaymentPubKey` of wallet with 101 Ada
+--  - `pubKey2` - `PaymentPubKey` of wallet with 102 Ada
 --
 --
 --  When contract supplied to test with `withContractAs`, wallet with provided index (0 based)
@@ -64,16 +64,16 @@
 --
 --    > assertExecution  "Send some Ada"
 --    >   (initAda 100 <> initAda 101 <> initAda 102)
---    >   (withContractAs 1 $ \[pkh0, pkh2] ->
---    >     payToPubKey pkh1 (Ada.lovelaceValueOf amt))
+--    >   (withContractAs 1 $ \[pubKey0, pubKey2] ->
+--    >     payToPubKey pubKey1 (Ada.lovelaceValueOf amt))
 --    >   [shouldSucceed]
 --
 --  Here:
 --
 --    - 3 wallets will be initialised with 100, 101 and 102 Ada respectively
 --    - wallet with 101 Ada will be used as own wallet to run the contract
---    - `pkh0` - `PaymentPubKeyHash` of wallet with 100 Ada
---    - `pkh2` - `PaymentPubKeyHash` of wallet with 102 Ada
+--    - `pubKey0` - `PaymentPubKey` of wallet with 100 Ada
+--    - `pubKey2` - `PaymentPubKey` of wallet with 102 Ada
 --
 --
 --  If you have multiple contracts depending on each other, you can chain them together using
@@ -85,9 +85,9 @@
 --    >   ( do
 --    >       void $ -- run something prior to the contract which result will be checked
 --    >         withContract $
---    >           \[pkh1] -> payTo pkh1 10_000_000
+--    >           \[pubKey1] -> payTo pubKey1 10_000_000
 --    >       withContractAs 1 $ -- run the contract which result will be checked
---    >         \[pkh1] -> payTo pkh1 10_000_000
+--    >         \[pubKey1] -> payTo pubKey1 10_000_000
 --    >   )
 --    >   [shouldSucceed]
 --
@@ -110,7 +110,7 @@ module Test.Plutip.Contract (
   initLovelaceAssertValue,
   initLovelaceAssertValueWith,
   -- Helpers
-  ledgerPaymentPkh,
+  ledgerPaymentPubKey,
   ValueOrdering (VEq, VGt, VLt, VGEq, VLEq),
   assertValues,
   assertExecution,
@@ -128,8 +128,8 @@ import Data.Maybe (isJust)
 import Data.Row (Row)
 import Data.Tagged (Tagged (Tagged))
 import Data.Text qualified as Text
-import Ledger (PaymentPubKeyHash)
-import Ledger.Address (pubKeyHashAddress)
+import Ledger (PaymentPubKey)
+import Ledger.Address (pubKeyAddress)
 import Ledger.Value (Value)
 import Plutus.Contract (Contract, waitNSlots)
 import Test.Plutip.Contract.Init (
@@ -153,7 +153,7 @@ import Test.Plutip.Contract.Types (
  )
 import Test.Plutip.Contract.Values (assertValues, valueAt)
 import Test.Plutip.Internal.BotPlutusInterface.Run (runContract)
-import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet, ledgerPaymentPkh)
+import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet, ledgerPaymentPubKey)
 import Test.Plutip.Internal.Types (
   ClusterEnv,
   ExecutionResult (outcome),
@@ -244,7 +244,7 @@ maybeAddValuesCheck ioRes tws =
 withContract ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
   TestContractConstraints w e a =>
-  ([PaymentPubKeyHash] -> Contract w s e a) ->
+  ([PaymentPubKey] -> Contract w s e a) ->
   TestRunner w e a
 withContract = withContractAs 0
 
@@ -256,12 +256,12 @@ withContractAs ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
   TestContractConstraints w e a =>
   Int ->
-  ([PaymentPubKeyHash] -> Contract w s e a) ->
+  ([PaymentPubKey] -> Contract w s e a) ->
   TestRunner w e a
 withContractAs walletIdx toContract = do
   (cEnv, wallets') <- ask
   let wallets@(ownWallet :| otherWallets) = reorder walletIdx wallets'
-  let contract = wrapContract wallets (toContract (map ledgerPaymentPkh otherWallets))
+  let contract = wrapContract wallets (toContract (map ledgerPaymentPubKey otherWallets))
   liftIO $ runContract cEnv ownWallet contract
   where
     reorder i xss = case NonEmpty.splitAt i xss of
@@ -281,8 +281,8 @@ wrapContract ::
 wrapContract bpiWallets contract = do
   res <- contract
   void $ waitNSlots 1
-  let walletPkhs = fmap ledgerPaymentPkh bpiWallets
-  values <- traverse (valueAt . (`pubKeyHashAddress` Nothing)) walletPkhs
+  let walletPubKeys = fmap ledgerPaymentPubKey bpiWallets
+  values <- traverse (valueAt . (`pubKeyAddress` Nothing)) walletPubKeys
   pure (res, values)
 
 -- A way print stats

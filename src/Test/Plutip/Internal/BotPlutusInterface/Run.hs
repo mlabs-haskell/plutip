@@ -45,10 +45,11 @@ import Data.Kind (Type)
 import Data.Row (Row)
 import Data.Text qualified as Text
 import Data.UUID.V4 qualified as UUID
+import Ledger (pubKeyHash)
 import Plutus.Contract (Contract)
 import Plutus.PAB.Core.ContractInstance.STM (Activity (Active))
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BIS
-import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet (walletPkh))
+import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet (walletPubKey))
 import Test.Plutip.Internal.Types (
   ClusterEnv (chainIndexUrl, networkId),
   ExecutionResult (ExecutionResult),
@@ -101,7 +102,7 @@ runContract cEnv bpiWallet contract = do
         , pcProtocolParamsFile = Text.pack $ BIS.pParamsFile cEnv
         , pcLogLevel = Info
         , -- , pcForceBudget = bpiForceBudget cEnv
-          pcOwnPubKeyHash = walletPkh bpiWallet
+          pcOwnPubKeyHash = pubKeyHash $ walletPubKey bpiWallet
         , pcOwnStakePubKeyHash = Nothing
         , pcTipPollingInterval = 1_000_000
         , pcPort = 9080

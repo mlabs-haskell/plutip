@@ -20,7 +20,7 @@ import Control.Monad.Reader (ReaderT, ask)
 import Data.Aeson.Extras (encodeByteString)
 import Data.Bool (bool)
 import Data.Text qualified as Text
-import Ledger (PaymentPubKey (PaymentPubKey), PubKey (PubKey))
+import Ledger (PaymentPubKey (PaymentPubKey), PubKey (PubKey), pubKeyHash)
 import Numeric.Positive (Positive)
 import Plutus.V1.Ledger.Api qualified as LAPI
 import PlutusTx.Builtins (fromBuiltin, toBuiltin)
@@ -84,13 +84,13 @@ createWallet = do
         . CAPI.serialiseToRawBytes
 
 saveWallet :: MonadIO m => BpiWallet -> ReaderT ClusterEnv m (Either BpiError ())
-saveWallet (BpiWallet (PubKey pk) _ sk) = do
+saveWallet (BpiWallet pk _ sk) = do
   cEnv <- ask
   liftIO (Setup.directoryIsSet cEnv)
     >>= bool (return $ Left BotInterfaceDirMissing) (save cEnv sk)
   where
     save cEnv key = do
-      let pkhStr = Text.unpack (encodeByteString (fromBuiltin (LAPI.getLedgerBytes pk)))
+      let pkhStr = Text.unpack $ encodeByteString $ fromBuiltin $ LAPI.getPubKeyHash $ pubKeyHash pk
           path = Setup.keysDir cEnv </> "signing-key-" ++ pkhStr <.> "skey"
       res <- liftIO $ CAPI.writeFileTextEnvelope path (Just "Payment Signing Key") key
       return $ left (SignKeySaveError . show) res --todo: better error handling

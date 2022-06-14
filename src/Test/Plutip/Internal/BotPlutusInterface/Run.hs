@@ -13,6 +13,7 @@ import BotPlutusInterface.Types (
   LogLevel (Info),
   PABConfig (
     PABConfig,
+    pcBudgetMultiplier,
     pcChainIndexUrl,
     pcCliLocation,
     pcDryRun,
@@ -50,7 +51,7 @@ import Plutus.PAB.Core.ContractInstance.STM (Activity (Active))
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BIS
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet (walletPkh))
 import Test.Plutip.Internal.Types (
-  ClusterEnv (chainIndexUrl, networkId),
+  ClusterEnv (bpiBudgetMultiplier, chainIndexUrl, networkId),
   ExecutionResult (ExecutionResult),
   FailureReason (CaughtException, ContractExecutionError),
  )
@@ -108,6 +109,7 @@ runContract cEnv bpiWallet contract = do
         , pcEnableTxEndpoint = False
         , pcMetadataDir = Text.pack $ BIS.metadataDir cEnv
         , pcCollectStats = True
+        , pcBudgetMultiplier = bpiBudgetMultiplier cEnv
         }
 
     runContract' :: ContractEnvironment w -> m (ExecutionResult w e a)

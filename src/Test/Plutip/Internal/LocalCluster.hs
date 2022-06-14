@@ -40,6 +40,7 @@ import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BotSetup
 import Test.Plutip.Internal.Types (
   ClusterEnv (
     ClusterEnv,
+    bpiBudgetMultiplier,
     chainIndexUrl,
     networkId,
     runningNode,
@@ -56,7 +57,7 @@ import UnliftIO.STM (TVar, atomically, newTVarIO, readTVar, retrySTM, writeTVar)
 import Data.Foldable (for_)
 import GHC.Stack.Types (HasCallStack)
 import Paths_plutip (getDataFileName)
-import Test.Plutip.Config (PlutipConfig (chainIndexPort, clusterDataDir, relayNodeLogs))
+import Test.Plutip.Config (PlutipConfig (budgetMultiplier, chainIndexPort, clusterDataDir, relayNodeLogs))
 import Text.Printf (printf)
 
 -- | Starting a cluster with a setup action
@@ -129,6 +130,7 @@ withPlutusInterface conf action = do
               , networkId = CAPI.Mainnet
               , supportDir = dir
               , tracer = trCluster
+              , bpiBudgetMultiplier = budgetMultiplier conf
               }
 
       BotSetup.runSetup cEnv -- run preparations to use `bot-plutus-interface`

@@ -58,7 +58,16 @@ import UnliftIO.STM (TVar, atomically, newTVarIO, readTVar, retrySTM, writeTVar)
 import Data.Foldable (for_)
 import GHC.Stack.Types (HasCallStack)
 import Paths_plutip (getDataFileName)
-import Test.Plutip.Config (PlutipConfig (budgetMultiplier, chainIndexPort, clusterDataDir, clusterWorkingDir, relayNodeLogs))
+import Test.Plutip.Config (
+  PlutipConfig (
+    budgetMultiplier,
+    chainIndexPort,
+    clusterDataDir,
+    clusterWorkingDir,
+    relayNodeLogs
+  ),
+  WorkingDirectory (Fixed, Temporary),
+ )
 import Text.Printf (printf)
 
 -- | Starting a cluster with a setup action
@@ -159,12 +168,12 @@ withDirectory ::
   m a
 withDirectory conf tr pathName action =
   case clusterWorkingDir conf of
-    Nothing -> withSystemTempDir tr pathName action
-    Just path -> do
+    Temporary -> withSystemTempDir tr pathName action
+    Fixed path shouldKeep -> do
       canonPath <- liftIO $ canonicalizePath path
       liftIO $ createDirectoryIfMissing False canonPath
       res <- action canonPath
-      liftIO $ removeDirectory canonPath
+      unless shouldKeep $ liftIO $ removeDirectory canonPath
       return res
 
 -- Do all the program setup required for running the local cluster, create a

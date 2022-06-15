@@ -1,10 +1,13 @@
 module Test.Plutip.Config (
   PlutipConfig (..),
+  WorkingDirectory (..),
 ) where
 
 import Data.Default (Default, def)
 import GHC.Generics (Generic)
 import GHC.Natural (Natural)
+
+data WorkingDirectory = Temporary | Fixed {path :: FilePath, shouldKeep :: Bool}
 
 -- | Plutip configurable options
 --
@@ -18,10 +21,10 @@ data PlutipConfig = PlutipConfig
     chainIndexPort :: Maybe Natural
   , -- | Multiplier on all BPI transaction budgets
     budgetMultiplier :: Rational
-  , -- | cluster file location override
-    clusterWorkingDir :: Maybe FilePath
+  , -- | cluster file location override, when provided, includes a `shouldKeep`
+    clusterWorkingDir :: WorkingDirectory
   }
   deriving stock (Generic)
 
 instance Default PlutipConfig where
-  def = PlutipConfig Nothing Nothing Nothing 1 Nothing
+  def = PlutipConfig Nothing Nothing Nothing 1 Temporary

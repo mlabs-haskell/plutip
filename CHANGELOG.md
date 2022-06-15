@@ -11,11 +11,13 @@ This format is based on [Keep A Changelog](https://keepachangelog.com/en/1.0.0).
   - Ability to set to set custom port for `chain-idex`
   - Ability to set custom directory for cluster data files
   - Ability to set the working directory of the node, chain index and BPI. Also specify if said directory should be cleared.
+  - Ability to set budget multiplier on estimated budget for rare case of incorrect estimation
 - Default cluster data files delivered via `data-files` package property
 - Contract execution result returns current contract state for failure cases too
 - Implementing tasty integration
   - Group together contract executions inside a common cluster using `withCluster`
   - Construct test cases from initial wallet distribution, contracts and assertions with `assertExecution`
+  - Display contract execution logs with `assertExecutionWith` with tracing options
   - Run multiple contracts in sequence using `withContract` and `withContractAs`
   - Assertions for testing contract execution result (success and failures) and contract state:
     - `shouldSucceed`

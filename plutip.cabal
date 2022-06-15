@@ -75,6 +75,7 @@ common common-imports
     , transformers-except
     , typed-process
     , unliftio
+    , unliftio-core
     , uuid
 
 common common-language

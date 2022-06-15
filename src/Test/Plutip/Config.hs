@@ -18,8 +18,10 @@ data PlutipConfig = PlutipConfig
     chainIndexPort :: Maybe Natural
   , -- | Multiplier on all BPI transaction budgets
     budgetMultiplier :: Rational
+  , -- | cluster file location override
+    clusterWorkingDir :: Maybe FilePath
   }
   deriving stock (Generic)
 
 instance Default PlutipConfig where
-  def = PlutipConfig Nothing Nothing Nothing 1
+  def = PlutipConfig Nothing Nothing Nothing 1 Nothing

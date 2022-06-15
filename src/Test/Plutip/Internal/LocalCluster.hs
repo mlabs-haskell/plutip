@@ -161,9 +161,10 @@ withDirectory conf tr pathName action =
   case clusterWorkingDir conf of
     Nothing -> withSystemTempDir tr pathName action
     Just path -> do
-      liftIO $ createDirectoryIfMissing False path
-      res <- action path
-      liftIO $ removeDirectory path
+      canonPath <- liftIO $ canonicalizePath path
+      liftIO $ createDirectoryIfMissing False canonPath
+      res <- action canonPath
+      liftIO $ removeDirectory canonPath
       return res
 
 -- Do all the program setup required for running the local cluster, create a

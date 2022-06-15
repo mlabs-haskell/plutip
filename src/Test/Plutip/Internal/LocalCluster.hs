@@ -32,7 +32,7 @@ import Plutus.ChainIndex.Config (ChainIndexConfig (cicNetworkId, cicPort), cicDb
 import Plutus.ChainIndex.Config qualified as ChainIndex
 import Plutus.ChainIndex.Logging (defaultConfig)
 import Servant.Client (BaseUrl (BaseUrl), Scheme (Http))
-import System.Directory (copyFile, createDirectoryIfMissing, findExecutable, removeDirectory)
+import System.Directory (canonicalizePath, copyFile, createDirectoryIfMissing, findExecutable, removeDirectory)
 import System.Environment (setEnv)
 import System.Exit (die)
 import System.FilePath ((</>))

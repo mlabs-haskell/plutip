@@ -10,7 +10,7 @@ import BotPlutusInterface.Types (
   CLILocation (Local),
   ContractEnvironment (ContractEnvironment),
   ContractState (ContractState, csObservableState),
-  LogLevel (Info),
+  LogLevel (Error),
   PABConfig (
     PABConfig,
     pcChainIndexUrl,
@@ -28,8 +28,10 @@ import BotPlutusInterface.Types (
     pcTipPollingInterval,
     pcTxFileDir
   ),
+  ceContractLogs,
   ceContractState,
   ceContractStats,
+  pcCollectLogs,
   pcCollectStats,
   pcMetadataDir,
   pcOwnStakePubKeyHash,
@@ -87,6 +89,7 @@ runContract cEnv bpiWallet contract = do
         <$> UUID.nextRandom
         <*> newTVarIO (ContractState Active (mempty :: w))
         <*> newTVarIO mempty
+        <*> newTVarIO mempty
 
     mkPabConfig pparams =
       PABConfig
@@ -99,15 +102,15 @@ runContract cEnv bpiWallet contract = do
         , pcTxFileDir = Text.pack $ BIS.txsDir cEnv
         , pcDryRun = False
         , pcProtocolParamsFile = Text.pack $ BIS.pParamsFile cEnv
-        , pcLogLevel = Info
-        , -- , pcForceBudget = bpiForceBudget cEnv
-          pcOwnPubKeyHash = walletPkh bpiWallet
+        , pcLogLevel = Error
+        , pcOwnPubKeyHash = walletPkh bpiWallet
         , pcOwnStakePubKeyHash = Nothing
         , pcTipPollingInterval = 1_000_000
         , pcPort = 9080
         , pcEnableTxEndpoint = False
         , pcMetadataDir = Text.pack $ BIS.metadataDir cEnv
         , pcCollectStats = True
+        , pcCollectLogs = True
         }
 
     runContract' :: ContractEnvironment w -> m (ExecutionResult w e a)
@@ -124,4 +127,5 @@ runContract cEnv bpiWallet contract = do
 
       endState <- liftIO (readTVarIO $ ceContractState contractEnv)
       stats <- liftIO (readTVarIO $ ceContractStats contractEnv)
-      return $ partialResult stats (csObservableState endState)
+      logs <- liftIO (readTVarIO $ ceContractLogs contractEnv)
+      return $ partialResult stats (csObservableState endState) logs

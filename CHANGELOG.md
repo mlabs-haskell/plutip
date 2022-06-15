@@ -15,6 +15,7 @@ This format is based on [Keep A Changelog](https://keepachangelog.com/en/1.0.0).
 - Implementing tasty integration
   - Group together contract executions inside a common cluster using `withCluster`
   - Construct test cases from initial wallet distribution, contracts and assertions with `assertExecution`
+  - Display contract execution logs with `assertExecutionWith` with tracing options
   - Run multiple contracts in sequence using `withContract` and `withContractAs`
   - Assertions for testing contract execution result (success and failures) and contract state:
     - `shouldSucceed`

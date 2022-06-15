@@ -10,7 +10,7 @@ module Test.Plutip.Internal.Types (
   budgets,
 ) where
 
-import BotPlutusInterface.Types (ContractStats, TxBudget, estimatedBudgets)
+import BotPlutusInterface.Types (ContractStats, LogsList, TxBudget, estimatedBudgets)
 import Cardano.Api (NetworkId)
 import Cardano.BM.Tracing (Trace)
 import Cardano.Launcher.Node (CardanoNodeConn)
@@ -48,6 +48,8 @@ data ExecutionResult w e a = ExecutionResult
     txStats :: ContractStats
   , -- | `Contract` observable state after execution (or up to the point where it failed)
     contractState :: w
+  , -- | Logs collected by bpi, mostly pab requests/responses
+    contractLogs :: LogsList
   }
   deriving stock (Show)
 

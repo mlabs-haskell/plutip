@@ -39,6 +39,13 @@
 --  wallet inside the contract, the following callback function is used together with `withContract`:
 --  @[PaymentPubKeyHash] -> Contract w s e a@.
 --
+-- To display information useful for debugging together with test results use `assertExecutionWith`
+-- and provide it with options:
+--
+--    - ShowBudgets, for displaying transaction execution budgets
+--    - ShowTrace, for displaying contract execution trace
+--    - ShowTraceButOnlyContext, like ShowTrace but filter what to show
+--
 --  Note that @[PaymentPubKeyHash]@ does not include the contract's own wallet,
 --  for that you can use `Plutus.Contract.ownPaymentPubKeyHash` inside the Contract monad.
 --
@@ -62,7 +69,9 @@
 --  When contract supplied to test with `withContractAs`, wallet with provided index (0 based)
 --  will be used as "own" wallet, e.g.:
 --
---    > assertExecution  "Send some Ada"
+--    > assertExecutionWith
+--    >   [ShowBudgets, ShowTraceButOnlyContext ContractLog Error]
+--    >   "Send some Ada"
 --    >   (initAda 100 <> initAda 101 <> initAda 102)
 --    >   (withContractAs 1 $ \[pkh0, pkh2] ->
 --    >     payToPubKey pkh1 (Ada.lovelaceValueOf amt))
@@ -74,6 +83,7 @@
 --    - wallet with 101 Ada will be used as own wallet to run the contract
 --    - `pkh0` - `PaymentPubKeyHash` of wallet with 100 Ada
 --    - `pkh2` - `PaymentPubKeyHash` of wallet with 102 Ada
+--    - test result will additionaly show budget calculations and execution trace (but only contract logs)
 --
 --
 --  If you have multiple contracts depending on each other, you can chain them together using
@@ -114,9 +124,11 @@ module Test.Plutip.Contract (
   ValueOrdering (VEq, VGt, VLt, VGEq, VLEq),
   assertValues,
   assertExecution,
+  assertExecutionWith,
   ada,
 ) where
 
+import BotPlutusInterface.Types (LogContext, LogLevel, LogsList (getLogsList))
 import Control.Arrow (left)
 import Control.Monad (void)
 import Control.Monad.Reader (MonadIO (liftIO), MonadReader (ask), ReaderT, runReaderT)
@@ -132,6 +144,8 @@ import Ledger (PaymentPubKeyHash)
 import Ledger.Address (pubKeyHashAddress)
 import Ledger.Value (Value)
 import Plutus.Contract (Contract, waitNSlots)
+import PlutusPrelude (render)
+import Prettyprinter (Doc, Pretty (pretty), vcat, (<+>))
 import Test.Plutip.Contract.Init (
   initAda,
   initAdaAssertValue,
@@ -156,18 +170,16 @@ import Test.Plutip.Internal.BotPlutusInterface.Run (runContract)
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet, ledgerPaymentPkh)
 import Test.Plutip.Internal.Types (
   ClusterEnv,
-  ExecutionResult (outcome),
+  ExecutionResult (contractLogs, outcome),
   budgets,
  )
-import Test.Plutip.Options (TxBudgetsReporting (OmitReport, VerboseReport))
+import Test.Plutip.Options (TraceOption (ShowBudgets, ShowTrace, ShowTraceButOnlyContext))
 import Test.Plutip.Predicate (Predicate, noBudgetsMessage, pTag)
+import Test.Plutip.Tools (ada)
 import Test.Plutip.Tools.Format (fmtTxBudgets)
-import Test.Tasty (askOption, testGroup, withResource)
+import Test.Tasty (testGroup, withResource)
 import Test.Tasty.HUnit (assertFailure, testCase)
 import Test.Tasty.Providers (IsTest (run, testOptions), TestTree, singleTest, testPassed)
-import Test.Tasty.Runners (TestTree (TestGroup))
-
-import Test.Plutip.Tools (ada)
 
 type TestRunner (w :: Type) (e :: Type) (a :: Type) =
   ReaderT (ClusterEnv, NonEmpty BpiWallet) IO (ExecutionResult w e (a, NonEmpty Value))
@@ -194,22 +206,45 @@ assertExecution ::
   TestRunner w e a ->
   [Predicate w e a] ->
   (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
-assertExecution tag testWallets testRunner predicates =
+assertExecution = assertExecutionWith mempty
+
+-- | Version of assertExecution parametrised with a list of extra TraceOption's.
+--
+-- > assertExecutionWith [ShowTrace, ShowBudgets]
+--
+-- to print additional transaction budget calculations and contract execution logs
+assertExecutionWith ::
+  forall (w :: Type) (e :: Type) (a :: Type).
+  TestContractConstraints w e a =>
+  [TraceOption] ->
+  String ->
+  TestWallets ->
+  TestRunner w e a ->
+  [Predicate w e a] ->
+  (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
+assertExecutionWith options tag testWallets testRunner predicates =
   (testWallets, toTestGroup)
   where
     toTestGroup ioEnv =
       withResource (runReaderT testRunner =<< ioEnv) (const $ pure ()) $
         \ioRes ->
-          handleStatsPrinting ioRes $
-            testGroup tag $
-              maybeAddValuesCheck
-                ioRes
-                testWallets
-                (toCase ioRes <$> predicates)
+          testGroup tag $
+            maybeAddValuesCheck
+              ioRes
+              testWallets
+              ((toCase ioRes <$> predicates) <> ((`optionToTestTree` ioRes) <$> options))
 
     -- wraps IO with result of contract execution into single test
     toCase ioRes p =
       singleTest (pTag p) (TestContract p ioRes)
+
+    optionToTestTree = \case
+      ShowBudgets -> singleTest "Budget stats" . StatsReport
+      ShowTrace -> singleTest logsName . LogsReport DisplayAllTrace
+      ShowTraceButOnlyContext logCtx logLvl ->
+        singleTest logsName . LogsReport (DisplayOnlyFromContext logCtx logLvl)
+
+    logsName = "BPI logs (PAB requests/responses)"
 
 -- | Adds test case with assertions on values if any assertions were added
 --  by `initAndAssert...` functions during wallets setup
@@ -285,22 +320,6 @@ wrapContract bpiWallets contract = do
   values <- traverse (valueAt . (`pubKeyHashAddress` Nothing)) walletPkhs
   pure (res, values)
 
--- A way print stats
--- not exported, not made to be accessible by user directly
-handleStatsPrinting ::
-  forall (w :: Type) (e :: Type) (a :: Type).
-  TestContractConstraints w e a =>
-  IO (ExecutionResult w e (a, NonEmpty Value)) ->
-  TestTree ->
-  TestTree
-handleStatsPrinting ioRes tree = askOption $ \case
-  OmitReport -> tree
-  VerboseReport -> case tree of
-    TestGroup name cases -> TestGroup name (cases ++ [statsPrinter])
-    _ -> tree
-  where
-    statsPrinter = singleTest "Contract stats" (StatsReport ioRes)
-
 newtype StatsReport w e a = StatsReport (IO (ExecutionResult w e (a, NonEmpty Value)))
 
 instance
@@ -314,5 +333,36 @@ instance
       mkDescription runRes =
         let bs = budgets runRes
          in bool (fmtTxBudgets bs) noBudgetsMessage (null bs)
+
+  testOptions = Tagged []
+
+-- | Test case used internally for logs printing.
+data LogsReport w e a = LogsReport LogsReportOption (IO (ExecutionResult w e (a, NonEmpty Value)))
+
+-- | TraceOption stripped to what LogsReport wants to know.
+data LogsReportOption
+  = -- | Display all logs collected by BPI during contract execution.
+    DisplayAllTrace
+  | -- | Display filtered logs
+    DisplayOnlyFromContext
+      LogContext
+      -- ^ upper bound on LogLevel
+      LogLevel
+
+instance
+  forall (w :: Type) (e :: Type) (a :: Type).
+  TestContractConstraints w e a =>
+  IsTest (LogsReport w e a)
+  where
+  run _ (LogsReport option ioRes) _ =
+    testPassed . ppShowLogs <$> ioRes
+    where
+      ppShowLogs = render . vcat . zipWith indexedMsg [0 ..] . map (\(_, _, msg) -> msg) . filterOrDont . getLogsList . contractLogs
+      filterOrDont = case option of
+        DisplayAllTrace -> id -- don't
+        DisplayOnlyFromContext logCtx logLvl -> filter (\(ctx, lvl, _) -> ctx == logCtx && logLvl >= lvl)
+
+      indexedMsg :: Int -> Doc ann -> Doc ann
+      indexedMsg i msg = pretty i <> pretty ("." :: String) <+> msg
 
   testOptions = Tagged []

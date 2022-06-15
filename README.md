@@ -21,18 +21,34 @@ tests :: TestTree
 tests =
   withCluster
     "Integration tests"
-    [ shouldSucceed "Get utxos" (initAndAssertAda 100 100) $ withContract $ const GetUtxos.getUtxos
-    , shouldFail "Throws Contract error" (initAda 100) $ withContract $ const GetUtxos.getUtxosThrowsErr
-    , shouldFail "Throws Exception" (initAda 100) $ withContract $ const GetUtxos.getUtxosThrowsEx
-    , shouldSucceed
+    [ assertExecution "Get utxos" (initAndAssertAda 100 100)
+        (withContract $ const GetUtxos.getUtxos)
+        [shouldSucceed]
+    , assertExecution "Throws Contract error" (initAda 100)
+        (withContract $ const GetUtxos.getUtxosThrowsErr)
+        [shouldFail]
+    , assertExecution "Throws Exception" (initAda 100)
+        (withContract $ const GetUtxos.getUtxosThrowsEx)
+        [shouldFail]
+    , assertExecution
         "Pay wallet-to-wallet"
         (initAda 300 <> initAndAssertAda 100 110)
-        $ withContract $ \[w1] ->
-          PayToWallet.payTo (ledgerPaymentPkh w1) 10_000_000
-    , shouldFail "Lock at script then spend - budget overspend" (initAda 100) $ withContract $
-        const LockUnlock.lockThenSpend
-    , shouldFail "Lock at script then spend - validation fail" (initAda 100) $ withContract $
-        const LockUnlockValidationFail.lockThenSpend
+        (withContract $ \[w1] ->
+          PayToWallet.payTo (ledgerPaymentPkh w1) 10_000_000)
+        [shouldSuceed]
+    , assertExecution
+        "Lock at script then spend - budget overspend"
+        (initAda 100)
+        (withContract $
+          const LockUnlock.lockThenSpend)
+        [shouldFail]
+    , assertExecutionWith
+        [ShowTrace, ShowBudgets]
+        "Lock at script then spend - validation fail"
+        (initAda 100)
+        (withContract $
+          const LockUnlockValidationFail.lockThenSpend)
+        [shouldFail]
     ]
 ```
 

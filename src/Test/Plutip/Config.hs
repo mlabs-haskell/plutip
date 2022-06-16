@@ -7,7 +7,20 @@ import Data.Default (Default, def)
 import GHC.Generics (Generic)
 import GHC.Natural (Natural)
 
-data WorkingDirectory = Temporary | Fixed {path :: FilePath, shouldKeep :: Bool}
+-- | Configuration for the cluster working directory
+-- This determines where the node database, chain-index database, and bot-plutus-interface files will be stored for a running cluster
+--
+-- @since 0.2
+data WorkingDirectory
+  = -- | Stored in a temporary directory, deleted on cluster shutdown
+    Temporary
+  | -- | Stored in a set directory
+    Fixed
+      { -- | Path to store cluster data, can be relative or absolute
+        path :: FilePath
+      , -- | Should the working data be kept on disk after cluster shutdown. Full directory will be deleted on shutdown if False
+        shouldKeep :: Bool
+      }
 
 -- | Plutip configurable options
 --

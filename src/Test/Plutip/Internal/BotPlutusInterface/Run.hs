@@ -103,7 +103,6 @@ runContract cEnv bpiWallet contract = do
         , pcTxFileDir = Text.pack $ BIS.txsDir cEnv
         , pcDryRun = False
         , pcProtocolParamsFile = Text.pack $ BIS.pParamsFile cEnv
-        , pcLogLevel = Info
         , pcLogLevel = Error
         , pcOwnPubKeyHash = walletPkh bpiWallet
         , pcOwnStakePubKeyHash = Nothing

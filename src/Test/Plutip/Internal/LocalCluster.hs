@@ -171,9 +171,10 @@ withDirectory conf tr pathName action =
     Temporary -> withSystemTempDir tr pathName action
     Fixed path shouldKeep -> do
       canonPath <- liftIO $ canonicalizePath path
+      liftIO $ doesPathExist canonPath >>= (`when` removeDirectoryRecursive canonPath)
       liftIO $ createDirectoryIfMissing False canonPath
       res <- action canonPath
-      unless shouldKeep $ liftIO $ removeDirectory canonPath
+      unless shouldKeep $ liftIO $ removeDirectoryRecursive canonPath
       return res
 
 -- Do all the program setup required for running the local cluster, create a

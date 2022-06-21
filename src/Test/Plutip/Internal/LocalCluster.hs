@@ -16,7 +16,7 @@ import Cardano.BM.Data.Tracer (HasPrivacyAnnotation, HasSeverityAnnotation (getS
 import Cardano.CLI (LogOutput (LogToFile), withLoggingNamed)
 import Cardano.Wallet.Shelley.Launch.Cluster (ClusterLog, localClusterConfigFromEnv, testMinSeverityFromEnv, walletMinSeverityFromEnv, withCluster)
 import Control.Concurrent.Async (async)
-import Control.Monad (unless, void)
+import Control.Monad (unless, void, when)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.IO.Unlift (MonadUnliftIO)
 import Control.Monad.Reader (ReaderT (runReaderT))
@@ -32,7 +32,7 @@ import Plutus.ChainIndex.Config (ChainIndexConfig (cicNetworkId, cicPort), cicDb
 import Plutus.ChainIndex.Config qualified as ChainIndex
 import Plutus.ChainIndex.Logging (defaultConfig)
 import Servant.Client (BaseUrl (BaseUrl), Scheme (Http))
-import System.Directory (canonicalizePath, copyFile, createDirectoryIfMissing, findExecutable, removeDirectory)
+import System.Directory (canonicalizePath, copyFile, createDirectoryIfMissing, doesPathExist, findExecutable, removeDirectoryRecursive)
 import System.Environment (setEnv)
 import System.Exit (die)
 import System.FilePath ((</>))
@@ -171,9 +171,10 @@ withDirectory conf tr pathName action =
     Temporary -> withSystemTempDir tr pathName action
     Fixed path shouldKeep -> do
       canonPath <- liftIO $ canonicalizePath path
+      liftIO $ doesPathExist canonPath >>= (`when` removeDirectoryRecursive canonPath)
       liftIO $ createDirectoryIfMissing False canonPath
       res <- action canonPath
-      unless shouldKeep $ liftIO $ removeDirectory canonPath
+      unless shouldKeep $ liftIO $ removeDirectoryRecursive canonPath
       return res
 
 -- Do all the program setup required for running the local cluster, create a

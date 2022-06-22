@@ -29,6 +29,7 @@ import BotPlutusInterface.Types (
     pcTipPollingInterval,
     pcTxFileDir
   ),
+  TxStatusPolling (TxStatusPolling),
   ceContractLogs,
   ceContractState,
   ceContractStats,
@@ -36,6 +37,7 @@ import BotPlutusInterface.Types (
   pcCollectStats,
   pcMetadataDir,
   pcOwnStakePubKeyHash,
+  pcTxStatusPolling,
  )
 import Control.Concurrent.STM (newTVarIO, readTVarIO)
 import Control.Exception (try)
@@ -113,6 +115,7 @@ runContract cEnv bpiWallet contract = do
         , pcCollectStats = True
         , pcCollectLogs = True
         , pcBudgetMultiplier = bpiBudgetMultiplier cEnv
+        , pcTxStatusPolling = TxStatusPolling 500_000 8
         }
 
     runContract' :: ContractEnvironment w -> m (ExecutionResult w e a)

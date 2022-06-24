@@ -134,7 +134,7 @@ import Control.Monad (void)
 import Control.Monad.Reader (MonadIO (liftIO), MonadReader (ask), ReaderT, runReaderT)
 import Data.Bool (bool)
 import Data.Kind (Type)
-import Data.List.NonEmpty (NonEmpty ((:|)))
+import Data.List.NonEmpty (NonEmpty)
 import Data.List.NonEmpty qualified as NonEmpty
 import Data.Maybe (isJust)
 import Data.Row (Row)
@@ -295,13 +295,27 @@ withContractAs ::
   TestRunner w e a
 withContractAs walletIdx toContract = do
   (cEnv, wallets') <- ask
-  let wallets@(ownWallet :| otherWallets) = reorder walletIdx wallets'
-  let contract = wrapContract wallets (toContract (map ledgerPaymentPkh otherWallets))
+  let -- pick wallet for Contract's "own PKH", other wallets PKHs will be provided
+      -- to the user in `withContractAs`
+      (ownWallet, otherWallets) = separateWallets walletIdx wallets'
+
+      {- these are `PaymentPubKeyHash`es of all wallets used in test case
+      they stay in list is same order as `TestWallets` defined in test case
+      so collected Values will be in same order as well
+      it is important to preserve this order for Values check with `assertValues`
+      as there is no other mechanism atm to match `TestWallet` with collected `Value`
+      -}
+
+      collectValuesPkhs = fmap ledgerPaymentPkh wallets'
+      contract =
+        wrapContract
+          collectValuesPkhs
+          (toContract $ map ledgerPaymentPkh otherWallets)
   liftIO $ runContract cEnv ownWallet contract
   where
-    reorder i xss = case NonEmpty.splitAt i xss of
-      (xs, y : ys) -> y :| xs ++ ys
-      _ -> error $ "Should fail: bad wallet index for own wallet: " <> show i
+    separateWallets i xss
+      | (xs, y : ys) <- NonEmpty.splitAt i xss = (y, xs ++ ys)
+      | otherwise = error $ "Should fail: bad wallet index for own wallet: " <> show i
 
 -- | Wrap test contracts to wait for transaction submission and
 -- to get the utxo amount at test wallets and wait for transaction.
@@ -310,14 +324,13 @@ withContractAs walletIdx toContract = do
 wrapContract ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
   TestContractConstraints w e a =>
-  NonEmpty BpiWallet ->
+  NonEmpty PaymentPubKeyHash ->
   Contract w s e a ->
   Contract w s e (a, NonEmpty Value)
-wrapContract bpiWallets contract = do
+wrapContract collectValuesPkhs contract = do
   res <- contract
   void $ waitNSlots 1
-  let walletPkhs = fmap ledgerPaymentPkh bpiWallets
-  values <- traverse (valueAt . (`pubKeyHashAddress` Nothing)) walletPkhs
+  values <- traverse (valueAt . (`pubKeyHashAddress` Nothing)) collectValuesPkhs
   pure (res, values)
 
 newtype StatsReport w e a = StatsReport (IO (ExecutionResult w e (a, NonEmpty Value)))

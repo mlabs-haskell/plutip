@@ -357,7 +357,7 @@ instance
   run _ (LogsReport option ioRes) _ =
     testPassed . ppShowLogs <$> ioRes
     where
-      ppShowLogs = render . vcat . zipWith indexedMsg [0 ..] . map (\(_, _, msg) -> msg) . filterOrDont . getLogsList . contractLogs
+      ppShowLogs = render . vcat . zipWith indexedMsg [0 ..] . reverse . map (\(_, _, msg) -> msg) . filterOrDont . getLogsList . contractLogs
       filterOrDont = case option of
         DisplayAllTrace -> id -- don't
         DisplayOnlyFromContext logCtx logLvl -> filter (\(ctx, lvl, _) -> ctx == logCtx && logLvl >= lvl)

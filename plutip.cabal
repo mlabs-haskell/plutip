@@ -182,6 +182,7 @@ test-suite plutip-tests
     Spec.Test.Plutip.BotPlutusInterface
     Spec.TestContract.AlwaysFail
     Spec.TestContract.LockSpendMint
+    Spec.TestContract.SimpleContracts
     Spec.TestContract.ValidateTimeRange
 
   default-extensions:

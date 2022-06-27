@@ -4,14 +4,11 @@ import BotPlutusInterface.Types (LogContext (ContractLog), LogLevel (Debug))
 import Control.Exception (ErrorCall, Exception (fromException))
 import Control.Monad (void)
 import Data.Default (Default (def))
-
+import Data.List.NonEmpty (NonEmpty)
 import Data.Map qualified as Map
 import Data.Maybe (isJust)
 import Data.Text (Text, isInfixOf, pack)
-
 import Ledger.Constraints (MkTxError (OwnPubKeyMissing))
-
-import Data.List.NonEmpty (NonEmpty)
 import Plutus.Contract (
   ContractError (ConstraintResolutionContractError),
   waitNSlots,

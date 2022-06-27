@@ -48,7 +48,7 @@ getUtxosThrowsEx :: Contract () EmptySchema Text (Map TxOutRef ChainIndexTxOut)
 getUtxosThrowsEx = error "This Exception was thrown intentionally in Contract.\n"
 
 payTo :: PaymentPubKeyHash -> Integer -> Contract () EmptySchema Text CardanoTx
-payTo toPkh amt = do
+payTo toPkh amt =
   submitTx (Constraints.mustPayToPubKey toPkh (Ada.lovelaceValueOf amt))
 
 ownValue :: Contract [Value] EmptySchema Text Value

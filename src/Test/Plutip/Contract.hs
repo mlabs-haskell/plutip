@@ -305,16 +305,19 @@ withContractAs walletIdx toContract = do
       it is important to preserve this order for Values check with `assertValues`
       as there is no other mechanism atm to match `TestWallet` with collected `Value`
       -}
-
       collectValuesPkhs = fmap ledgerPaymentPkh wallets'
+
+      -- wallelt `PaymentPubKeyHash`es that will be available in
+      -- `withContract` and `withContractAs`
+      otherWalletsPkhs = fmap ledgerPaymentPkh otherWallets
       contract =
         wrapContract
           collectValuesPkhs
-          (toContract $ map ledgerPaymentPkh otherWallets)
+          (toContract otherWalletsPkhs)
   liftIO $ runContract cEnv ownWallet contract
   where
     separateWallets i xss
-      | (xs, y : ys) <- NonEmpty.splitAt i xss = (y, xs ++ ys)
+      | (xs, y : ys) <- NonEmpty.splitAt i xss = (y, xs <> ys)
       | otherwise = error $ "Should fail: bad wallet index for own wallet: " <> show i
 
 -- | Wrap test contracts to wait for transaction submission and

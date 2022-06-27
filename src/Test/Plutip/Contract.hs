@@ -355,12 +355,21 @@ instance
   IsTest (LogsReport w e a)
   where
   run _ (LogsReport option ioRes) _ =
-    testPassed . ppShowLogs <$> ioRes
+    testPassed . ppShowLogs . contractLogs <$> ioRes
     where
-      ppShowLogs = render . vcat . zipWith indexedMsg [0 ..] . reverse . map (\(_, _, msg) -> msg) . filterOrDont . getLogsList . contractLogs
+      ppShowLogs =
+        render
+          . vcat
+          . zipWith indexedMsg [0 ..]
+          . reverse -- `bpi` collects logs in reversed order adding to head of the `List`
+          . map (\(_, _, msg) -> msg)
+          . filterOrDont
+          . getLogsList
       filterOrDont = case option of
-        DisplayAllTrace -> id -- don't
-        DisplayOnlyFromContext logCtx logLvl -> filter (\(ctx, lvl, _) -> ctx == logCtx && logLvl >= lvl)
+        DisplayAllTrace ->
+          id -- don't
+        DisplayOnlyFromContext logCtx logLvl ->
+          filter (\(ctx, lvl, _) -> ctx == logCtx && logLvl >= lvl)
 
       indexedMsg :: Int -> Doc ann -> Doc ann
       indexedMsg i msg = pretty i <> pretty ("." :: String) <+> msg

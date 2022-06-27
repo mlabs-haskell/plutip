@@ -36,13 +36,13 @@
       }];
 
       haskellModules = bot-plutus-interface.haskellModules ++ [
-        ({ config, pkgs, ... }:{
+        ({ config, pkgs, ... }: {
           packages.plutip.components.tests."plutip-tests".build-tools = [
             config.hsPkgs.cardano-cli.components.exes.cardano-cli
             config.hsPkgs.cardano-node.components.exes.cardano-node
           ];
           packages.plutip.components.exes.local-cluster = {
-            pkgconfig = [[ pkgs.makeWrapper ]];
+            pkgconfig = [ [ pkgs.makeWrapper ] ];
             postInstall = with pkgs; ''
               wrapProgram $out/bin/local-cluster \
                 --prefix PATH : "${lib.makeBinPath [
@@ -117,28 +117,34 @@
       devShell = perSystem (system: self.flake.${system}.devShell);
 
       # This will build all of the project's executables and the tests
-      check = perSystem (system:
-        (nixpkgsFor system).runCommand "combined-check"
-          {
-            nativeBuildInputs = builtins.attrValues self.checks.${system}
-              ++ builtins.attrValues self.flake.${system}.packages
-              ++ [ self.devShell.${system}.inputDerivation self.devShell.${system}.nativeBuildInputs ];
-          } ''
-          cd ${self}
-          export LC_CTYPE=C.UTF-8
-          export LC_ALL=C.UTF-8
-          export LANG=C.UTF-8
-          export IN_NIX_SHELL='pure'
-          make format_check cabalfmt_check nixpkgsfmt_check lint
-          mkdir $out
-        '');
+      check = perSystem
+        (system:
+          (nixpkgsFor system).runCommand "combined-check"
+            {
+              nativeBuildInputs = builtins.attrValues self.checks.${system}
+                ++ builtins.attrValues self.flake.${system}.packages;
+            } ''mkdir $out''
+        );
 
-      # NOTE `nix flake check` will not work at the moment due to use of
-      # IFD in haskell.nix
-      #
-      # Includes all of the packages in the `checks`, otherwise only the
-      # test suite would be included
-      checks = perSystem (system: self.flake.${system}.checks);
+      checks = perSystem (system:
+        self.flake.${system}.checks // {
+          formatting = (nixpkgsFor system).runCommand "formatting-check"
+            {
+              nativeBuildInputs = [
+                self.devShell.${system}.inputDerivation
+                self.devShell.${system}.nativeBuildInputs
+              ];
+            }
+            ''
+              cd ${self}
+              export LC_CTYPE=C.UTF-8
+              export LC_ALL=C.UTF-8
+              export LANG=C.UTF-8
+              export IN_NIX_SHELL='pure'
+              make format_check cabalfmt_check nixpkgsfmt_check lint
+              mkdir $out
+            '';
+        });
 
       herculesCI.ciSystems = [ "x86_64-linux" ];
     };

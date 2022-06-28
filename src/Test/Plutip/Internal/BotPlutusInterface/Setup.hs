@@ -8,19 +8,19 @@ module Test.Plutip.Internal.BotPlutusInterface.Setup (
   metadataDir,
 ) where
 
-import Cardano.Launcher.Node (nodeSocketFile)
-import Data.Aeson (encodeFile)
-import System.Directory (createDirectoryIfMissing, doesDirectoryExist)
-import System.Environment (setEnv)
-import System.FilePath ((</>))
-import Test.Plutip.Internal.Types (ClusterEnv (supportDir, plutipConf), nodeSocket)
-import Test.Plutip.Tools.CardanoApi (queryProtocolParams)
 import Cardano.Api (AsType (AsPaymentKey, AsSigningKey), Error (displayError))
 import Cardano.Api qualified as CAPI
+import Cardano.Launcher.Node (nodeSocketFile)
+import Data.Aeson (encodeFile)
 import Data.Foldable (traverse_)
 import Plutus.V1.Ledger.Api (PubKeyHash (PubKeyHash))
 import PlutusTx.Builtins qualified as PlutusTx
-import Test.Plutip.Config (PlutipConfig(extraSigners))
+import System.Directory (createDirectoryIfMissing, doesDirectoryExist)
+import System.Environment (setEnv)
+import System.FilePath ((</>))
+import Test.Plutip.Config (PlutipConfig (extraSigners))
+import Test.Plutip.Internal.Types (ClusterEnv (plutipConf, supportDir), nodeSocket)
+import Test.Plutip.Tools.CardanoApi (queryProtocolParams)
 
 workDir' :: FilePath
 workDir' = "bot-plutus-interface"
@@ -62,7 +62,7 @@ runSetup cEnv = do
       case ps of
         Left e -> error $ show e
         Right params -> encodeFile (pParamsFile cEnv) params
-    
+
     addExtraSigner = \case
       (Left sKeyPath) -> do
         res <- CAPI.readFileTextEnvelope (AsSigningKey AsPaymentKey) sKeyPath

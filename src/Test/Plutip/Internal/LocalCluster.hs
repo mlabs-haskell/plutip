@@ -43,9 +43,10 @@ import Test.Plutip.Internal.Types (
     ClusterEnv,
     chainIndexUrl,
     networkId,
+    plutipConf,
     runningNode,
     supportDir,
-    tracer, plutipConf
+    tracer
   ),
   RunningNode (RunningNode),
  )

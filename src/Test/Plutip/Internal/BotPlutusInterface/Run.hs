@@ -87,7 +87,7 @@ runContract = runContractWithLogLvl Error
 -- | "By default" contracts a being run with `runContract` with maximum severity
 -- and logs are collected by framework and can be obtained from `ExecutionResult`,
 -- but when working with Plutip in interactive mode it is often useful to
--- observe (or demonstrate) live logs. This function provides possibility to 
+-- observe (or demonstrate) live logs. This function provides possibility to
 -- obtain this functionality and see live logs by setting desired log level.
 runContractWithLogLvl ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (m :: Type -> Type).
@@ -152,5 +152,9 @@ runContractWithLogLvl logLvl cEnv bpiWallet contract = do
 
       endState <- liftIO (readTVarIO $ ceContractState contractEnv)
       stats <- liftIO (readTVarIO $ ceContractStats contractEnv)
-      logs <- liftIO (readTVarIO $ ceContractLogs contractEnv)
+      logs <-
+        -- `bpi` collects logs in reversed order adding entries to the head of the `List`
+        -- we need them user-friendly-reversed
+        Bpi.LogsList . reverse . Bpi.getLogsList
+          <$> liftIO (readTVarIO $ ceContractLogs contractEnv)
       return $ partialResult stats (csObservableState endState) logs

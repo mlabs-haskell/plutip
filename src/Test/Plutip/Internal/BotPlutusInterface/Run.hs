@@ -55,11 +55,12 @@ import Plutus.PAB.Core.ContractInstance.STM (Activity (Active))
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BIS
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet (walletPkh))
 import Test.Plutip.Internal.Types (
-  ClusterEnv (bpiBudgetMultiplier, chainIndexUrl, networkId),
+  ClusterEnv (chainIndexUrl, networkId, plutipConf),
   ExecutionResult (ExecutionResult),
   FailureReason (CaughtException, ContractExecutionError),
  )
 import Wallet.Types (ContractInstanceId (ContractInstanceId))
+import Test.Plutip.Config (PlutipConfig(budgetMultiplier))
 
 runContract_ ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (m :: Type -> Type).
@@ -114,7 +115,7 @@ runContract cEnv bpiWallet contract = do
         , pcMetadataDir = Text.pack $ BIS.metadataDir cEnv
         , pcCollectStats = True
         , pcCollectLogs = True
-        , pcBudgetMultiplier = bpiBudgetMultiplier cEnv
+        , pcBudgetMultiplier = budgetMultiplier (plutipConf cEnv)
         , pcTxStatusPolling = TxStatusPolling 500_000 8
         }
 

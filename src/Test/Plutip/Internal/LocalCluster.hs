@@ -41,12 +41,11 @@ import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BotSetup
 import Test.Plutip.Internal.Types (
   ClusterEnv (
     ClusterEnv,
-    bpiBudgetMultiplier,
     chainIndexUrl,
     networkId,
     runningNode,
     supportDir,
-    tracer
+    tracer, plutipConf
   ),
   RunningNode (RunningNode),
  )
@@ -60,7 +59,6 @@ import GHC.Stack.Types (HasCallStack)
 import Paths_plutip (getDataFileName)
 import Test.Plutip.Config (
   PlutipConfig (
-    budgetMultiplier,
     chainIndexPort,
     clusterDataDir,
     clusterWorkingDir,
@@ -140,7 +138,7 @@ withPlutusInterface conf action = do
               , networkId = CAPI.Mainnet
               , supportDir = dir
               , tracer = trCluster
-              , bpiBudgetMultiplier = budgetMultiplier conf
+              , plutipConf = conf
               }
 
       BotSetup.runSetup cEnv -- run preparations to use `bot-plutus-interface`

@@ -21,6 +21,7 @@ import Data.Map (Map)
 import Data.Text (Text)
 import Ledger qualified
 import Servant.Client (BaseUrl)
+import Test.Plutip.Config ( PlutipConfig )
 
 -- | Environment for actions that use local cluster
 data ClusterEnv = ClusterEnv
@@ -31,12 +32,12 @@ data ClusterEnv = ClusterEnv
     -- files created by `cardano-cli`, `chain-index` and `bot-plutus-interface`
     supportDir :: FilePath
   , tracer :: Trace IO Text -- not really used anywhere now
-  , bpiBudgetMultiplier :: Rational
+  , plutipConf :: !PlutipConfig
   }
 
 -- | Helper function to get socket path from
 nodeSocket :: ClusterEnv -> CardanoNodeConn
-nodeSocket (ClusterEnv (RunningNode sp _ _) _ _ _ _ _) = sp
+nodeSocket (ClusterEnv (RunningNode sp _ _) _ _ _ _ _ ) = sp
 
 -- | Result of `Contract` execution. Returns contract observable state
 --    and either `Contract` return value, or error of type `FailureReason`.

@@ -11,6 +11,10 @@ If your project is importing and making use of `Plutip`s library you will need t
 
 And the following ghc flag must to be set for the test execution: `-Wall -threaded -rtsopts`
 
+## MAINTENANCE WARNING
+
+The documentation is currently under maintenance. Key notes and tutorials are added [here](./doc-notes/README.md).
+
 ## Usage
 
 Plutip provides a tasty interface for executing Plutus contracts on a local cluster.
@@ -58,4 +62,4 @@ More examples could be found [here](test/Spec/Integration.hs).
 
 ## Known limitations
 
-At the moment underlying mechanisms that execute contract do not support `awaitTxConfirmed`. As one possible solution, `waitNSlots n` can be used instead. We are working on it.
+~~At the moment underlying mechanisms that execute contract do not support `awaitTxConfirmed`. As one possible solution, `waitNSlots n` can be used instead. We are working on it.~~

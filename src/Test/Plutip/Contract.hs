@@ -377,7 +377,6 @@ instance
         render
           . vcat
           . zipWith indexedMsg [0 ..]
-          . reverse -- `bpi` collects logs in reversed order adding to head of the `List`
           . map (\(_, _, msg) -> msg)
           . filterOrDont
           . getLogsList

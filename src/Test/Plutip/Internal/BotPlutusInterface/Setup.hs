@@ -8,12 +8,18 @@ module Test.Plutip.Internal.BotPlutusInterface.Setup (
   metadataDir,
 ) where
 
+import Cardano.Api (AsType (AsPaymentKey, AsSigningKey), Error (displayError))
+import Cardano.Api qualified as CAPI
 import Cardano.Launcher.Node (nodeSocketFile)
 import Data.Aeson (encodeFile)
+import Data.Foldable (traverse_)
+import Plutus.V2.Ledger.Api (PubKeyHash (PubKeyHash))
+import PlutusTx.Builtins qualified as PlutusTx
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist)
 import System.Environment (setEnv)
 import System.FilePath ((</>))
-import Test.Plutip.Internal.Types (ClusterEnv (supportDir), nodeSocket)
+import Test.Plutip.Config (PlutipConfig (extraSigners))
+import Test.Plutip.Internal.Types (ClusterEnv (plutipConf, supportDir), nodeSocket)
 import Test.Plutip.Tools.CardanoApi (queryProtocolParams)
 
 workDir' :: FilePath
@@ -37,6 +43,8 @@ runSetup cEnv = do
   createRequiredDirs
   saveProtocolParams
   setSocketPathEnv
+  let extraSigners' = extraSigners $ plutipConf cEnv
+  traverse_ addExtraSigner extraSigners'
   where
     setSocketPathEnv =
       -- required by `cardano-cli` used by bot interface
@@ -54,6 +62,25 @@ runSetup cEnv = do
       case ps of
         Left e -> error $ show e
         Right params -> encodeFile (pParamsFile cEnv) params
+
+    addExtraSigner = \case
+      (Left sKeyPath) -> do
+        res <- CAPI.readFileTextEnvelope (AsSigningKey AsPaymentKey) sKeyPath
+        case res of
+          Left fileError -> error $ displayError fileError
+          Right sKey -> addExtraSigner $ Right sKey
+      (Right sKey) -> do
+        let vKey = CAPI.getVerificationKey sKey
+            pkh = PubKeyHash . PlutusTx.toBuiltin . CAPI.serialiseToRawBytes $ CAPI.verificationKeyHash vKey
+            keyFilename = "signing-key-" <> show pkh <> ".skey"
+        g <-
+          CAPI.writeFileTextEnvelope
+            (keysDir cEnv </> keyFilename)
+            Nothing
+            sKey
+        case g of
+          Left fileError -> error $ displayError fileError
+          Right _ -> pure ()
 
 -- | Get directory for `.skey`'s of crated wallets for current cluster environment
 keysDir :: ClusterEnv -> FilePath

@@ -20,7 +20,7 @@ main :: IO ()
 main = do
   (st, _) <- startCluster def $ do
     w <- addSomeWallet [toAda 10000]
-    waitSeconds 2 -- let wallet Tx finish
+    waitSeconds 2 -- let wallet Tx finish, it can take more time with bigger slot length
     separate
     liftIO $ do
       putStrLn $ "Wallet PKH: " ++ show (walletPkh w)

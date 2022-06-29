@@ -9,15 +9,16 @@ import Cardano.Api qualified as CAPI
 import Cardano.Launcher.Node (nodeSocketFile)
 import Cardano.Startup (installSignalHandlers, setDefaultFilePermissions, withUtf8Encoding)
 import Cardano.Wallet.Logging (stdoutTextTracer, trMessageText)
-import Cardano.Wallet.Shelley.Launch (withSystemTempDir)
+import Cardano.Wallet.Shelley.Launch (TempDirLog, withSystemTempDir)
 
 import Cardano.BM.Data.Severity qualified as Severity
 import Cardano.BM.Data.Tracer (HasPrivacyAnnotation, HasSeverityAnnotation (getSeverityAnnotation))
 import Cardano.CLI (LogOutput (LogToFile), withLoggingNamed)
 import Cardano.Wallet.Shelley.Launch.Cluster (ClusterLog, localClusterConfigFromEnv, testMinSeverityFromEnv, walletMinSeverityFromEnv, withCluster)
 import Control.Concurrent.Async (async)
-import Control.Monad (unless, void)
+import Control.Monad (unless, void, when)
 import Control.Monad.IO.Class (liftIO)
+import Control.Monad.IO.Unlift (MonadUnliftIO)
 import Control.Monad.Reader (ReaderT (runReaderT))
 import Control.Retry (constantDelay, limitRetries, recoverAll)
 import Control.Tracer (Tracer, contramap, traceWith)
@@ -31,7 +32,7 @@ import Plutus.ChainIndex.Config (ChainIndexConfig (cicNetworkId, cicPort), cicDb
 import Plutus.ChainIndex.Config qualified as ChainIndex
 import Plutus.ChainIndex.Logging (defaultConfig)
 import Servant.Client (BaseUrl (BaseUrl), Scheme (Http))
-import System.Directory (copyFile, findExecutable)
+import System.Directory (canonicalizePath, copyFile, createDirectoryIfMissing, doesPathExist, findExecutable, removeDirectoryRecursive)
 import System.Environment (setEnv)
 import System.Exit (die)
 import System.FilePath ((</>))
@@ -42,6 +43,7 @@ import Test.Plutip.Internal.Types (
     ClusterEnv,
     chainIndexUrl,
     networkId,
+    plutipConf,
     runningNode,
     supportDir,
     tracer
@@ -56,7 +58,15 @@ import UnliftIO.STM (TVar, atomically, newTVarIO, readTVar, retrySTM, writeTVar)
 import Data.Foldable (for_)
 import GHC.Stack.Types (HasCallStack)
 import Paths_plutip (getDataFileName)
-import Test.Plutip.Config (PlutipConfig (chainIndexPort, clusterDataDir, relayNodeLogs))
+import Test.Plutip.Config (
+  PlutipConfig (
+    chainIndexPort,
+    clusterDataDir,
+    clusterWorkingDir,
+    relayNodeLogs
+  ),
+  WorkingDirectory (Fixed, Temporary),
+ )
 import Text.Printf (printf)
 
 -- | Starting a cluster with a setup action
@@ -129,6 +139,7 @@ withPlutusInterface conf action = do
               , networkId = CAPI.Mainnet
               , supportDir = dir
               , tracer = trCluster
+              , plutipConf = conf
               }
 
       BotSetup.runSetup cEnv -- run preparations to use `bot-plutus-interface`
@@ -145,6 +156,25 @@ withRedirectedStdoutHdl hdl action = do
       old <- hDuplicate stdout
       hDuplicateTo tmphdl stdout
       io `finally` hDuplicateTo old stdout
+
+withDirectory ::
+  forall (m :: Type -> Type) (a :: Type).
+  MonadUnliftIO m =>
+  PlutipConfig ->
+  Tracer m TempDirLog ->
+  String ->
+  (FilePath -> m a) ->
+  m a
+withDirectory conf tr pathName action =
+  case clusterWorkingDir conf of
+    Temporary -> withSystemTempDir tr pathName action
+    Fixed path shouldKeep -> do
+      canonPath <- liftIO $ canonicalizePath path
+      liftIO $ doesPathExist canonPath >>= (`when` removeDirectoryRecursive canonPath)
+      liftIO $ createDirectoryIfMissing False canonPath
+      res <- action canonPath
+      unless shouldKeep $ liftIO $ removeDirectoryRecursive canonPath
+      return res
 
 -- Do all the program setup required for running the local cluster, create a
 -- temporary directory, log output configurations, node_configuration.log handle, and pass these to the given
@@ -169,7 +199,7 @@ withLocalClusterSetup conf action = do
   withUtf8Encoding $
     -- This temporary directory will contain logs, and all other data
     -- produced by the local test cluster.
-    withSystemTempDir stdoutTextTracer "test-cluster" $ \dir -> do
+    withDirectory conf stdoutTextTracer "test-cluster" $ \dir -> do
       let logOutputs name minSev =
             -- cluster logs to file only
             [LogToFile (dir </> name) (min minSev Severity.Info)]

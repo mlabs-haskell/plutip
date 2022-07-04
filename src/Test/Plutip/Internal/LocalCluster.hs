@@ -186,7 +186,7 @@ withLocalClusterSetup ::
   IO a
 withLocalClusterSetup conf action = do
   -- Setting required environment variables
-  setEnv "NO_POOLS" "1"
+  -- setEnv "NO_POOLS" "1"
   setClusterDataDir
 
   -- Handle SIGTERM properly

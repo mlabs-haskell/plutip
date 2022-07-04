@@ -1,51 +1,51 @@
 module Spec.Integration (test) where
 
+import BotPlutusInterface.Types (LogContext (ContractLog), LogLevel (Debug))
 import Control.Exception (ErrorCall, Exception (fromException))
-import Control.Lens ((^.))
 import Control.Monad (void)
 import Data.Default (Default (def))
-import Data.Map (Map)
+import Data.List.NonEmpty (NonEmpty)
 import Data.Map qualified as Map
 import Data.Maybe (isJust)
-import Data.Text (Text)
-import Ledger (
-  CardanoTx,
-  ChainIndexTxOut,
-  PaymentPubKeyHash,
-  TxOutRef,
-  Value,
-  ciTxOutValue,
-  pubKeyHashAddress,
- )
-import Ledger.Ada qualified as Ada
+import Data.Text (Text, isInfixOf, pack)
 import Ledger.Constraints (MkTxError (OwnPubKeyMissing))
-import Ledger.Constraints qualified as Constraints
 import Plutus.Contract (
-  Contract,
   ContractError (ConstraintResolutionContractError),
-  submitTx,
-  utxosAt,
+  waitNSlots,
  )
 import Plutus.Contract qualified as Contract
-import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
 import Plutus.V1.Ledger.Ada (lovelaceValueOf)
-import Spec.TestContract (lockThenSpend)
+import Spec.TestContract.AlwaysFail (lockThenFailToSpend)
+import Spec.TestContract.LockSpendMint (lockThenSpend)
+import Spec.TestContract.SimpleContracts (
+  getUtxos,
+  getUtxosThrowsErr,
+  getUtxosThrowsEx,
+  ownValue,
+  ownValueToState,
+  payTo,
+ )
+import Spec.TestContract.ValidateTimeRange (failingTimeContract, successTimeContract)
 import Test.Plutip.Contract (
+  TestWallets,
   ValueOrdering (VLt),
   assertExecution,
+  assertExecutionWith,
   initAda,
   initAndAssertAda,
   initAndAssertAdaWith,
+  initAndAssertLovelace,
   initLovelace,
   withContract,
   withContractAs,
  )
 import Test.Plutip.Internal.Types (
+  ClusterEnv,
   FailureReason (CaughtException),
   isException,
  )
-import Test.Plutip.LocalCluster (withConfiguredCluster)
-import Test.Plutip.Options (TxBudgetsReporting (VerboseReport))
+import Test.Plutip.LocalCluster (BpiWallet, withConfiguredCluster)
+import Test.Plutip.Options (TraceOption (ShowBudgets, ShowTraceButOnlyContext))
 import Test.Plutip.Predicate (
   assertOverallBudget,
   budgetsFitUnder,
@@ -63,16 +63,15 @@ import Test.Plutip.Predicate (
   yieldSatisfies,
  )
 import Test.Plutip.Predicate qualified as Predicate
-import Test.Tasty (TestTree, localOption)
-import Text.Printf (printf)
+import Test.Tasty (TestTree)
 
 test :: TestTree
 test =
-  localOption VerboseReport $
-    withConfiguredCluster
-      def
-      "Basic integration: launch, add wallet, tx from wallet to wallet"
-      [ -- Basic Succeed or Failed tests
+  withConfiguredCluster
+    def
+    "Basic integration: launch, add wallet, tx from wallet to wallet"
+    $ [
+        -- Basic Succeed or Failed tests
         assertExecution
           "Contract 1"
           (initAda (100 : replicate 10 7))
@@ -87,10 +86,11 @@ test =
           [ shouldFail
           , Predicate.not shouldSucceed
           ]
-      , assertExecution
+      , assertExecutionWith
+          [ShowTraceButOnlyContext ContractLog Debug]
           "Contract 3"
           (initAda [100])
-          (withContract $ const getUtxosThrowsEx)
+          (withContract $ const $ Contract.logInfo @Text "Some contract log with Info level." >> getUtxosThrowsEx)
           [ shouldFail
           , Predicate.not shouldSucceed
           ]
@@ -166,7 +166,8 @@ test =
               , failReasonSatisfies "Throws ErrorCall" checkException
               ]
       , -- tests with assertions on execution budget
-        assertExecution
+        assertExecutionWith
+          [ShowBudgets] -- this influences displaying the budgets only and is not necessary for budget assertions
           "Lock then spend contract"
           (initAda (replicate 3 300))
           (withContract $ const lockThenSpend)
@@ -180,33 +181,93 @@ test =
               (== 2860068)
           , overallBudgetFits 1156006922 2860068
           ]
+      , -- regression tests for time <-> slot conversions
+        assertExecution
+          "Fails because outside validity interval"
+          (initAda [100])
+          (withContract $ const failingTimeContract)
+          [shouldFail]
+      , assertExecution
+          "Passes validation with exact time range checks"
+          (initAda [100])
+          (withContract $ const successTimeContract)
+          [shouldSucceed]
+      , -- always fail validation test
+        let errCheck e = "I always fail" `isInfixOf` pack (show e)
+         in assertExecution
+              "Always fails to validate"
+              (initAda [100])
+              (withContract $ const lockThenFailToSpend)
+              [ shouldFail
+              , errorSatisfies "Fail validation with 'I always fail'" errCheck
+              ]
       ]
+      ++ testValueAssertionsOrderCorrectness
 
-getUtxos :: Contract [Value] EmptySchema Text (Map TxOutRef ChainIndexTxOut)
-getUtxos = do
-  pkh <- Contract.ownPaymentPubKeyHash
-  Contract.logInfo @String $ printf "Own PKH: %s" (show pkh)
-  utxosAt $ pubKeyHashAddress pkh Nothing
+-- Tests for https://github.com/mlabs-haskell/plutip/issues/84
+testValueAssertionsOrderCorrectness ::
+  [(TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)]
+testValueAssertionsOrderCorrectness =
+  [ -- withContract case
+    let wallet0 = 100_000_000
+        wallet1 = 200_000_000
+        wallet2 = 300_000_000
 
-getUtxosThrowsErr :: Contract () EmptySchema ContractError (Map TxOutRef ChainIndexTxOut)
-getUtxosThrowsErr =
-  Contract.throwError $ ConstraintResolutionContractError OwnPubKeyMissing
+        payFee = 146200 -- taken from trace
+        payTo1Amt = 22_000_000
+        payTo2Amt = 33_000_000
+        wallet1After = wallet1 + payTo1Amt
+        wallet2After = wallet2 + payTo2Amt
+        wallet0After = wallet0 - payTo1Amt - payFee - payTo2Amt - payFee
+     in assertExecution
+          "Values asserted in correct order with withContract"
+          ( initAndAssertLovelace [wallet0] wallet0After
+              <> initAndAssertLovelace [wallet1] wallet1After
+              <> initAndAssertLovelace [wallet2] wallet2After
+          )
+          ( do
+              withContract $ \[w1pkh, w2pkh] -> do
+                _ <- payTo w1pkh (toInteger payTo1Amt)
+                _ <- waitNSlots 2
+                payTo w2pkh (toInteger payTo2Amt)
+          )
+          [shouldSucceed]
+  , -- withContractAs case
+    let wallet0 = 100_000_000
+        wallet1 = 200_000_000
+        wallet2 = 300_000_000
 
-getUtxosThrowsEx :: Contract () EmptySchema Text (Map TxOutRef ChainIndexTxOut)
-getUtxosThrowsEx = error "This Exception was thrown intentionally in Contract.\n"
+        payFee = 146200 -- taken from trace
+        payTo0Amt = 11_000_000
+        payTo1Amt = 22_000_000
+        payTo2Amt = 33_000_000
 
-payTo :: PaymentPubKeyHash -> Integer -> Contract () EmptySchema Text CardanoTx
-payTo toPkh amt = do
-  submitTx (Constraints.mustPayToPubKey toPkh (Ada.lovelaceValueOf amt))
+        wallet0After = wallet0 + payTo0Amt
+        wallet2After =
+          wallet2 + payTo2Amt
+            - payTo1Amt
+            - payFee
+        wallet1After =
+          wallet1 + payTo1Amt
+            - payTo0Amt
+            - payFee
+            - payTo2Amt
+            - payFee
+     in assertExecution
+          "Values asserted in correct order with withContractAs"
+          ( initAndAssertLovelace [wallet0] wallet0After
+              <> initAndAssertLovelace [wallet1] wallet1After
+              <> initAndAssertLovelace [wallet2] wallet2After
+          )
+          ( do
+              void $
+                withContractAs 1 $ \[w0pkh, w2pkh] -> do
+                  _ <- payTo w0pkh (toInteger payTo0Amt)
+                  _ <- waitNSlots 2
+                  payTo w2pkh (toInteger payTo2Amt)
 
-ownValue :: Contract [Value] EmptySchema Text Value
-ownValue = foldMap (^. ciTxOutValue) <$> getUtxos
-
--- this Contract fails, but state should change in expected way
-ownValueToState :: Contract [Value] EmptySchema Text ()
-ownValueToState = do
-  ownValue >>= Contract.tell . (: [])
-  void $ Contract.throwError "Intentional fail"
-  ownValue
-    >>= Contract.tell
-      . (: []) -- should not be in state
+              withContractAs 2 $ \[_, w1pkh] -> do
+                payTo w1pkh (toInteger payTo1Amt)
+          )
+          [shouldSucceed]
+  ]

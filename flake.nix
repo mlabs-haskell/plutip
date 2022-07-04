@@ -11,7 +11,7 @@
       flake = false;
     };
     bot-plutus-interface.url =
-      "github:mlabs-haskell/bot-plutus-interface?rev=9ca5939b3b6ef1d052318f25ac88444baea52d8b";
+      "github:mlabs-haskell/bot-plutus-interface?rev=d882ffb5630bd927437dc62d4fa98189fc69b3e7";
   };
 
   outputs =
@@ -51,6 +51,16 @@
                 ]}"
             '';
           };
+          packages.plutip.components.exes.local-cluster = {
+            pkgconfig = [ [ pkgs.makeWrapper ] ];
+            postInstall = with pkgs; ''
+              wrapProgram $out/bin/local-cluster \
+                --prefix PATH : "${lib.makeBinPath [
+                  config.hsPkgs.cardano-cli.components.exes.cardano-cli
+                  config.hsPkgs.cardano-node.components.exes.cardano-node
+                ]}"
+            '';
+          };
         })
       ];
 
@@ -58,14 +68,46 @@
         let
           pkgs = nixpkgsFor system;
           pkgs' = nixpkgsFor' system;
-          plutus = import inputs.plutus { inherit system; };
-          src = ./.;
-        in
-        import ./nix/haskell.nix {
-          inherit src inputs pkgs pkgs' system extraSources haskellModules;
-          inherit (bot-plutus-interface) cabalProjectLocal;
-        };
+          project = pkgs.haskell-nix.cabalProject {
+            name = "plutip";
+            src = ./.;
+            compiler-nix-name = "ghc8107";
 
+            shell = {
+              withHoogle = true;
+              exactDeps = true;
+
+              additional = ps: [ ps.bot-plutus-interface ];
+
+              tools.haskell-language-server = "latest";
+
+              nativeBuildInputs = with pkgs'; [
+                # Haskell Tools
+                haskellPackages.fourmolu
+                haskellPackages.cabal-install
+                haskellPackages.cabal-fmt
+                nixpkgs-fmt
+                hlint
+                entr
+                ghcid
+                git
+                fd
+
+                # hls doesn't support preprocessors yet so this has to exist in PATH
+                haskellPackages.record-dot-preprocessor
+
+                # Cardano tools
+                project.hsPkgs.cardano-cli.components.exes.cardano-cli
+                project.hsPkgs.cardano-node.components.exes.cardano-node
+              ];
+            };
+
+            inherit (bot-plutus-interface) cabalProjectLocal;
+            inherit extraSources;
+            modules = haskellModules;
+          };
+        in
+        project;
     in
     {
       inherit extraSources haskellModules;
@@ -85,29 +127,33 @@
       devShell = perSystem (system: self.flake.${system}.devShell);
 
       # This will build all of the project's executables and the tests
-      check = perSystem (system:
-        (nixpkgsFor system).runCommand "combined-check"
-          {
-            nativeBuildInputs = builtins.attrValues self.checks.${system}
-              ++ builtins.attrValues self.flake.${system}.packages
-              ++ [ self.devShell.${system}.inputDerivation self.devShell.${system}.nativeBuildInputs ];
-          } ''
-          cd ${self}
-          export LC_CTYPE=C.UTF-8
-          export LC_ALL=C.UTF-8
-          export LANG=C.UTF-8
-          export IN_NIX_SHELL='pure'
-          make format_check cabalfmt_check nixpkgsfmt_check lint
-          mkdir $out
-        '');
+      check = perSystem
+        (system:
+          (nixpkgsFor system).runCommand "combined-check"
+            {
+              nativeBuildInputs = builtins.attrValues self.checks.${system}
+                ++ builtins.attrValues self.flake.${system}.packages;
+            } ''mkdir $out''
+        );
 
-      # NOTE `nix flake check` will not work at the moment due to use of
-      # IFD in haskell.nix
-      #
-      # Includes all of the packages in the `checks`, otherwise only the
-      # test suite would be included
-      checks = perSystem (system: self.flake.${system}.checks);
-
-      herculesCI.ciSystems = [ "x86_64-linux" ];
+      checks = perSystem (system:
+        self.flake.${system}.checks // {
+          formatting = (nixpkgsFor system).runCommand "formatting-check"
+            {
+              nativeBuildInputs = [
+                self.devShell.${system}.inputDerivation
+                self.devShell.${system}.nativeBuildInputs
+              ];
+            }
+            ''
+              cd ${self}
+              export LC_CTYPE=C.UTF-8
+              export LC_ALL=C.UTF-8
+              export LANG=C.UTF-8
+              export IN_NIX_SHELL='pure'
+              make format_check cabalfmt_check nixpkgsfmt_check lint
+              mkdir $out
+            '';
+        });
     };
 }

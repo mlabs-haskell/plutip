@@ -63,6 +63,7 @@ common common-imports
     , plutus-tx-plugin
     , positive
     , pretty-show
+    , prettyprinter
     , retry
     , row-types
     , servant-client
@@ -75,6 +76,7 @@ common common-imports
     , transformers-except
     , typed-process
     , unliftio
+    , unliftio-core
     , uuid
 
 common common-language
@@ -180,7 +182,10 @@ test-suite plutip-tests
   other-modules:
     Spec.Integration
     Spec.Test.Plutip.BotPlutusInterface
-    Spec.TestContract
+    Spec.TestContract.AlwaysFail
+    Spec.TestContract.LockSpendMint
+    Spec.TestContract.SimpleContracts
+    Spec.TestContract.ValidateTimeRange
 
   default-extensions:
     OverloadedStrings
@@ -225,3 +230,13 @@ executable plutip-server
     Api.Handlers,
     Types,
   ghc-options:        -Wall -threaded -rtsopts
+
+executable local-cluster
+  main-is:       local-cluster/Main.hs
+  build-depends:
+    , base
+    , data-default
+    , mtl
+    , plutip
+
+  ghc-options:   -Wall -threaded -rtsopts

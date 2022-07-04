@@ -8,6 +8,8 @@ module Test.Plutip.LocalCluster (
   ledgerPaymentPkh,
   withCluster,
   withConfiguredCluster,
+  startCluster,
+  stopCluster,
 ) where
 
 import Control.Concurrent (threadDelay)

@@ -50,7 +50,7 @@ networkId: Mainnet
 epochLength: 100
 staking:
 slotsPerKESPeriod: 86400
-slotLength: 0.2
+slotLength: 1
 maxKESEvolutions: 90
 securityParam: 5
 systemStart: "2020-06-19T16:07:37.740128433Z"

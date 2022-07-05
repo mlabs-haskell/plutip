@@ -194,10 +194,10 @@ test-suite plutip-tests
     TupleSections
 
 executable plutip-server
-  import:          common-language
-  import:          common-ghc-options
-  main-is: Main.hs
-  hs-source-dirs: plutip-server
+  import:           common-language
+  import:           common-ghc-options
+  main-is:          Main.hs
+  hs-source-dirs:   plutip-server
   default-language: Haskell2010
   build-depends:
     , aeson
@@ -217,19 +217,21 @@ executable plutip-server
     , optparse-applicative
     , plutip
     , positive
+    , servant-server
     , stm
     , text
-    , servant-server
     , unliftio
     , wai
     , wai-cors
     , wai-logger
     , warp
+
   other-modules:
-    Api,
-    Api.Handlers,
-    Types,
-  ghc-options:        -Wall -threaded -rtsopts
+    Api
+    Api.Handlers
+    Types
+
+  ghc-options:      -Wall -threaded -rtsopts
 
 executable local-cluster
   main-is:       local-cluster/Main.hs

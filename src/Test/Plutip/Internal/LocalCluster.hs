@@ -2,9 +2,12 @@ module Test.Plutip.Internal.LocalCluster (
   startCluster,
   stopCluster,
   withPlutusInterface,
-  ClusterStatus
-    ( ClusterStarting, ClusterStarted,
-      ClusterClosing, ClusterClosed )
+  ClusterStatus (
+    ClusterStarting,
+    ClusterStarted,
+    ClusterClosing,
+    ClusterClosed
+  ),
 ) where
 
 import Cardano.Api qualified as CAPI

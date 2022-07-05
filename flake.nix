@@ -42,7 +42,7 @@
             config.hsPkgs.cardano-node.components.exes.cardano-node
           ];
           packages.plutip.components.exes.plutip-server = {
-            pkgconfig = [[ pkgs.makeWrapper ]];
+            pkgconfig = [ [ pkgs.makeWrapper ] ];
             postInstall = with pkgs; ''
               wrapProgram $out/bin/plutip-server \
                 --prefix PATH : "${lib.makeBinPath [

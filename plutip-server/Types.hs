@@ -15,6 +15,9 @@ module Types
   , StartClusterResponse
     ( ClusterStartupSuccess
     , ClusterStartupFailure
+    )
+  , ClusterStartupParameters
+    ( ClusterStartupParameters
     , keysDirectory
     , nodeSocketPath
     , privateKeys
@@ -83,7 +86,7 @@ newtype Lovelace = Lovelace { unLovelace :: Integer }
 
 instance FromJSON Lovelace where
   parseJSON json = do
-    value :: Integer <- parseJSON json
+    value <- parseJSON json
     if value < 0
       then fail "Lovelace value must not be negative"
       else pure $ Lovelace value
@@ -106,14 +109,18 @@ data ClusterStartupFailureReason
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
 
+data ClusterStartupParameters = ClusterStartupParameters
+  { privateKeys :: [PrivateKey]
+  , nodeSocketPath :: FilePath
+  , nodeConfigPath :: FilePath
+  , keysDirectory :: FilePath
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
 data StartClusterResponse
   = ClusterStartupFailure ClusterStartupFailureReason
-  | ClusterStartupSuccess
-    { privateKeys :: [PrivateKey]
-    , nodeSocketPath :: FilePath
-    , nodeConfigPath :: FilePath
-    , keysDirectory :: FilePath
-    }
+  | ClusterStartupSuccess ClusterStartupParameters
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
 

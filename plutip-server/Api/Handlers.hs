@@ -15,11 +15,14 @@ import Types
   , PrivateKey
   , StartClusterResponse
     ( ClusterStartupSuccess
+    , ClusterStartupFailure
+    )
+  , ClusterStartupParameters
+    ( ClusterStartupParameters
     , keysDirectory
     , nodeSocketPath
     , privateKeys
     , nodeConfigPath
-    , ClusterStartupFailure
     )
   , ServerOptions(ServerOptions, nodeLogs)
   , Env(status)
@@ -73,7 +76,7 @@ startClusterHandler
   let nodeConfigPath = getNodeConfigFile clusterEnv
   -- safeguard against directory tree structure changes
   unlessM (liftIO $ doesFileExist nodeConfigPath) $ throwError NodeConfigNotFound
-  pure $ ClusterStartupSuccess
+  pure $ ClusterStartupSuccess $ ClusterStartupParameters
     { privateKeys = getWalletPrivateKey <$> snd res
     , nodeSocketPath = getNodeSocketFile clusterEnv
     , nodeConfigPath = nodeConfigPath

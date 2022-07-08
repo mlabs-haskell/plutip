@@ -1,46 +1,52 @@
-module Types
-  ( AppM(AppM)
-  , ClusterStartupFailureReason
-    ( ClusterIsRunningAlready
-    , NegativeLovelaces
-    , NodeConfigNotFound
-    )
-  , Env(Env, status, options)
-  , ErrorMessage
-  , Lovelace(unLovelace)
-  , PlutipServerError(PlutipServerError)
-  , PrivateKey
-  , ServerOptions(ServerOptions, nodeLogs, port)
-  , StartClusterRequest(StartClusterRequest, keysToGenerate)
-  , StartClusterResponse
-    ( ClusterStartupSuccess
-    , ClusterStartupFailure
-    )
-  , ClusterStartupParameters
-    ( ClusterStartupParameters
-    , keysDirectory
-    , nodeSocketPath
-    , privateKeys
-    , nodeConfigPath
-    )
-  , StopClusterRequest(StopClusterRequest)
-  , StopClusterResponse(StopClusterSuccess, StopClusterFailure)
-  )
-where
+module Types (
+  AppM (AppM),
+  ClusterStartupFailureReason (
+    ClusterIsRunningAlready,
+    NegativeLovelaces,
+    NodeConfigNotFound
+  ),
+  Env (Env, status, options),
+  ErrorMessage,
+  Lovelace (unLovelace),
+  PlutipServerError (PlutipServerError),
+  PrivateKey,
+  ServerOptions (ServerOptions, nodeLogs, port),
+  StartClusterRequest (StartClusterRequest, keysToGenerate),
+  StartClusterResponse (
+    ClusterStartupSuccess,
+    ClusterStartupFailure
+  ),
+  ClusterStartupParameters (
+    ClusterStartupParameters,
+    keysDirectory,
+    nodeSocketPath,
+    privateKeys,
+    nodeConfigPath
+  ),
+  StopClusterRequest (StopClusterRequest),
+  StopClusterResponse (StopClusterSuccess, StopClusterFailure),
+) where
 
-import Control.Monad.Catch (MonadThrow, Exception)
-import Control.Monad.Reader (ReaderT, MonadReader)
+import Control.Concurrent.MVar (MVar)
+import Control.Monad.Catch (Exception, MonadThrow)
 import Control.Monad.IO.Class (MonadIO)
+import Control.Monad.Reader (MonadReader, ReaderT)
 import Data.Aeson (FromJSON, ToJSON, parseJSON)
 import Data.Kind (Type)
 import Data.Text (Text)
 import GHC.Generics (Generic)
 import Network.Wai.Handler.Warp (Port)
+import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet)
+import Test.Plutip.Internal.LocalCluster (
+  ClusterStatus (
+    ClusterClosed,
+    ClusterClosing,
+    ClusterStarted,
+    ClusterStarting
+  ),
+ )
 import Test.Plutip.Internal.Types (ClusterEnv)
 import UnliftIO.STM (TVar)
-import Test.Plutip.Internal.LocalCluster (ClusterStatus(..))
-import Control.Concurrent.MVar (MVar)
-import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet)
 
 -- TVar is used for signaling by 'startCluster'/'stopCluster' (STM is used
 -- for blocking).
@@ -80,7 +86,7 @@ instance Exception PlutipServerError
 
 type ErrorMessage = Text
 
-newtype Lovelace = Lovelace { unLovelace :: Integer }
+newtype Lovelace = Lovelace {unLovelace :: Integer}
   deriving stock (Show, Eq, Generic)
   deriving newtype (ToJSON, Num)
 
@@ -91,11 +97,10 @@ instance FromJSON Lovelace where
       then fail "Lovelace value must not be negative"
       else pure $ Lovelace value
 
-newtype StartClusterRequest
-  = StartClusterRequest
-    { keysToGenerate :: [[Lovelace]]
-    -- ^ Lovelace amounts for each UTXO of each wallet
-    }
+newtype StartClusterRequest = StartClusterRequest
+  { -- | Lovelace amounts for each UTXO of each wallet
+    keysToGenerate :: [[Lovelace]]
+  }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
 

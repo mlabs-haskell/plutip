@@ -1,4 +1,5 @@
 {-# LANGUAGE NumericUnderscores #-}
+
 module Main (main) where
 
 import Api (app)
@@ -18,7 +19,7 @@ import Network.Wai.Handler.Warp (
 import Network.Wai.Logger (withStdoutLogger)
 import Options.Applicative qualified as Options
 import System.Exit (die)
-import Types (ServerOptions(ServerOptions, port), Env(Env, options, status))
+import Types (Env (Env, options, status), ServerOptions (ServerOptions, port))
 
 main :: IO ()
 main = do
@@ -37,7 +38,7 @@ main = do
 newEnvIO :: ServerOptions -> IO (Either String Env)
 newEnvIO options = do
   status <- newEmptyMVar
-  pure . Right $ Env { status, options }
+  pure . Right $ Env {status, options}
 
 opts :: Options.ParserInfo ServerOptions
 opts =
@@ -61,7 +62,7 @@ serverOptionsParser =
     <*> Options.option
       Options.auto
       ( Options.long "node-logs"
-        <> Options.help "Relay node log file to write to"
-        <> Options.showDefault
-        <> Options.value Nothing
+          <> Options.help "Relay node log file to write to"
+          <> Options.showDefault
+          <> Options.value Nothing
       )

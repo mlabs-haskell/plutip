@@ -1,51 +1,50 @@
 module Api where
 
-import Api.Handlers
-  ( startClusterHandler
-  , stopClusterHandler
-  )
+import Api.Handlers (
+  startClusterHandler,
+  stopClusterHandler,
+ )
 import Control.Monad.Catch (try)
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Reader (ReaderT)
-import Control.Monad.Reader (runReaderT)
+import Control.Monad.Reader (ReaderT, runReaderT)
 import Data.Kind (Type)
 import Network.Wai.Middleware.Cors qualified as Cors
-import Servant
-  ( (:<|>)((:<|>))
-  , (:>)
-  , Application
-  , JSON
-  , Handler
-  , Post
-  , Proxy(Proxy)
-  , ReqBody
-  , Server
-  , ServerT
-  , err400
-  , errBody
-  , hoistServer
-  , serve
-  , throwError
-  )
-import Types
-  ( AppM(AppM)
-  , Env(Env)
-  , PlutipServerError(PlutipServerError)
-  , ServerOptions
-  , StartClusterRequest
-  , StartClusterResponse
-  , StopClusterRequest
-  , StopClusterResponse
-  , options
-  )
+import Servant (
+  Application,
+  Handler,
+  JSON,
+  Post,
+  Proxy (Proxy),
+  ReqBody,
+  Server,
+  ServerT,
+  err400,
+  errBody,
+  hoistServer,
+  serve,
+  throwError,
+  (:<|>) ((:<|>)),
+  (:>),
+ )
+import Types (
+  AppM (AppM),
+  Env (Env),
+  PlutipServerError (PlutipServerError),
+  ServerOptions,
+  StartClusterRequest,
+  StartClusterResponse,
+  StopClusterRequest,
+  StopClusterResponse,
+  options,
+ )
 
 type Api =
   "start"
     :> ReqBody '[JSON] StartClusterRequest
     :> Post '[JSON] StartClusterResponse
-  :<|> "stop"
-    :> ReqBody '[JSON] StopClusterRequest
-    :> Post '[JSON] StopClusterResponse
+    :<|> "stop"
+      :> ReqBody '[JSON] StopClusterRequest
+      :> Post '[JSON] StopClusterResponse
 
 app :: Env -> Application
 app = Cors.cors (const $ Just policy) . serve api . appServer
@@ -61,11 +60,12 @@ api :: Proxy Api
 api = Proxy
 
 server :: ServerOptions -> ServerT Api AppM
-server serverOptions = startClusterHandler serverOptions
-  :<|> stopClusterHandler
+server serverOptions =
+  startClusterHandler serverOptions
+    :<|> stopClusterHandler
 
 appServer :: Env -> Server Api
-appServer env@(Env { options }) =
+appServer env@(Env {options}) =
   hoistServer api appHandler (server options)
   where
     appHandler :: forall (a :: Type). AppM a -> Handler a
@@ -83,4 +83,4 @@ appServer env@(Env { options }) =
           PlutipServerError ->
           Handler a
         handleError PlutipServerError =
-            throwError err400 {errBody = "Server error"}
+          throwError err400 {errBody = "Server error"}

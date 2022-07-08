@@ -1,5 +1,5 @@
 .PHONY: build-nix hoogle nix-build-library nix-build-executables \
-        nix-build-test nix-cabal-repl requires_nix_shell ci-build-run
+	nix-build-test nix-cabal-repl requires_nix_shell ci-build-run
 
 # Generate TOC for README.md
 # It has to be manually inserted into the README.md for now.
@@ -41,11 +41,11 @@ FOURMOLU_EXTENSIONS := -o -XTypeApplications -o -XTemplateHaskell -o -XImportQua
 # Add folder locations to the list to be reformatted.
 format:
 	@ echo "> Formatting all .hs files"
-	fourmolu $(FOURMOLU_EXTENSIONS) --mode inplace --check-idempotence $$(find src/  -iregex ".*.hs") $$(find test/ -iregex ".*.hs")
+	fourmolu $(FOURMOLU_EXTENSIONS) --mode inplace --check-idempotence $$(find src/ test/ plutip-server/ -iregex ".*.hs")
 
 format_check:
 	@ echo "> Checking format of all .hs files"
-	fourmolu $(FOURMOLU_EXTENSIONS) --mode check --check-idempotence $$(find src/  -iregex ".*.hs") $$(find test/ -iregex ".*.hs")
+	fourmolu $(FOURMOLU_EXTENSIONS) --mode check --check-idempotence $$(find src/ test/ plutip-server/ -iregex ".*.hs")
 
 NIX_SOURCES := $(shell fd -enix)
 

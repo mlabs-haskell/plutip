@@ -2,12 +2,14 @@
     "activeSlotsCoeff": 5.0e-2,
     "epochLength": 432000,
     "genDelegs": {
-        "6e38c0a2e2695a421e824c426365da10ecbe21420d1d7ccf69df333c": {
-            "delegate": "10c3f61d582871988ee3466252f292f8128e6062cbe233a2147709ee",
-            "vrf": "5780bcdbb3fda11150bbc54b51621a0e8041d0387dea32fdeedd364aa8738499"
+        "5641315a335f0439db4518ec4091ddf0f0fdc7b80adeba16c35c1abb": {
+            "delegate": "d254b3efe6359923e2aad5e0657c69f032067cf54717d549414ea82c",
+            "vrf": "ffd8fbf8a395657e35058b232ede693f4e3840ba8b465c579e32dd2eefa82a69"
         }
     },
-    "initialFunds": {},
+    "initialFunds": {
+        "60ea1f1fe675a48022dafffa0130d1656ed94a845b88259052d62c1368": 0
+    },
     "maxKESEvolutions": 60,
     "maxLovelaceSupply": 0,
     "networkId": "Testnet",
@@ -43,6 +45,6 @@
         "pools": {},
         "stake": {}
     },
-    "systemStart": "2022-07-08T16:47:58.135258786Z",
+    "systemStart": "2022-07-08T17:01:07.377252266Z",
     "updateQuorum": 5
 }

@@ -1,5 +1,5 @@
 {
     "type": "NodeOperationalCertificateIssueCounter",
     "description": "Next certificate issue number: 1",
-    "cborHex": "820158206bfe64fb02a723f7d89fd3f0504f757bb99d2a5a87c44bd6d99a52e19e58c9ec"
+    "cborHex": "820158202443430e6aabfe1198d6771598128272db805cc65a35816825b8a1f4b5780bd5"
 }

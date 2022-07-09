@@ -38,9 +38,9 @@ protocolParams:
   tau: 0.0
   a0: 0.1
 genDelegs:
-  8ae01cab15f6235958b1147e979987bbdb90788f7c4e185f1632427a:
-    delegate: b7bf59bb963aa785afe220f5b0d3deb826fd0bcaeeee58cb81ab443d
-    vrf: 4ebcf8b4c13c24d89144d72f544d1c425b4a3aa1ace30af4eb72752e75b40d3e
+  81d3952cb8fdd5f6d12a24b41c1b2055d8fc9092e68824a8e666c5d4:
+    delegate: ddc48b8b6d2461c468d9826805c33959562f6e47557687fc95416668
+    vrf: ee3511b3f4556a14ad7c0e09d0a50071d0feca44f7c2d9ecfaa59ae735d4aab8
 updateQuorum: 1
 maxMajorPV: 25446
 maxLovelaceSupply: 1000000000000000000

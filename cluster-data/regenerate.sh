@@ -18,7 +18,7 @@ mv delegate-keys/delegate1.vkey bft-leader.vkey
 mv delegate-keys/delegate1.vrf.vkey bft-leader.vrf.vkey
 mv delegate-keys/delegate1.vrf.skey bft-leader.vrf.skey
 
-rm -r delegate-keys genesis-keys utxo-keys genesis.spec.json
+rm -r delegate-keys genesis.spec.json
 
 cardano-cli node key-gen-KES \
     --verification-key-file bft-leader.kes.vkey \

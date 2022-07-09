@@ -1,0 +1,35 @@
+bootStakeholders:
+  018ad2ccb0905f7cc1f1b925a7797a18217e2c3c0ad0e804d5d96b3c: 1
+heavyDelegation:
+  018ad2ccb0905f7cc1f1b925a7797a18217e2c3c0ad0e804d5d96b3c:
+    omega: 0
+    issuerPk: xGIsgEDPzq3tBuTgg/ljA6SaOvJc1wzJLcO1AFbGjfz0MPZmYtptlIqwJji6EeZNagy6ArRDBlEvpy7+jEhEYQ==
+    delegatePk: 8zZRvOAHblkvWSjKlXWzg2bbrC2vrA8glqdCb7uC3NNSkHwewjJWIw25yUtZ22oLFDYBGgjDUAOYOi63P7moXQ==
+    cert: 415e13ac91d76370513f484bc6029541de083db8a1dd4875e7aba75135757435381f850454fc69c7baf60ad8b112f734ecc4932be541a33f61df531ff8a11103
+startTime: 2500000
+nonAvvmBalances:
+  2cWKMJemoBajCnoQrX37Q3gNi5SgUybr2CBkYB5zqVg7zTAYXQ1zgDvpDYMnj5KVTzkMu: '50'
+blockVersionData:
+  scriptVersion: 0
+  slotDuration: '250'
+  maxBlockSize: '2000000'
+  maxHeaderSize: '2000000'
+  maxTxSize: '4096'
+  maxProposalSize: '700'
+  mpcThd: '20000000000000'
+  heavyDelThd: '300000000000'
+  updateVoteThd: '1000000000000'
+  updateProposalThd: '100000000000000'
+  updateImplicit: '10000'
+  softforkRule:
+    initThd: '900000000000000'
+    minThd: '600000000000000'
+    thdDecrement: '50000000000000'
+  txFeePolicy:
+    summand: '155381000000000'
+    multiplier: '43000000000'
+  unlockStakeEpoch: '18446744073709551615'
+protocolConsts:
+  k: 8
+  protocolMagic: 764824073
+avvmDistr: {}

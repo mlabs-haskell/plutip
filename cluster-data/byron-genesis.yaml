@@ -21,20 +21,20 @@ blockVersionData:
     multiplier: '43000000000'
   unlockStakeEpoch: '18446744073709551615'
 protocolConsts:
-  k: 5
+  k: 8
   protocolMagic: 764824073
 
 bootStakeholders:
-  3856c7c4db1ca26d77d5cecf1ed4ab7285f57dca999421fb797e9824: 1
+  018ad2ccb0905f7cc1f1b925a7797a18217e2c3c0ad0e804d5d96b3c: 1
 heavyDelegation:
-  3856c7c4db1ca26d77d5cecf1ed4ab7285f57dca999421fb797e9824:
+  018ad2ccb0905f7cc1f1b925a7797a18217e2c3c0ad0e804d5d96b3c:
     omega: 0
-    issuerPk: EcTlNi0niDQxL/vck7Q5rykozISyOTEMstVojJLxNORm1WfbSglEW4VgpjbiEqw+2KKbc1ivP5QI6ng+ZTtiug==
-    delegatePk: fIpFiXJo9dQxplJsx+DyYBZWjqI6Kgseyq0bclPILw8lhATGS0WaUVs3Ye1x6m8KNaKVSiiUDd+BjrfCjgt+uQ==
-    cert: 1ef766c62e55f6b81afd3785b37ad96e2cfb3fcf2c117050cbba8eeb2285f4428821afbe43580cfa08e0479b13d165a1a03fd57bcd26ce7c4e3c0892d25f5207
+    issuerPk: xGIsgEDPzq3tBuTgg/ljA6SaOvJc1wzJLcO1AFbGjfz0MPZmYtptlIqwJji6EeZNagy6ArRDBlEvpy7+jEhEYQ==
+    delegatePk: 8zZRvOAHblkvWSjKlXWzg2bbrC2vrA8glqdCb7uC3NNSkHwewjJWIw25yUtZ22oLFDYBGgjDUAOYOi63P7moXQ==
+    cert: 415e13ac91d76370513f484bc6029541de083db8a1dd4875e7aba75135757435381f850454fc69c7baf60ad8b112f734ecc4932be541a33f61df531ff8a11103
 
 nonAvvmBalances:
-- 2cWKMJemoBahz6iaYL1VSXeww8TuecvvSsz8gxbaby4hc6pLFnDmHhVMY82n3tGmP6ZXW: '100'
+- 2cWKMJemoBahz6iaYL1VSXeww8TuecvvSsz8gxbaby4hc6pLFnDmHhVMY82n3tGmP6ZXW: '50'
 
   # Faucet addresses for launcher
 - Ae2tdPwUPEZGc7WAmkmXxP3QJ8aiKSMGgfWV6w4A58ebjpr5ah147VvJfDH: '1000000000000000'

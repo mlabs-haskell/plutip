@@ -1,5 +1,3 @@
-{-# LANGUAGE ViewPatterns #-}
-
 -- | This module provides some predicates or assertions, that could be used together with
 --  `Test.Plutip.Contract.assertExecution` to run tests for Contract in private testnet.
 --

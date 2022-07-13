@@ -1,11 +1,20 @@
 #!/usr/bin/env bash
 
-# Run from inside cluster-data 
-
-# Inputs: $PAYMENT_KEY, $NUM_GENESIS_KEYS, $KEY_DIR, $TESTNET_MAGIC, $PROPOSAL_ARGS
+# Creates, signs and submits transaction with update proposal.
+# Put era as first argument and proposal parameters as the rest or use scripts update-proposal-*.
+# 
+# Source: https://github.com/input-output-hk/cardano-world/blob/master/nix/automation/jobs.nix
 
 network=("--mainnet")
 # network=("--testnet-magic" "764824073")
+ERA=("$1")
+
+PROPOSAL_ARGS=(${@:2}) 
+# e.g. 
+# PROPOSAL_ARGS=("--protocol-major-version" "7" "--protocol-minor-version" "0")
+# PROPOSAL_ARGS=("--cost-model-file" "cost-models-data/cost-model-v2.json")
+
+cd "$(dirname "$0")" || exit
 
 # use some faucet address for fee
 PAYMENT_KEY=faucet-addrs/faucet200
@@ -21,8 +30,6 @@ TXIN=$(cardano-cli query utxo --address "$CHANGE_ADDRESS" "${network[@]}" --out-
 EPOCH=$(cardano-cli query tip  "${network[@]}" | jq .epoch)
 # ((EPOCH=EPOCH + 1))
 
-PROPOSAL_ARGS=("--protocol-major-version" "7" "--protocol-minor-version" "0")
-
 SIGNING_ARGS=()
 PROPOSAL_KEY_ARGS=("--genesis-verification-key-file" "genesis-keys/genesis1.vkey")
 # SIGNING_ARGS+=("--signing-key-file" "$KEY_DIR/delegate-keys/shelley.00$i.skey")
@@ -34,6 +41,7 @@ cardano-cli governance create-update-proposal \
     --out-file update.proposal
 
 cardano-cli transaction build \
+    "${ERA[@]}" \
     --tx-in "$TXIN" \
     --change-address "$CHANGE_ADDRESS" \
     --update-proposal-file update.proposal \
@@ -62,6 +70,7 @@ then
     --out-file update.proposal
 
     cardano-cli transaction build \
+        "${ERA[@]}" \
         --tx-in "$TXIN" \
         --change-address "$CHANGE_ADDRESS" \
         --update-proposal-file update.proposal \

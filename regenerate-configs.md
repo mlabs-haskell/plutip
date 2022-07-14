@@ -18,6 +18,6 @@ Do:
  8. Run `mkdir faucet-addrs && bash gen-byron-funds.sh`.
  9. Previous command generated addresses than need to be filled with money. List the addresses in `nonAvvmBalances` field in `byron-genesis.yaml`. You can use `print-byron-mainnet-addresses.zsh`.
 
-Directories `utxo-keys`, `genesis-keys` and `delegate-keys` are irrelevant for local-cluster, can be removed. Note that some of the genesis delegate keys were renamed to bft-leader* in `regenerate.sh`.
+Directories `utxo-keys`, `genesis-keys`, `delegate-keys` and json genesis files are irrelevant for local-cluster, can be removed. Note that some of the genesis delegate keys were renamed to bft-leader* keys in `regenerate.sh`.
 
 If you want to use utxo-keys, then fill them with money listing them in `initialFunds` in `shelley-genesis.yaml`. You can get address in hex with `cardano-cli address info --address $(cardano-cli address build --mainnet --verification-key-file utxo-keys/utxo1.vkey ) | jq '.base16'`.

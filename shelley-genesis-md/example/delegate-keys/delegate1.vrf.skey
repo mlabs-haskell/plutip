@@ -1,5 +1,0 @@
-{
-    "type": "VrfSigningKey_PraosVRF",
-    "description": "VRF Signing Key",
-    "cborHex": "584044f55b10190716874f12aabf42942be507d11d260bf555e6554903a1e3f426284663245f43367d929f5d2d8f5b6abe780dfb6bde88e25103dd8c59e404eda014"
-}

@@ -15,10 +15,18 @@ import Test.Plutip.LocalCluster (
   stopCluster,
   waitSeconds,
  )
+import Test.Plutip.Config (PlutipConfig(..), WorkingDirectory (..))
+import System.Environment (getArgs)
 
 main :: IO ()
 main = do
-  (st, _) <- startCluster def $ do
+  args <- getArgs
+  let clusterWorkingDir' = case args of
+        [fp] -> Fixed fp True
+        _ -> Temporary
+  let config = def { clusterWorkingDir = clusterWorkingDir'}
+  
+  (st, _) <- startCluster config $ do
     w <- addSomeWallet [toAda 10000]
     waitSeconds 2 -- let wallet Tx finish, it can take more time with bigger slot length
     separate
@@ -33,6 +41,7 @@ main = do
   putStrLn "Stopping cluster"
 
   stopCluster st
+
   where
     prtNodeRelatedInfo = ReaderT $ \cEnv -> do
       putStrLn $ "Node socket: " <> show (nodeSocket cEnv)

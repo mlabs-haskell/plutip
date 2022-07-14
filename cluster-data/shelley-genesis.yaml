@@ -54,6 +54,9 @@ slotLength: 1
 maxKESEvolutions: 90
 securityParam: 5
 systemStart: "2020-06-19T16:07:37.740128433Z"
-initialFunds: {}
+initialFunds:
+  # key at utxo-keys/utxo1.vkey
+  616e498ba87f09dbd6b744d264b4b3eb8d423269ebc8d56a789b96484e: 1000000000000000
+  
 # For the Byron;Shelley test setup, funds have to be migrated from byron
 # using manually submitted transactions. The initialFunds field is ignored.

@@ -39,15 +39,15 @@ walletToLedger wAddr =
     >>= left WalletToLedgerError . convert
   where
     convert =
-      Ledger.fromCardanoAddress
+      Ledger.fromCardanoAddressInEra
         . CAPI.shelleyAddressInEra @CAPI.AlonzoEra
 
 ledgerToCardanoMainnet :: Ledger.Address -> Either Ledger.ToCardanoError (CAPI.AddressInEra CAPI.AlonzoEra)
-ledgerToCardanoMainnet = Ledger.toCardanoAddress CAPI.Mainnet
+ledgerToCardanoMainnet = Ledger.toCardanoAddressInEra CAPI.Mainnet
 
 ledgerToCardanoMainnet' :: Ledger.Address -> Either Ledger.ToCardanoError Text
 ledgerToCardanoMainnet' addr =
-  CAPI.serialiseAddress <$> Ledger.toCardanoAddress CAPI.Mainnet addr
+  CAPI.serialiseAddress <$> Ledger.toCardanoAddressInEra CAPI.Mainnet addr
 
 -- | Get `String` representation of address on mainnet
 -- mkMainnetAddress :: BpiWallet -> String

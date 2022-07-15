@@ -13,10 +13,10 @@ import Ledger (
   unitRedeemer,
   validatorHash,
  )
-import Ledger qualified as Validators
 import Ledger.Ada qualified as Ada
 import Ledger.Constraints qualified as Constraints
-import Ledger.Typed.Scripts.Validators qualified as Validators
+import Ledger.Typed.Scripts (TypedValidator, ValidatorTypes (DatumType, RedeemerType))
+import Ledger.Typed.Scripts qualified as Scripts
 import Plutus.Contract (Contract, awaitTxConfirmed, submitTx, submitTxConstraintsWith)
 import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
@@ -65,20 +65,20 @@ mkValidator _ _ _ = traceError "I always fail"
 
 data AlwaysFail
 
-instance Validators.ValidatorTypes AlwaysFail where
+instance ValidatorTypes AlwaysFail where
   type DatumType AlwaysFail = ()
   type RedeemerType AlwaysFail = ()
 
-typedValidator :: Validators.TypedValidator AlwaysFail
+typedValidator :: TypedValidator AlwaysFail
 typedValidator =
-  Validators.mkTypedValidator @AlwaysFail
+  Scripts.mkTypedValidator @AlwaysFail
     $$(PlutusTx.compile [||mkValidator||])
     $$(PlutusTx.compile [||wrap||])
   where
-    wrap = Validators.mkUntypedValidator @() @()
+    wrap = Scripts.mkUntypedValidator @() @()
 
 validator :: Validator
-validator = Validators.validatorScript typedValidator
+validator = Scripts.validatorScript typedValidator
 
 validatorAddr :: Address
 validatorAddr = mkValidatorAddress validator

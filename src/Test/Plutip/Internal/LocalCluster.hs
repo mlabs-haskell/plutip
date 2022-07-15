@@ -121,7 +121,7 @@ withPlutusInterface conf action = do
           tr'
           dir
           clusterCfg
-          (const $ pure ()) -- faucet setup was here in `cardano-wallet` version
+          []
           (\rn -> restoreStdout $ runActionWthSetup rn dir trCluster action)
     handleLogs dir conf
     return result
@@ -236,7 +236,7 @@ waitForRelayNode trCluster rn = do
 
 -- | Launch the chain index in a separate thread.
 launchChainIndex :: PlutipConfig -> RunningNode -> FilePath -> IO Int
-launchChainIndex conf (RunningNode sp _block0 (_gp, _vData)) dir = do
+launchChainIndex conf (RunningNode sp _block0 (_gp, _vData) _) dir = do
   config <- defaultConfig
   let dbPath = dir </> "chain-index.db"
       chainIndexConfig =

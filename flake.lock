@@ -66,21 +66,22 @@
         "plutus": "plutus",
         "plutus-apps": "plutus-apps",
         "purescript-bridge": "purescript-bridge",
+        "quickcheck-dynamic": "quickcheck-dynamic",
         "servant-purescript": "servant-purescript",
         "typed-protocols": "typed-protocols"
       },
       "locked": {
-        "lastModified": 1656927074,
-        "narHash": "sha256-ZHfBjAGAr9Qrg6Oh+n0z1IyYJZUtHxJdX7x/aCSd7Us=",
+        "lastModified": 1657811398,
+        "narHash": "sha256-9LfPpUyw+ECqI6ns2nZW1UcDvHwQY9Qz58IJqcpDO9w=",
         "owner": "mlabs-haskell",
         "repo": "bot-plutus-interface",
-        "rev": "1f18513d9a6326bf70a5cd68e74a40b5aa104861",
+        "rev": "6f3ba0f7da5b6d7c0c878c54cca97addc2c633c5",
         "type": "github"
       },
       "original": {
         "owner": "mlabs-haskell",
         "repo": "bot-plutus-interface",
-        "rev": "1f18513d9a6326bf70a5cd68e74a40b5aa104861",
+        "rev": "6f3ba0f7da5b6d7c0c878c54cca97addc2c633c5",
         "type": "github"
       }
     },
@@ -206,34 +207,34 @@
     "cardano-ledger": {
       "flake": false,
       "locked": {
-        "lastModified": 1655762257,
-        "narHash": "sha256-SaMhULHXgY0FiSKWc2dAYlgtbfPaFh/bUTgGqoNnMqY=",
+        "lastModified": 1657127204,
+        "narHash": "sha256-4wcSA61TwoDTvJ6rx7tjEAJjQLO/cs8WGTHcOghNdTc=",
         "owner": "input-output-hk",
         "repo": "cardano-ledger",
-        "rev": "ce3057e0863304ccb3f79d78c77136219dc786c6",
+        "rev": "3be8a19083fc13d9261b1640e27dd389b51bb08e",
         "type": "github"
       },
       "original": {
         "owner": "input-output-hk",
         "repo": "cardano-ledger",
-        "rev": "ce3057e0863304ccb3f79d78c77136219dc786c6",
+        "rev": "3be8a19083fc13d9261b1640e27dd389b51bb08e",
         "type": "github"
       }
     },
     "cardano-node": {
       "flake": false,
       "locked": {
-        "lastModified": 1656166930,
-        "narHash": "sha256-R7YGQ6UMG16ed9sGguDWq2cUgFnADeRdx8O2s2HqWRk=",
+        "lastModified": 1657227628,
+        "narHash": "sha256-CP58qcHZJGYq1FzXCj8ll085TvnJoYMeXnVGVGLYH/w=",
         "owner": "input-output-hk",
         "repo": "cardano-node",
-        "rev": "9f1d7dc163ee66410d912e48509d6a2300cfa68a",
+        "rev": "c75451f0ffd7a60b5ad6c4263891e6c8acac105a",
         "type": "github"
       },
       "original": {
         "owner": "input-output-hk",
-        "ref": "1.35.0",
         "repo": "cardano-node",
+        "rev": "c75451f0ffd7a60b5ad6c4263891e6c8acac105a",
         "type": "github"
       }
     },
@@ -273,17 +274,17 @@
     "cardano-wallet": {
       "flake": false,
       "locked": {
-        "lastModified": 1656432713,
-        "narHash": "sha256-ncoAaIPWRhJ2FShesmrp4q5LK1PtWuzqOKuhlwerWac=",
+        "lastModified": 1657745277,
+        "narHash": "sha256-+PrfQH6m7ROpHKNyo54MzLrL31tIvSZUQYnbBT70ekc=",
         "owner": "input-output-hk",
         "repo": "cardano-wallet",
-        "rev": "a73d8c9717dc4e174745f8568d6f3fe84f0f9d76",
+        "rev": "2ac308b00d9d4a3435f6b9594ded9495e2b217eb",
         "type": "github"
       },
       "original": {
         "owner": "input-output-hk",
         "repo": "cardano-wallet",
-        "rev": "a73d8c9717dc4e174745f8568d6f3fe84f0f9d76",
+        "rev": "2ac308b00d9d4a3435f6b9594ded9495e2b217eb",
         "type": "github"
       }
     },
@@ -551,17 +552,17 @@
     "hysterical-screams": {
       "flake": false,
       "locked": {
-        "lastModified": 1653758250,
-        "narHash": "sha256-NLgHKpCFPExmm6YgQwbsTf0/LhgQNp2iPrzv8PWgyes=",
+        "lastModified": 1654007733,
+        "narHash": "sha256-d4N3rUzg45BUs5Lx/kK7vXYsLMNoO15dlzo7t8lGIXA=",
         "owner": "raduom",
         "repo": "hysterical-screams",
-        "rev": "f3bbd38a19f99de5c8ddc650c94330b2d09a865b",
+        "rev": "4c523469e9efd3f0d10d17da3304923b7b0e0674",
         "type": "github"
       },
       "original": {
         "owner": "raduom",
         "repo": "hysterical-screams",
-        "rev": "f3bbd38a19f99de5c8ddc650c94330b2d09a865b",
+        "rev": "4c523469e9efd3f0d10d17da3304923b7b0e0674",
         "type": "github"
       }
     },
@@ -816,34 +817,34 @@
     "plutus": {
       "flake": false,
       "locked": {
-        "lastModified": 1655404007,
-        "narHash": "sha256-8ZCD/f321fFs8k+FBfxnpYlm1+C+rKM8Io9K0CDCEqA=",
+        "lastModified": 1656585904,
+        "narHash": "sha256-ATwDR5LX2RN9YfoPhTxV7REvFoJnM4x/CN9XZVZlalg=",
         "owner": "input-output-hk",
         "repo": "plutus",
-        "rev": "f680ac6979e069fcc013e4389ee607ff5fa6672f",
+        "rev": "69ab98c384703172f898eb5bcad1078ded521426",
         "type": "github"
       },
       "original": {
         "owner": "input-output-hk",
         "repo": "plutus",
-        "rev": "f680ac6979e069fcc013e4389ee607ff5fa6672f",
+        "rev": "69ab98c384703172f898eb5bcad1078ded521426",
         "type": "github"
       }
     },
     "plutus-apps": {
       "flake": false,
       "locked": {
-        "lastModified": 1656024944,
-        "narHash": "sha256-uUM0aTHvZ2LRos+XhU329ElNyL4wvnHU4hcjsc+Q0TQ=",
-        "owner": "input-output-hk",
+        "lastModified": 1657805529,
+        "narHash": "sha256-b/cDxN3e1TQMDlYmDlUIS53eSxeMPq7YtlUdJOpgV50=",
+        "owner": "gege251",
         "repo": "plutus-apps",
-        "rev": "c2b310968d0915e2af0ea4680186b41ad88ffbe9",
+        "rev": "59e269d3a2bc66ab99b0070d16c81dc13636f9c4",
         "type": "github"
       },
       "original": {
-        "owner": "input-output-hk",
+        "owner": "gege251",
         "repo": "plutus-apps",
-        "rev": "c2b310968d0915e2af0ea4680186b41ad88ffbe9",
+        "rev": "59e269d3a2bc66ab99b0070d16c81dc13636f9c4",
         "type": "github"
       }
     },
@@ -861,6 +862,23 @@
         "owner": "input-output-hk",
         "repo": "purescript-bridge",
         "rev": "47a1f11825a0f9445e0f98792f79172efef66c00",
+        "type": "github"
+      }
+    },
+    "quickcheck-dynamic": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1656927450,
+        "narHash": "sha256-TioJQASNrQX6B3n2Cv43X2olyT67//CFQqcpvNW7N60=",
+        "owner": "input-output-hk",
+        "repo": "quickcheck-dynamic",
+        "rev": "c272906361471d684440f76c297e29ab760f6a1e",
+        "type": "github"
+      },
+      "original": {
+        "owner": "input-output-hk",
+        "repo": "quickcheck-dynamic",
+        "rev": "c272906361471d684440f76c297e29ab760f6a1e",
         "type": "github"
       }
     },

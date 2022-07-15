@@ -50,7 +50,7 @@ queryProtocolParams (runningNode -> rn) =
     query = shellyBasedAlonzoQuery C.QueryProtocolParameters
 
 connectionInfo :: RunningNode -> C.LocalNodeConnectInfo C.CardanoMode
-connectionInfo (RunningNode socket _ _) =
+connectionInfo (RunningNode socket _ _ _) =
   C.LocalNodeConnectInfo
     (C.CardanoModeParams (C.EpochSlots 21600))
     C.Mainnet

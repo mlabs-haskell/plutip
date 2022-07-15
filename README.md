@@ -59,3 +59,9 @@ More examples could be found [here](test/Spec/Integration.hs).
 ## Known limitations
 
 At the moment underlying mechanisms that execute contract do not support `awaitTxConfirmed`. As one possible solution, `waitNSlots n` can be used instead. We are working on it.
+### Available support channels info
+
+You can find help, more information and ongoing discusion about the project here:
+- [link] - short description
+- [link] - short description
+

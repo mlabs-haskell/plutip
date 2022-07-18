@@ -14,7 +14,7 @@ import Data.Data (Proxy)
 import Data.Proxy (Proxy (Proxy))
 import Data.Text (Text)
 import Ledger.Tx.CardanoAPI qualified as Ledger
-import Plutus.V1.Ledger.Address qualified as Ledger
+import Plutus.V1.Ledger.Address qualified as Address
 
 data AddressConversionError
   = WalletToCardanoDeserializationError
@@ -33,21 +33,23 @@ walletToCardano (Wallet.Address rawBytes) =
 walletToCardanoAny :: Wallet.Address -> Either AddressConversionError CAPI.AddressAny
 walletToCardanoAny = fmap CAPI.AddressShelley . walletToCardano
 
-walletToLedger :: Wallet.Address -> Either AddressConversionError Ledger.Address
+walletToLedger :: Wallet.Address -> Either AddressConversionError Address.Address
 walletToLedger wAddr =
   walletToCardano wAddr
     >>= left WalletToLedgerError . convert
   where
     convert =
       Ledger.fromCardanoAddressInEra
-        . CAPI.shelleyAddressInEra @CAPI.AlonzoEra
+        . CAPI.shelleyAddressInEra @CAPI.BabbageEra
 
-ledgerToCardanoMainnet :: Ledger.Address -> Either Ledger.ToCardanoError (CAPI.AddressInEra CAPI.AlonzoEra)
-ledgerToCardanoMainnet = Ledger.toCardanoAddressInEra CAPI.Mainnet
+ledgerToCardanoMainnet ::
+  Address.Address ->
+  Either Ledger.ToCardanoError (CAPI.AddressInEra CAPI.BabbageEra)
+ledgerToCardanoMainnet = Ledger.toCardanoAddressBabbage CAPI.Mainnet
 
-ledgerToCardanoMainnet' :: Ledger.Address -> Either Ledger.ToCardanoError Text
+ledgerToCardanoMainnet' :: Address.Address -> Either Ledger.ToCardanoError Text
 ledgerToCardanoMainnet' addr =
-  CAPI.serialiseAddress <$> Ledger.toCardanoAddressInEra CAPI.Mainnet addr
+  CAPI.serialiseAddress <$> Ledger.toCardanoAddressBabbage CAPI.Mainnet addr
 
 -- | Get `String` representation of address on mainnet
 -- mkMainnetAddress :: BpiWallet -> String

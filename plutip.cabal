@@ -30,6 +30,7 @@ common common-imports
     , cardano-api
     , cardano-crypto
     , cardano-crypto-wrapper
+    , cardano-ledger-core
     , cardano-slotting
     , cardano-wallet
     , cardano-wallet-cli

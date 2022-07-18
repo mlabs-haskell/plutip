@@ -5,15 +5,13 @@ module Test.Plutip.Internal.LocalCluster (
 ) where
 
 import Cardano.Api qualified as CAPI
-
+import Cardano.BM.Data.Severity qualified as Severity
+import Cardano.BM.Data.Tracer (HasPrivacyAnnotation, HasSeverityAnnotation (getSeverityAnnotation))
+import Cardano.CLI (LogOutput (LogToFile), withLoggingNamed)
 import Cardano.Launcher.Node (nodeSocketFile)
 import Cardano.Startup (installSignalHandlers, setDefaultFilePermissions, withUtf8Encoding)
 import Cardano.Wallet.Logging (stdoutTextTracer, trMessageText)
 import Cardano.Wallet.Shelley.Launch (TempDirLog, withSystemTempDir)
-
-import Cardano.BM.Data.Severity qualified as Severity
-import Cardano.BM.Data.Tracer (HasPrivacyAnnotation, HasSeverityAnnotation (getSeverityAnnotation))
-import Cardano.CLI (LogOutput (LogToFile), withLoggingNamed)
 import Cardano.Wallet.Shelley.Launch.Cluster (ClusterLog, localClusterConfigFromEnv, testMinSeverityFromEnv, walletMinSeverityFromEnv, withCluster)
 import Control.Concurrent.Async (async)
 import Control.Monad (unless, void, when)
@@ -22,11 +20,14 @@ import Control.Monad.IO.Unlift (MonadUnliftIO)
 import Control.Monad.Reader (ReaderT (runReaderT))
 import Control.Retry (constantDelay, limitRetries, recoverAll)
 import Control.Tracer (Tracer, contramap, traceWith)
+import Data.Foldable (for_)
 import Data.Kind (Type)
 import Data.Maybe (catMaybes, fromMaybe, isJust)
 import Data.Text (Text, pack)
 import Data.Text.Class (ToText (toText))
-import GHC.IO.Handle (Handle, hDuplicate, hDuplicateTo)
+import GHC.IO.Handle (Handle, hDuplicate, hDuplicateTo, hFlush)
+import GHC.Stack.Types (HasCallStack)
+import Paths_plutip (getDataFileName)
 import Plutus.ChainIndex.App qualified as ChainIndex
 import Plutus.ChainIndex.Config (ChainIndexConfig (cicNetworkId, cicPort), cicDbPath, cicSocketPath)
 import Plutus.ChainIndex.Config qualified as ChainIndex
@@ -36,7 +37,16 @@ import System.Directory (canonicalizePath, copyFile, createDirectoryIfMissing, d
 import System.Environment (setEnv)
 import System.Exit (die)
 import System.FilePath ((</>))
-import System.IO (IOMode (WriteMode), hClose, hFlush, openFile, stdout)
+import System.IO (IOMode (WriteMode), hClose, openFile, stdout)
+import Test.Plutip.Config (
+  PlutipConfig (
+    chainIndexPort,
+    clusterDataDir,
+    clusterWorkingDir,
+    relayNodeLogs
+  ),
+  WorkingDirectory (Fixed, Temporary),
+ )
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BotSetup
 import Test.Plutip.Internal.Types (
   ClusterEnv (
@@ -51,23 +61,10 @@ import Test.Plutip.Internal.Types (
   RunningNode (RunningNode),
  )
 import Test.Plutip.Tools.CardanoApi qualified as Tools
+import Text.Printf (printf)
 import UnliftIO.Concurrent (forkFinally, myThreadId, throwTo)
 import UnliftIO.Exception (bracket, catchIO, finally)
 import UnliftIO.STM (TVar, atomically, newTVarIO, readTVar, retrySTM, writeTVar)
-
-import Data.Foldable (for_)
-import GHC.Stack.Types (HasCallStack)
-import Paths_plutip (getDataFileName)
-import Test.Plutip.Config (
-  PlutipConfig (
-    chainIndexPort,
-    clusterDataDir,
-    clusterWorkingDir,
-    relayNodeLogs
-  ),
-  WorkingDirectory (Fixed, Temporary),
- )
-import Text.Printf (printf)
 
 -- | Starting a cluster with a setup action
 -- We're heavily depending on cardano-wallet local cluster tooling, however they don't allow the

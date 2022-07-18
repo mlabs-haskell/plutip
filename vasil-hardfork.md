@@ -3,6 +3,13 @@
 Plutip has executable 'local-cluster' starting a cluster of 3 pools and a relay node.
 
 To witness a fork one should:
+ - prepare the repository:
+ ```
+ git clone https://github.com/mlabs-haskell/plutip.git
+ cd plutip
+ git checkout vasil-local-cluster
+ nix develop
+ ```
  - start cluster with `cabal new-run local-cluster [CLUSTER_DIR]` and copy shown node socket
  - to hard-fork run: 
  ```
@@ -15,7 +22,8 @@ To witness a fork one should:
  # it waits first for new epoch in babbage era
  bash cluster-data/update-proposal-cost-model.sh
  ```
-Use node socket with `--mainnet` flag.
+ 
+One can use the started cardano node for submiting transactions, queries etc. Use node socket with `--mainnet` flag.
 
 Wallet address displayed by local-cluster is for key in `$CLUSTER_WORK_DIR/bot-plutus-interface/signing-keys`. One can ignore it.
 

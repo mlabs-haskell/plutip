@@ -3,7 +3,7 @@
 Plutip has executable 'local-cluster' starting a cluster of 3 pools and a relay node.
 
 To witness a fork one should:
- - start cluster with `cabal new-run local-cluster` and copy shown node socket
+ - start cluster with `cabal new-run local-cluster [CLUSTER_DIR]` and copy shown node socket
  - to hard-fork run: 
  ```
  export CARDANO_NODE_SOCKET_PATH=<socket path>

@@ -101,6 +101,7 @@ common common-language
     LambdaCase
     MonoLocalBinds
     MultiParamTypeClasses
+    NamedFieldPuns
     NumericUnderscores
     OverloadedStrings
     QuasiQuotes
@@ -114,6 +115,7 @@ common common-language
     TypeFamilies
     TypeOperators
     TypeSynonymInstances
+    ViewPatterns
 
 common common-configs
   default-language: Haskell2010
@@ -164,7 +166,7 @@ test-suite plutip-tests
   import:             common-imports
   import:             common-language
   import:             common-configs
-  import:             common-ghc-options  
+  import:             common-ghc-options
   type:               exitcode-stdio-1.0
   hs-source-dirs:     test
   main-is:            Main.hs
@@ -192,6 +194,46 @@ test-suite plutip-tests
     QuasiQuotes
     RecordWildCards
     TupleSections
+
+executable plutip-server
+  import:           common-language
+  import:           common-ghc-options
+  main-is:          Main.hs
+  hs-source-dirs:   plutip-server
+  default-language: Haskell2010
+  build-depends:
+    , aeson
+    , base
+    , base16-bytestring
+    , bytestring
+    , cardano-api
+    , cardano-wallet
+    , cardano-wallet-launcher
+    , data-default
+    , directory
+    , exceptions
+    , extra
+    , filepath
+    , http-types
+    , mtl
+    , optparse-applicative
+    , plutip
+    , positive
+    , servant-server
+    , stm
+    , text
+    , unliftio
+    , wai
+    , wai-cors
+    , wai-logger
+    , warp
+
+  other-modules:
+    Api
+    Api.Handlers
+    Types
+
+  ghc-options:      -Wall -threaded -rtsopts
 
 executable local-cluster
   main-is:       local-cluster/Main.hs

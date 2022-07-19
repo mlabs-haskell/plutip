@@ -22,6 +22,7 @@ data WorkingDirectory
       , -- | Should the working data be kept on disk after cluster shutdown. Full directory will be deleted on shutdown if False
         shouldKeep :: Bool
       }
+  deriving stock (Generic, Show)
 
 -- | Plutip configurable options
 --
@@ -41,7 +42,7 @@ data PlutipConfig = PlutipConfig
     --    Either provided by a path to the signing key file, or by the signing key itself.
     extraSigners :: [Either FilePath (SigningKey PaymentKey)]
   }
-  deriving stock (Generic)
+  deriving stock (Generic, Show)
 
 instance Default PlutipConfig where
   def = PlutipConfig Nothing Nothing Nothing 1 Temporary []

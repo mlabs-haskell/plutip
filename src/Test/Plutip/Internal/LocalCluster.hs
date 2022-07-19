@@ -7,6 +7,7 @@ module Test.Plutip.Internal.LocalCluster (
 import Cardano.Api qualified as CAPI
 import Cardano.BM.Data.Severity qualified as Severity
 import Cardano.BM.Data.Tracer (HasPrivacyAnnotation, HasSeverityAnnotation (getSeverityAnnotation))
+import Cardano.BM.Configuration.Model qualified as CM
 import Cardano.CLI (LogOutput (LogToFile), withLoggingNamed)
 import Cardano.Launcher.Node (nodeSocketFile)
 import Cardano.Startup (installSignalHandlers, setDefaultFilePermissions, withUtf8Encoding)
@@ -235,6 +236,7 @@ waitForRelayNode trCluster rn = do
 launchChainIndex :: PlutipConfig -> RunningNode -> FilePath -> IO Int
 launchChainIndex conf (RunningNode sp _block0 (_gp, _vData) _) dir = do
   config <- defaultConfig
+  CM.setMinSeverity config Severity.Notice
   let dbPath = dir </> "chain-index.db"
       chainIndexConfig =
         ChainIndex.defaultConfig
@@ -247,7 +249,7 @@ launchChainIndex conf (RunningNode sp _block0 (_gp, _vData) _) dir = do
                 fromEnum
                 (chainIndexPort conf)
           }
-  void . async $ void $ ChainIndex.runMain config chainIndexConfig
+  void . async $ void $ ChainIndex.runMainWithLog (const $ return ()) config chainIndexConfig
   return $ cicPort chainIndexConfig
 
 handleLogs :: HasCallStack => FilePath -> PlutipConfig -> IO ()

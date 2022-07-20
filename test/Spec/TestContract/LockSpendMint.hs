@@ -1,6 +1,7 @@
 module Spec.TestContract.LockSpendMint (lockThenSpend) where
 
 import Control.Monad (void)
+import Data.List.NonEmpty qualified as NonEmpty
 import Data.Map qualified as Map
 import Data.Text (Text)
 import Ledger (
@@ -14,7 +15,6 @@ import Ledger (
   TxInfo (txInfoMint),
   TxOutRef,
   getCardanoTxId,
-  pubKeyHashAddress,
   scriptHashAddress,
  )
 import Ledger.Ada (adaValueOf)
@@ -38,8 +38,8 @@ lockThenSpend = do
   wait 1
   _ <- spendFromScript
   wait 1
-  pkh <- Contract.ownPaymentPubKeyHash
-  Map.toList <$> Contract.utxosAt (pubKeyHashAddress pkh Nothing)
+  addr <- NonEmpty.head <$> Contract.ownAddresses
+  Map.toList <$> Contract.utxosAt addr
   where
     wait = void . Contract.waitNSlots
 

@@ -28,14 +28,14 @@ import Ledger (
   unitDatum,
   validatorHash,
  )
-import Ledger qualified
 import Ledger.Ada qualified as Ada
 import Ledger.Constraints qualified as Constraints
-import Ledger.Typed.Scripts.Validators qualified as Validators
+import Ledger.Typed.Scripts (mkUntypedValidator)
 import Plutus.Contract (Contract, awaitTxConfirmed, submitTx, submitTxConstraintsWith)
 import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
 import Plutus.Script.Utils.V1.Address (mkValidatorAddress)
+import Plutus.Script.Utils.V1.Typed.Scripts.Validators qualified as Validators
 import Plutus.V1.Ledger.Interval (member)
 import PlutusTx qualified
 import PlutusTx.Prelude
@@ -109,7 +109,7 @@ typedValidator =
     $$(PlutusTx.compile [||mkValidator||])
     $$(PlutusTx.compile [||wrap||])
   where
-    wrap = Ledger.mkUntypedValidator @() @TimeRedeemer
+    wrap = mkUntypedValidator @() @TimeRedeemer
 
 validator :: Validator
 validator = Validators.validatorScript typedValidator

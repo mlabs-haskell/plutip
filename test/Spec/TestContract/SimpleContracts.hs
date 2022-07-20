@@ -22,7 +22,6 @@ import Ledger (
   TxOutRef,
   Value,
   ciTxOutValue,
-  pubKeyHashAddress,
  )
 
 import Data.Map (Map)
@@ -30,6 +29,7 @@ import Ledger.Ada qualified as Ada
 
 import Control.Lens ((^.))
 import Control.Monad (void)
+import Data.List.NonEmpty qualified as NonEmpty
 import Data.Text (Text)
 import Ledger.Constraints (MkTxError (OwnPubKeyMissing))
 import Ledger.Constraints qualified as Constraints
@@ -37,8 +37,8 @@ import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
 
 getUtxos :: Contract [Value] EmptySchema Text (Map TxOutRef ChainIndexTxOut)
 getUtxos = do
-  pkh <- Contract.ownPaymentPubKeyHash
-  utxosAt $ pubKeyHashAddress pkh Nothing
+  addr <- NonEmpty.head <$> Contract.ownAddresses
+  utxosAt addr
 
 getUtxosThrowsErr :: Contract () EmptySchema ContractError (Map TxOutRef ChainIndexTxOut)
 getUtxosThrowsErr =

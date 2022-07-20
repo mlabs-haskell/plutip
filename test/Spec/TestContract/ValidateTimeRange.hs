@@ -24,17 +24,18 @@ import Ledger (
   always,
   getCardanoTxId,
   lowerBound,
-  scriptAddress,
   strictUpperBound,
   unitDatum,
   validatorHash,
  )
+import Ledger.Ada qualified as Ada
 import Ledger.Constraints qualified as Constraints
-import Ledger.Typed.Scripts.Validators qualified as Validators
+import Ledger.Typed.Scripts (mkUntypedValidator)
 import Plutus.Contract (Contract, awaitTxConfirmed, submitTx, submitTxConstraintsWith)
 import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
-import Plutus.V1.Ledger.Ada qualified as Value
+import Plutus.Script.Utils.V1.Address (mkValidatorAddress)
+import Plutus.Script.Utils.V1.Typed.Scripts.Validators qualified as Validators
 import Plutus.V1.Ledger.Interval (member)
 import PlutusTx qualified
 import PlutusTx.Prelude
@@ -108,13 +109,13 @@ typedValidator =
     $$(PlutusTx.compile [||mkValidator||])
     $$(PlutusTx.compile [||wrap||])
   where
-    wrap = Validators.wrapValidator @() @TimeRedeemer
+    wrap = mkUntypedValidator @() @TimeRedeemer
 
 validator :: Validator
 validator = Validators.validatorScript typedValidator
 
 validatorAddr :: Address
-validatorAddr = scriptAddress validator
+validatorAddr = mkValidatorAddress validator
 
 ------------------------------------------
 failingTimeContract :: Contract () EmptySchema Text Hask.String
@@ -128,7 +129,7 @@ failingTimeContract = do
       validInterval = Interval (lowerBound startTime) (strictUpperBound endTime)
 
   let constr =
-        Constraints.mustPayToOtherScript (validatorHash validator) unitDatum (Value.adaValueOf 4)
+        Constraints.mustPayToOtherScript (validatorHash validator) unitDatum (Ada.adaValueOf 4)
           <> Constraints.mustValidateIn validInterval
 
   void $ Contract.awaitTime (endTime + POSIXTime 4_000)
@@ -145,7 +146,7 @@ lockAtScript = do
         Constraints.mustPayToOtherScript
           (validatorHash validator)
           unitDatum
-          (Value.adaValueOf 10)
+          (Ada.adaValueOf 10)
   tx <- submitTx constr
   Contract.awaitTxConfirmed $ getCardanoTxId tx
 

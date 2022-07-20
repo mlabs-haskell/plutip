@@ -8,13 +8,13 @@ import Data.List.NonEmpty (NonEmpty)
 import Data.Map qualified as Map
 import Data.Maybe (isJust)
 import Data.Text (Text, isInfixOf, pack)
+import Ledger.Ada (lovelaceValueOf)
 import Ledger.Constraints (MkTxError (OwnPubKeyMissing))
 import Plutus.Contract (
   ContractError (ConstraintResolutionContractError),
   waitNSlots,
  )
 import Plutus.Contract qualified as Contract
-import Plutus.V1.Ledger.Ada (lovelaceValueOf)
 import Spec.TestContract.AlwaysFail (lockThenFailToSpend)
 import Spec.TestContract.LockSpendMint (lockThenSpend)
 import Spec.TestContract.SimpleContracts (

@@ -113,6 +113,7 @@ runContractWithLogLvl logLvl cEnv bpiWallet contract = do
         <*> newTVarIO (ContractState Active (mempty :: w))
         <*> newTVarIO mempty
         <*> newTVarIO mempty
+        <*> (Bpi.CollateralVar <$> newTVarIO Nothing)
 
     mkPabConfig pparams =
       PABConfig
@@ -136,6 +137,7 @@ runContractWithLogLvl logLvl cEnv bpiWallet contract = do
         , pcCollectLogs = True
         , pcBudgetMultiplier = budgetMultiplier (plutipConf cEnv)
         , pcTxStatusPolling = TxStatusPolling 500_000 8
+        , pcCollateralSize = 10_000_000
         }
 
     runContract' :: ContractEnvironment w -> m (ExecutionResult w e a)

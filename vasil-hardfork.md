@@ -13,6 +13,9 @@ To witness a fork one should:
  - start cluster with `cabal new-run local-cluster [CLUSTER_DIR]` and copy shown node socket
  - to hard-fork run: 
  ```
+ # Start in plutip directory and have cardano-cli in path.
+ # You can obtain it by entering the nix shell with `nix develop`
+ 
  export CARDANO_NODE_SOCKET_PATH=<socket path>
 
  # submit update-proposal bumping major version to 7 (babbage)
@@ -23,6 +26,8 @@ To witness a fork one should:
  bash cluster-data/update-proposal-cost-model.sh
  ```
  
+Above commands submits two transactions if the first one fails. Seeing one "transaction submit error" for every "Transaction submitted succesfully" is fine.
+
 One can use the started cardano node for submiting transactions, queries etc. Use node socket with `--mainnet` flag.
 
 Wallet address displayed by local-cluster is for key in `$CLUSTER_WORK_DIR/bot-plutus-interface/signing-keys`. One can ignore it.

@@ -71,17 +71,17 @@
         "typed-protocols": "typed-protocols"
       },
       "locked": {
-        "lastModified": 1658170109,
-        "narHash": "sha256-+TNYElmR5Z15rhyXo3KNPrChMZKDMJJZrMGbpCOMnKw=",
+        "lastModified": 1658845380,
+        "narHash": "sha256-G2CWIfjd+4BfwNZj31sx0u+6db2MCM8j8R9Zeg5r59I=",
         "owner": "mlabs-haskell",
         "repo": "bot-plutus-interface",
-        "rev": "2808c5e403c37df302742d71125c83a5787d3dec",
+        "rev": "da192f1347c9b587b4808f8f6ec600e3526b37a1",
         "type": "github"
       },
       "original": {
         "owner": "mlabs-haskell",
         "repo": "bot-plutus-interface",
-        "rev": "2808c5e403c37df302742d71125c83a5787d3dec",
+        "rev": "da192f1347c9b587b4808f8f6ec600e3526b37a1",
         "type": "github"
       }
     },
@@ -834,17 +834,17 @@
     "plutus-apps": {
       "flake": false,
       "locked": {
-        "lastModified": 1658170029,
-        "narHash": "sha256-/G3CrE2aXrhytDGOqhifmIT31gJcvI3FjuntztOi8DY=",
+        "lastModified": 1658828135,
+        "narHash": "sha256-4Fxt5QLTopthYbxc0dvW3/6nw8Zn0qcYGG6ZzSKiqSQ=",
         "owner": "gege251",
         "repo": "plutus-apps",
-        "rev": "62342808fa7422ebea3233a7e031d3aa00c04672",
+        "rev": "5cd1682b1ccf8f12c64fc0c1731d61fee41779f6",
         "type": "github"
       },
       "original": {
         "owner": "gege251",
         "repo": "plutus-apps",
-        "rev": "62342808fa7422ebea3233a7e031d3aa00c04672",
+        "rev": "5cd1682b1ccf8f12c64fc0c1731d61fee41779f6",
         "type": "github"
       }
     },

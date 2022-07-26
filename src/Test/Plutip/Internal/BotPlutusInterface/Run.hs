@@ -14,6 +14,7 @@ import BotPlutusInterface.Types (
   CLILocation (Local),
   ContractEnvironment (ContractEnvironment),
   ContractState (ContractState, csObservableState),
+  LogType (AnyLog),
   LogLevel (Error),
   PABConfig (
     PABConfig,
@@ -82,7 +83,7 @@ runContract ::
   BpiWallet ->
   Contract w s e a ->
   m (ExecutionResult w e a)
-runContract = runContractWithLogLvl Error
+runContract = runContractWithLogLvl $ Error [AnyLog]
 
 -- | "By default" contracts a being run with `runContract` with maximum severity
 -- and logs are collected by framework and can be obtained from `ExecutionResult`,

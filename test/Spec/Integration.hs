@@ -1,6 +1,6 @@
 module Spec.Integration (test) where
 
-import BotPlutusInterface.Types (LogContext (ContractLog), LogLevel (Debug))
+import BotPlutusInterface.Types (LogContext (ContractLog), LogLevel (Debug), LogType(AnyLog))
 import Control.Exception (ErrorCall, Exception (fromException))
 import Control.Monad (void)
 import Data.Default (Default (def))
@@ -87,7 +87,7 @@ test =
           , Predicate.not shouldSucceed
           ]
       , assertExecutionWith
-          [ShowTraceButOnlyContext ContractLog Debug]
+          [ShowTraceButOnlyContext ContractLog $ Debug [AnyLog]]
           "Contract 3"
           (initAda [100])
           (withContract $ const $ Contract.logInfo @Text "Some contract log with Info level." >> getUtxosThrowsEx)

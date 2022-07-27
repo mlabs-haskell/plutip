@@ -307,7 +307,7 @@ withContractAs walletIdx toContract = do
       -}
       collectValuesPkhs = fmap ledgerPaymentPkh wallets'
 
-      -- wallelt `PaymentPubKeyHash`es that will be available in
+      -- wallet `PaymentPubKeyHash`es that will be available in
       -- `withContract` and `withContractAs`
       otherWalletsPkhs = fmap ledgerPaymentPkh otherWallets
       contract =

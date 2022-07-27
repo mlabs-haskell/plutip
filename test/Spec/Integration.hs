@@ -1,6 +1,6 @@
 module Spec.Integration (test) where
 
-import BotPlutusInterface.Types (LogContext (ContractLog), LogLevel (Debug), LogType(AnyLog))
+import BotPlutusInterface.Types (LogContext (ContractLog), LogLevel (Debug), LogType (AnyLog))
 import Control.Exception (ErrorCall, Exception (fromException))
 import Control.Monad (void)
 import Data.Default (Default (def))
@@ -221,14 +221,13 @@ testValueAssertionsOrderCorrectness =
         wallet1After = wallet1 + payTo1Amt
         wallet2After = wallet2 + payTo2Amt
         wallet0After =
-            wallet0
-          - collateralVal
-          - collateralTxFee
-          - payTo1Amt
-          - payFee
-          - payTo2Amt
-          - payFee
-
+          wallet0
+            - collateralVal
+            - collateralTxFee
+            - payTo1Amt
+            - payFee
+            - payTo2Amt
+            - payFee
      in assertExecution
           "Values asserted in correct order with withContract"
           ( initAndAssertLovelace [wallet0] wallet0After
@@ -248,7 +247,7 @@ testValueAssertionsOrderCorrectness =
         wallet2 = 300_000_000
 
         payFee = 146200
-        collateralVal =  10_000_000
+        collateralVal = 10_000_000
         collateralTxFee = 146200
         payTo0Amt = 11_000_000
         payTo1Amt = 22_000_000
@@ -269,7 +268,6 @@ testValueAssertionsOrderCorrectness =
             - payFee
             - payTo2Amt
             - payFee
-
      in assertExecution
           "Values asserted in correct order with withContractAs"
           ( initAndAssertLovelace [wallet0] wallet0After

@@ -14,8 +14,8 @@ import BotPlutusInterface.Types (
   CLILocation (Local),
   ContractEnvironment (ContractEnvironment),
   ContractState (ContractState, csObservableState),
-  LogType (AnyLog),
   LogLevel (Error),
+  LogType (AnyLog),
   PABConfig (
     PABConfig,
     pcBudgetMultiplier,

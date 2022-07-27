@@ -213,12 +213,22 @@ testValueAssertionsOrderCorrectness =
         wallet1 = 200_000_000
         wallet2 = 300_000_000
 
-        payFee = 146200 -- taken from trace
+        collateralTxFee = 146200
+        payFee = 146200
         payTo1Amt = 22_000_000
         payTo2Amt = 33_000_000
+        collateralVal = 10_000_000
         wallet1After = wallet1 + payTo1Amt
         wallet2After = wallet2 + payTo2Amt
-        wallet0After = wallet0 - payTo1Amt - payFee - payTo2Amt - payFee
+        wallet0After =
+            wallet0
+          - collateralVal
+          - collateralTxFee
+          - payTo1Amt
+          - payFee
+          - payTo2Amt
+          - payFee
+
      in assertExecution
           "Values asserted in correct order with withContract"
           ( initAndAssertLovelace [wallet0] wallet0After
@@ -237,7 +247,9 @@ testValueAssertionsOrderCorrectness =
         wallet1 = 200_000_000
         wallet2 = 300_000_000
 
-        payFee = 146200 -- taken from trace
+        payFee = 146200
+        collateralVal =  10_000_000
+        collateralTxFee = 146200
         payTo0Amt = 11_000_000
         payTo1Amt = 22_000_000
         payTo2Amt = 33_000_000
@@ -245,14 +257,19 @@ testValueAssertionsOrderCorrectness =
         wallet0After = wallet0 + payTo0Amt
         wallet2After =
           wallet2 + payTo2Amt
+            - collateralVal
+            - collateralTxFee
             - payTo1Amt
             - payFee
+
         wallet1After =
           wallet1 + payTo1Amt
+            - collateralTxFee
             - payTo0Amt
             - payFee
             - payTo2Amt
             - payFee
+
      in assertExecution
           "Values asserted in correct order with withContractAs"
           ( initAndAssertLovelace [wallet0] wallet0After

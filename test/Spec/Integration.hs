@@ -10,7 +10,9 @@ import Data.Maybe (isJust)
 import Data.Text (Text, isInfixOf, pack)
 import Ledger.Constraints (MkTxError (OwnPubKeyMissing))
 import Plutus.Contract (
+  Contract,
   ContractError (ConstraintResolutionContractError),
+  EmptySchema,
   waitNSlots,
  )
 import Plutus.Contract qualified as Contract
@@ -217,12 +219,10 @@ testValueAssertionsOrderCorrectness =
         payFee = 146200
         payTo1Amt = 22_000_000
         payTo2Amt = 33_000_000
-        collateralVal = 10_000_000
         wallet1After = wallet1 + payTo1Amt
         wallet2After = wallet2 + payTo2Amt
         wallet0After =
           wallet0
-            - collateralVal
             - collateralTxFee
             - payTo1Amt
             - payFee
@@ -235,10 +235,13 @@ testValueAssertionsOrderCorrectness =
               <> initAndAssertLovelace [wallet2] wallet2After
           )
           ( do
-              withContract $ \[w1pkh, w2pkh] -> do
-                _ <- payTo w1pkh (toInteger payTo1Amt)
-                _ <- waitNSlots 2
-                payTo w2pkh (toInteger payTo2Amt)
+              void $
+                withContract $ \[w1pkh, w2pkh] -> do
+                  _ <- payTo w1pkh (toInteger payTo1Amt)
+                  _ <- waitNSlots 2
+                  payTo w2pkh (toInteger payTo2Amt)
+
+              withContract $ \_ -> return () :: Contract () EmptySchema Text ()
           )
           [shouldSucceed]
   , -- withContractAs case
@@ -247,7 +250,6 @@ testValueAssertionsOrderCorrectness =
         wallet2 = 300_000_000
 
         payFee = 146200
-        collateralVal = 10_000_000
         collateralTxFee = 146200
         payTo0Amt = 11_000_000
         payTo1Amt = 22_000_000
@@ -256,7 +258,6 @@ testValueAssertionsOrderCorrectness =
         wallet0After = wallet0 + payTo0Amt
         wallet2After =
           wallet2 + payTo2Amt
-            - collateralVal
             - collateralTxFee
             - payTo1Amt
             - payFee
@@ -281,8 +282,11 @@ testValueAssertionsOrderCorrectness =
                   _ <- waitNSlots 2
                   payTo w2pkh (toInteger payTo2Amt)
 
-              withContractAs 2 $ \[_, w1pkh] -> do
-                payTo w1pkh (toInteger payTo1Amt)
+              void $
+                withContractAs 2 $ \[_, w1pkh] -> do
+                  payTo w1pkh (toInteger payTo1Amt)
+
+              withContractAs 0 $ \_ -> return () :: Contract () EmptySchema Text ()
           )
           [shouldSucceed]
   ]

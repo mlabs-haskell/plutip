@@ -225,6 +225,7 @@ assertExecutionWith ::
 assertExecutionWith options tag testWallets testRunner predicates =
   (testWallets, toTestGroup)
   where
+    toTestGroup :: IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree
     toTestGroup ioEnv =
       withResource (runReaderT testRunner =<< ioEnv) (const $ pure ()) $
         \ioRes ->
@@ -235,9 +236,11 @@ assertExecutionWith options tag testWallets testRunner predicates =
               ((toCase ioRes <$> predicates) <> ((`optionToTestTree` ioRes) <$> options))
 
     -- wraps IO with result of contract execution into single test
+    toCase :: IO (ExecutionResult w e (a, NonEmpty Value)) -> Predicate w e a -> TestTree
     toCase ioRes p =
       singleTest (pTag p) (TestContract p ioRes)
 
+    optionToTestTree :: TraceOption -> IO (ExecutionResult w e (a, NonEmpty Value)) -> TestTree
     optionToTestTree = \case
       ShowBudgets -> singleTest "Budget stats" . StatsReport
       ShowTrace -> singleTest logsName . LogsReport DisplayAllTrace
@@ -261,6 +264,7 @@ maybeAddValuesCheck ioRes tws =
   where
     expected = twExpected <$> unTestWallets tws
 
+    valuesCheckCase :: TestTree
     valuesCheckCase =
       testCase "Values check" $
         ioRes
@@ -305,10 +309,12 @@ withContractAs walletIdx toContract = do
       it is important to preserve this order for Values check with `assertValues`
       as there is no other mechanism atm to match `TestWallet` with collected `Value`
       -}
+      collectValuesPkhs :: NonEmpty PaymentPubKeyHash
       collectValuesPkhs = fmap ledgerPaymentPkh wallets'
 
       -- wallet `PaymentPubKeyHash`es that will be available in
       -- `withContract` and `withContractAs`
+      otherWalletsPkhs :: [PaymentPubKeyHash]
       otherWalletsPkhs = fmap ledgerPaymentPkh otherWallets
       contract =
         wrapContract

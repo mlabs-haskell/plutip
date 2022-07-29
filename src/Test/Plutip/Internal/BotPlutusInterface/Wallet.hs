@@ -1,7 +1,9 @@
 module Test.Plutip.Internal.BotPlutusInterface.Wallet (
   BpiWallet (..),
   addSomeWallet,
+  addSomeWalletDir,
   eitherAddSomeWallet,
+  eitherAddSomeWalletDir,
   mkMainnetAddress,
   cardanoMainnetAddress,
   ledgerPaymentPkh,
@@ -15,6 +17,7 @@ import Cardano.Wallet.Shelley.Launch.Cluster (
   sendFaucetFundsTo,
  )
 import Control.Arrow (ArrowChoice (left))
+import Control.Monad (void)
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Reader (ReaderT, ask)
 import Data.Aeson.Extras (encodeByteString)
@@ -24,6 +27,7 @@ import Ledger (PaymentPubKeyHash (PaymentPubKeyHash), PubKeyHash (PubKeyHash))
 import Numeric.Positive (Positive)
 import Plutus.V1.Ledger.Api qualified as LAPI
 import PlutusTx.Builtins (fromBuiltin, toBuiltin)
+import System.Directory (createDirectoryIfMissing)
 import System.FilePath ((<.>), (</>))
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as Setup
 import Test.Plutip.Internal.BotPlutusInterface.Types (BpiError (BotInterfaceDirMissing, SignKeySaveError))
@@ -65,11 +69,42 @@ eitherAddSomeWallet funds = do
           (supportDir cEnv)
           [(fundAddress, toAmt v) | v <- funds]
 
+-- | The same as `eitherAddSomeWallet`, but also
+-- saves the key file to a separate directory.
+eitherAddSomeWalletDir :: MonadIO m => [Positive] -> Maybe FilePath -> ReaderT ClusterEnv m (Either BpiError BpiWallet)
+eitherAddSomeWalletDir funds wallDir = do
+  bpiWallet <- createWallet
+  case wallDir of
+    Nothing      -> pure ()
+    (Just direc) -> void $ saveWalletDir bpiWallet direc
+  saveWallet bpiWallet
+    >>= \case
+      Right _ -> sendFunds bpiWallet >> pure (Right bpiWallet)
+      Left err -> pure $ Left err
+  where
+    sendFunds wallet = do
+      cEnv <- ask
+      let fundAddress = mkMainnetAddress wallet
+          toAmt = Coin . fromIntegral
+      liftIO $
+        sendFaucetFundsTo
+          nullTracer -- todo: fix tracer to be not `nullTracer`
+          (nodeSocket cEnv)
+          (supportDir cEnv)
+          [(fundAddress, toAmt v) | v <- funds]
+
 -- | Add wallet with arbitrary address and specified amount of Ada.
 -- (version of `eitherAddSomeWallet` that will throw an error in case of failure)
 addSomeWallet :: MonadIO m => [Positive] -> ReaderT ClusterEnv m BpiWallet
 addSomeWallet funds =
   eitherAddSomeWallet funds >>= either (error . show) pure
+
+-- | Version of `addSomeWallet` that also writes the
+-- wallet key file to a separate directory
+addSomeWalletDir :: MonadIO m => [Positive] -> Maybe FilePath -> ReaderT ClusterEnv m BpiWallet
+addSomeWalletDir funds Nothing = addSomeWallet funds
+addSomeWalletDir funds wallDir@(Just _dir) =
+  eitherAddSomeWalletDir funds wallDir >>= either (error . show) pure
 
 createWallet :: MonadIO m => m BpiWallet
 createWallet = do
@@ -94,6 +129,16 @@ saveWallet (BpiWallet pkh _ sk) = do
           path = Setup.keysDir cEnv </> "signing-key-" ++ pkhStr <.> "skey"
       res <- liftIO $ CAPI.writeFileTextEnvelope path (Just "Payment Signing Key") key
       return $ left (SignKeySaveError . show) res --todo: better error handling
+
+-- | Save the wallet to a specific directory.
+saveWalletDir :: MonadIO m => BpiWallet -> FilePath -> m (Either BpiError ())
+saveWalletDir (BpiWallet pkh _ sk) wallDir = do
+  liftIO $ createDirectoryIfMissing True wallDir
+  let pkhStr = Text.unpack (encodeByteString (fromBuiltin (LAPI.getPubKeyHash pkh)))
+      path = wallDir </> "signing-key-" ++ pkhStr <.> "skey"
+  res <- liftIO $ CAPI.writeFileTextEnvelope path (Just "Payment Signing Key") sk
+  return $ left (SignKeySaveError . show) res --todo: better error handling
+  
 
 -- | Make `AnyAddress` for mainnet
 cardanoMainnetAddress :: BpiWallet -> AddressAny

@@ -6,3 +6,5 @@ tests: true
 benchmarks: true
 
 allow-newer: size-based:template-haskell
+
+test-show-details: direct

@@ -75,7 +75,7 @@ eitherAddSomeWalletDir :: MonadIO m => [Positive] -> Maybe FilePath -> ReaderT C
 eitherAddSomeWalletDir funds wallDir = do
   bpiWallet <- createWallet
   case wallDir of
-    Nothing      -> pure ()
+    Nothing -> pure ()
     (Just direc) -> void $ saveWalletDir bpiWallet direc
   saveWallet bpiWallet
     >>= \case
@@ -138,7 +138,6 @@ saveWalletDir (BpiWallet pkh _ sk) wallDir = do
       path = wallDir </> "signing-key-" ++ pkhStr <.> "skey"
   res <- liftIO $ CAPI.writeFileTextEnvelope path (Just "Payment Signing Key") sk
   return $ left (SignKeySaveError . show) res --todo: better error handling
-  
 
 -- | Make `AnyAddress` for mainnet
 cardanoMainnetAddress :: BpiWallet -> AddressAny

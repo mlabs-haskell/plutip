@@ -28,7 +28,9 @@ main = do
   (st, _) <- startCluster def $ do
     let nWall = numWallets args
         wPath = dirWallets args
-    ws <- replicateM (max 1 nWall) $ addSomeWalletDir [toAda 10000] wPath
+        adaAmt = fromInteger $ abs $ adaAmount args
+        nUtxos = numUtxos args
+    ws <- replicateM (max 0 nWall) $ addSomeWalletDir (replicate nUtxos (toAda adaAmt)) wPath
     waitSeconds 2 -- let wallet Tx finish, it can take more time with bigger slot length
     separate
     forM_ (zip ws [(1 :: Int)..]) $ \(w,n) -> liftIO $ do
@@ -68,13 +70,35 @@ pdirWallets = optional $ Options.strOption
   <> Options.metavar "FILEPATH"
   )
 
+padaAmount :: Parser Integer
+padaAmount = Options.option Options.auto
+  (  Options.long "ada"
+  <> Options.short 'a'
+  <> Options.metavar "ADA"
+  <> Options.value 10_000
+  )
+
+pnumUtxos :: Parser Int
+pnumUtxos = Options.option Options.auto
+  (  Options.long "utxos"
+  <> Options.short 'u'
+  <> Options.metavar "NUM_UTXOS"
+  <> Options.value 1
+  )
+
 pClusterConfig :: Parser CWalletConfig
-pClusterConfig = CWalletConfig <$> pnumWallets <*> pdirWallets
+pClusterConfig = CWalletConfig 
+  <$> pnumWallets 
+  <*> pdirWallets 
+  <*> padaAmount 
+  <*> pnumUtxos
 
 -- | Basic info about the cluster, to
 -- be used by the command-line
 data CWalletConfig = CWalletConfig
   { numWallets :: Int
   , dirWallets :: Maybe FilePath
+  , adaAmount  :: Integer
+  , numUtxos :: Int
   } deriving stock (Show, Eq)
 

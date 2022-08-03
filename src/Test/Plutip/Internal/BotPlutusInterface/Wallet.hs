@@ -51,23 +51,7 @@ During wallet addition `.skey` file with required name generated and saved
  Directory for files could be obtained with `Test.Plutip.BotPlutusInterface.Setup.keysDir`
 -}
 eitherAddSomeWallet :: MonadIO m => [Positive] -> ReaderT ClusterEnv m (Either BpiError BpiWallet)
-eitherAddSomeWallet funds = do
-  bpiWallet <- createWallet
-  saveWallet bpiWallet
-    >>= \case
-      Right _ -> sendFunds bpiWallet >> pure (Right bpiWallet)
-      Left err -> pure $ Left err
-  where
-    sendFunds wallet = do
-      cEnv <- ask
-      let fundAddress = mkMainnetAddress wallet
-          toAmt = Coin . fromIntegral
-      liftIO $
-        sendFaucetFundsTo
-          nullTracer -- todo: fix tracer to be not `nullTracer`
-          (nodeSocket cEnv)
-          (supportDir cEnv)
-          [(fundAddress, toAmt v) | v <- funds]
+eitherAddSomeWallet funds = eitherAddSomeWalletDir funds Nothing
 
 -- | The same as `eitherAddSomeWallet`, but also
 -- saves the key file to a separate directory.

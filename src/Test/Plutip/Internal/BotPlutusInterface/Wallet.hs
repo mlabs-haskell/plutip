@@ -86,8 +86,7 @@ addSomeWallet funds =
 -- | Version of `addSomeWallet` that also writes the
 -- wallet key file to a separate directory
 addSomeWalletDir :: MonadIO m => [Positive] -> Maybe FilePath -> ReaderT ClusterEnv m BpiWallet
-addSomeWalletDir funds Nothing = addSomeWallet funds
-addSomeWalletDir funds wallDir@(Just _dir) =
+addSomeWalletDir funds wallDir =
   eitherAddSomeWalletDir funds wallDir >>= either (error . show) pure
 
 createWallet :: MonadIO m => m BpiWallet
@@ -103,16 +102,10 @@ createWallet = do
         . CAPI.verificationKeyHash
 
 saveWallet :: MonadIO m => BpiWallet -> ReaderT ClusterEnv m (Either BpiError ())
-saveWallet (BpiWallet pkh _ sk) = do
+saveWallet bpiw = do
   cEnv <- ask
-  liftIO (Setup.directoryIsSet cEnv)
-    >>= bool (return $ Left BotInterfaceDirMissing) (save cEnv sk)
-  where
-    save cEnv key = do
-      let pkhStr = Text.unpack (encodeByteString (fromBuiltin (LAPI.getPubKeyHash pkh)))
-          path = Setup.keysDir cEnv </> "signing-key-" ++ pkhStr <.> "skey"
-      res <- liftIO $ CAPI.writeFileTextEnvelope path (Just "Payment Signing Key") key
-      return $ left (SignKeySaveError . show) res --todo: better error handling
+  isSet <- liftIO (Setup.directoryIsSet cEnv)
+  bool (return $ Left BotInterfaceDirMissing) (saveWalletDir bpiw (Setup.keysDir cEnv)) isSet
 
 -- | Save the wallet to a specific directory.
 saveWalletDir :: MonadIO m => BpiWallet -> FilePath -> m (Either BpiError ())

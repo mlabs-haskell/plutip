@@ -15,7 +15,6 @@ import Test.Plutip.Config qualified as Config
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (walletPkh, addSomeWalletDir)
 import Test.Plutip.Internal.Types (nodeSocket)
 import Test.Plutip.LocalCluster (
-  addSomeWallet,
   mkMainnetAddress,
   startCluster,
   stopCluster,
@@ -28,9 +27,9 @@ main = do
   (st, _) <- startCluster def $ do
     let nWall = numWallets args
         wPath = dirWallets args
-        adaAmt = fromInteger $ abs $ adaAmount args
+        adaAmt = (toAda $ fromInteger $ abs $ adaAmount args) + (fromInteger $ abs $ lvlAmount args)
         nUtxos = numUtxos args
-    ws <- replicateM (max 0 nWall) $ addSomeWalletDir (replicate nUtxos (toAda adaAmt)) wPath
+    ws <- replicateM (max 0 nWall) $ addSomeWalletDir (replicate nUtxos adaAmt) wPath
     waitSeconds 2 -- let wallet Tx finish, it can take more time with bigger slot length
     separate
     forM_ (zip ws [(1 :: Int)..]) $ \(w,n) -> liftIO $ do
@@ -78,6 +77,14 @@ padaAmount = Options.option Options.auto
   <> Options.value 10_000
   )
 
+plvlAmount :: Parser Integer
+plvlAmount = Options.option Options.auto
+  (  Options.long "lovelave"
+  <> Options.short 'l'
+  <> Options.metavar "Lovelace"
+  <> Options.value 0
+  )
+
 pnumUtxos :: Parser Int
 pnumUtxos = Options.option Options.auto
   (  Options.long "utxos"
@@ -91,6 +98,7 @@ pClusterConfig = CWalletConfig
   <$> pnumWallets 
   <*> pdirWallets 
   <*> padaAmount 
+  <*> plvlAmount
   <*> pnumUtxos
 
 -- | Basic info about the cluster, to
@@ -99,6 +107,7 @@ data CWalletConfig = CWalletConfig
   { numWallets :: Int
   , dirWallets :: Maybe FilePath
   , adaAmount  :: Integer
+  , lvlAmount  :: Integer
   , numUtxos :: Int
   } deriving stock (Show, Eq)
 

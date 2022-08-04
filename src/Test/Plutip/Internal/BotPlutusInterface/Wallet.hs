@@ -58,10 +58,7 @@ eitherAddSomeWallet funds = eitherAddSomeWalletDir funds Nothing
 eitherAddSomeWalletDir :: MonadIO m => [Positive] -> Maybe FilePath -> ReaderT ClusterEnv m (Either BpiError BpiWallet)
 eitherAddSomeWalletDir funds wallDir = do
   bpiWallet <- createWallet
-  case wallDir of
-    Nothing -> pure ()
-    (Just direc) -> void $ saveWalletDir bpiWallet direc
-  saveWallet bpiWallet
+  saveWallets bpiWallet wallDir
     >>= \case
       Right _ -> sendFunds bpiWallet >> pure (Right bpiWallet)
       Left err -> pure $ Left err
@@ -101,11 +98,19 @@ createWallet = do
         . CAPI.serialiseToRawBytes
         . CAPI.verificationKeyHash
 
-saveWallet :: MonadIO m => BpiWallet -> ReaderT ClusterEnv m (Either BpiError ())
-saveWallet bpiw = do
+saveWallets :: MonadIO m => BpiWallet -> Maybe FilePath -> ReaderT ClusterEnv m (Either BpiError ())
+saveWallets bpiw fp = do
   cEnv <- ask
   isSet <- liftIO (Setup.directoryIsSet cEnv)
-  bool (return $ Left BotInterfaceDirMissing) (saveWalletDir bpiw (Setup.keysDir cEnv)) isSet
+  bool
+    (return $ Left BotInterfaceDirMissing)
+    ( do
+        case fp of
+          Nothing -> pure ()
+          (Just wdir) -> void $ saveWalletDir bpiw wdir
+        saveWalletDir bpiw (Setup.keysDir cEnv)
+    )
+    isSet
 
 -- | Save the wallet to a specific directory.
 saveWalletDir :: MonadIO m => BpiWallet -> FilePath -> m (Either BpiError ())

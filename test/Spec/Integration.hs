@@ -257,14 +257,16 @@ testValueAssertionsOrderCorrectness =
 
         wallet0After = wallet0 + payTo0Amt
         wallet2After =
-          wallet2 + payTo2Amt
+          wallet2
+            + payTo2Amt
             - collateralTxFee
             - payTo1Amt
             - payFee
             - 7600
 
         wallet1After =
-          wallet1 + payTo1Amt
+          wallet1
+            + payTo1Amt
             - collateralTxFee
             - payTo0Amt
             - payFee

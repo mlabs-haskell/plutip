@@ -93,7 +93,7 @@ saveWallet (BpiWallet pkh _ sk) = do
       let pkhStr = Text.unpack (encodeByteString (fromBuiltin (LAPI.getPubKeyHash pkh)))
           path = Setup.keysDir cEnv </> "signing-key-" ++ pkhStr <.> "skey"
       res <- liftIO $ CAPI.writeFileTextEnvelope path (Just "Payment Signing Key") key
-      return $ left (SignKeySaveError . show) res --todo: better error handling
+      return $ left (SignKeySaveError . show) res -- todo: better error handling
 
 -- | Make `AnyAddress` for mainnet
 cardanoMainnetAddress :: BpiWallet -> AddressAny

@@ -6,7 +6,7 @@ As long as the cluster is not stopped, the relay node can be used for arbitrary 
 
 The node socket path can be obtained from console output.
 
-Note that when wallet is added with `addSomeWallet` it is recommended to wait some time (1 or 2 seconds) with `waitSeconds` while funding transaction is sent and confirmed.
+The `Main.hs` module can also serve as an example of how to make your own executable for starting local cluster with funded wallets. Note that when wallet is added with `addSomeWallet` it is recommended to wait some time (1 or 2 seconds) with `waitSeconds` while funding transaction is sent and confirmed.
 
 ## Usage 
 
@@ -16,7 +16,9 @@ The local cluster can be started by running
 cabal run local-cluster -- <arguments>
 ```
 
-The available arguments are as follows:
+When you see in terminal message like "`Cluster is running. Press Enter to stop.`" it means that local cluster started successfully and all desired wallets created and funded.
+
+### Available arguments
 
 ```
 --wallets NUM
@@ -68,8 +70,4 @@ amount will be 5.000001 ADA instead of 4.999999 ADA.
 ```
 
 Create `NUM` UTxOs in each wallet created. Note that each UTxO created has the amount
-of ADA determined by the `--ada` and `--lovelace` arguments. 
-
-
-
-
+of ADA determined by the `--ada` and `--lovelace` arguments.

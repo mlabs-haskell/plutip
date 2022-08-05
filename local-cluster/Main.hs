@@ -11,7 +11,6 @@ import Control.Monad.Reader (ReaderT (ReaderT))
 import Data.Default (def)
 import Options.Applicative qualified as Options
 import Options.Applicative (Parser, info, helper)
-import Test.Plutip.Config qualified as Config
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (walletPkh, addSomeWalletDir)
 import Test.Plutip.Internal.Types (nodeSocket)
 import Test.Plutip.LocalCluster (
@@ -27,7 +26,7 @@ main = do
   (st, _) <- startCluster def $ do
     let nWall = numWallets args
         wPath = dirWallets args
-        adaAmt = (toAda $ fromInteger $ abs $ adaAmount args) + (fromInteger $ abs $ lvlAmount args)
+        adaAmt = toAda (fromInteger $ abs $ adaAmount args) + fromInteger (abs $ lvlAmount args)
         nUtxos = numUtxos args
     ws <- replicateM (max 0 nWall) $ addSomeWalletDir (replicate nUtxos adaAmt) wPath
     waitSeconds 2 -- let wallet Tx finish, it can take more time with bigger slot length
@@ -94,10 +93,10 @@ pnumUtxos = Options.option Options.auto
   )
 
 pClusterConfig :: Parser CWalletConfig
-pClusterConfig = CWalletConfig 
-  <$> pnumWallets 
-  <*> pdirWallets 
-  <*> padaAmount 
+pClusterConfig = CWalletConfig
+  <$> pnumWallets
+  <*> pdirWallets
+  <*> padaAmount
   <*> plvlAmount
   <*> pnumUtxos
 

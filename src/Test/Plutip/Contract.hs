@@ -110,6 +110,7 @@ module Test.Plutip.Contract (
   TestWallets (TestWallets, unTestWallets),
   TestWallet (twInitDistribuition, twExpected),
   initAda,
+  initCollateral,
   initAndAssertAda,
   initAndAssertAdaWith,
   initAdaAssertValue,
@@ -128,7 +129,14 @@ module Test.Plutip.Contract (
   ada,
 ) where
 
-import BotPlutusInterface.Types (LogContext, LogLevel, LogsList (getLogsList))
+import BotPlutusInterface.Types (
+  LogContext,
+  LogLevel,
+  LogLine (LogLine, logLineContext, logLineLevel, logLineMsg),
+  LogsList (getLogsList),
+  sufficientLogLevel,
+ )
+
 import Control.Arrow (left)
 import Control.Monad (void)
 import Control.Monad.Reader (MonadIO (liftIO), MonadReader (ask), ReaderT, runReaderT)
@@ -154,6 +162,7 @@ import Test.Plutip.Contract.Init (
   initAndAssertAdaWith,
   initAndAssertLovelace,
   initAndAssertLovelaceWith,
+  initCollateral,
   initLovelace,
   initLovelaceAssertValue,
   initLovelaceAssertValueWith,
@@ -383,14 +392,19 @@ instance
         render
           . vcat
           . zipWith indexedMsg [0 ..]
-          . map (\(_, _, msg) -> msg)
+          . map logLineMsg
           . filterOrDont
           . getLogsList
+
       filterOrDont = case option of
         DisplayAllTrace ->
           id -- don't
         DisplayOnlyFromContext logCtx logLvl ->
-          filter (\(ctx, lvl, _) -> ctx == logCtx && logLvl >= lvl)
+          filter
+            ( \LogLine {logLineContext, logLineLevel} ->
+                logLineContext == logCtx
+                  && sufficientLogLevel logLvl logLineLevel
+            )
 
       indexedMsg :: Int -> Doc ann -> Doc ann
       indexedMsg i msg = pretty i <> pretty ("." :: String) <+> msg

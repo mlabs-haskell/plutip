@@ -4,6 +4,7 @@
 {-# HLINT ignore "Functor law" #-}
 
 module Test.Plutip.Internal.BotPlutusInterface.Run (
+  defCollateralSize,
   runContractWithLogLvl,
   runContract,
   runContract_,
@@ -67,6 +68,9 @@ import Test.Plutip.Internal.Types (
   FailureReason (CaughtException, ContractExecutionError),
  )
 import Wallet.Types (ContractInstanceId (ContractInstanceId))
+
+defCollateralSize :: Integer
+defCollateralSize = 10_000_000
 
 runContract_ ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (m :: Type -> Type).

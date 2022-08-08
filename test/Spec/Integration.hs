@@ -37,6 +37,7 @@ import Test.Plutip.Contract (
   initAndAssertAda,
   initAndAssertAdaWith,
   initAndAssertLovelace,
+  initCollateral,
   initLovelace,
   withContract,
   withContractAs,
@@ -215,7 +216,6 @@ testValueAssertionsOrderCorrectness =
         wallet1 = 200_000_000
         wallet2 = 300_000_000
 
-        collateralTxFee = 146200
         payFee = 146200
         payTo1Amt = 22_000_000
         payTo2Amt = 33_000_000
@@ -223,16 +223,16 @@ testValueAssertionsOrderCorrectness =
         wallet2After = wallet2 + payTo2Amt
         wallet0After =
           wallet0
-            - collateralTxFee
             - payTo1Amt
             - payFee
             - payTo2Amt
             - payFee
      in assertExecution
           "Values asserted in correct order with withContract"
-          ( initAndAssertLovelace [wallet0] wallet0After
-              <> initAndAssertLovelace [wallet1] wallet1After
-              <> initAndAssertLovelace [wallet2] wallet2After
+          ( initCollateral $
+              initAndAssertLovelace [wallet0] wallet0After
+                <> initAndAssertLovelace [wallet1] wallet1After
+                <> initAndAssertLovelace [wallet2] wallet2After
           )
           ( do
               void $
@@ -250,7 +250,6 @@ testValueAssertionsOrderCorrectness =
         wallet2 = 300_000_000
 
         payFee = 146200
-        collateralTxFee = 146200
         payTo0Amt = 11_000_000
         payTo1Amt = 22_000_000
         payTo2Amt = 33_000_000
@@ -259,24 +258,22 @@ testValueAssertionsOrderCorrectness =
         wallet2After =
           wallet2
             + payTo2Amt
-            - collateralTxFee
             - payTo1Amt
             - payFee
-            - 7600
 
         wallet1After =
           wallet1
             + payTo1Amt
-            - collateralTxFee
             - payTo0Amt
             - payFee
             - payTo2Amt
             - payFee
      in assertExecution
           "Values asserted in correct order with withContractAs"
-          ( initAndAssertLovelace [wallet0] wallet0After
-              <> initAndAssertLovelace [wallet1] wallet1After
-              <> initAndAssertLovelace [wallet2] wallet2After
+          ( initCollateral $
+              initAndAssertLovelace [wallet0] wallet0After
+                <> initAndAssertLovelace [wallet1] wallet1After
+                <> initAndAssertLovelace [wallet2] wallet2After
           )
           ( do
               void $

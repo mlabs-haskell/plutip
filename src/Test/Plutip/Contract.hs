@@ -138,8 +138,7 @@ import BotPlutusInterface.Types (
  )
 
 import Control.Arrow (left)
-import Control.Monad (void)
-import Control.Monad.Reader (MonadIO (liftIO), MonadReader (ask), ReaderT, runReaderT)
+import Control.Monad.Reader (MonadIO (liftIO), MonadReader (ask), ReaderT, runReaderT, void)
 import Data.Bool (bool)
 import Data.Kind (Type)
 import Data.List.NonEmpty (NonEmpty)
@@ -325,11 +324,18 @@ withContractAs walletIdx toContract = do
       -- `withContract` and `withContractAs`
       otherWalletsPkhs :: [PaymentPubKeyHash]
       otherWalletsPkhs = fmap ledgerPaymentPkh otherWallets
-      contract =
-        wrapContract
-          collectValuesPkhs
-          (toContract otherWalletsPkhs)
-  liftIO $ runContract cEnv ownWallet contract
+  -- contract =
+  --   wrapContract
+  --     collectValuesPkhs
+  --     (toContract otherWalletsPkhs)
+
+  execRes <- liftIO $ runContract cEnv ownWallet (toContract otherWalletsPkhs)
+
+  execValues <- liftIO $ runContract cEnv ownWallet (wrapContract @w @s @e collectValuesPkhs)
+
+  case outcome execValues of
+    Left _ -> fail "Failed to get values"
+    Right values -> return $ execRes {outcome = (,values) <$> outcome execRes}
   where
     separateWallets i xss
       | (xs, y : ys) <- NonEmpty.splitAt i xss = (y, xs <> ys)
@@ -340,16 +346,13 @@ withContractAs walletIdx toContract = do
 --
 -- @since 0.2
 wrapContract ::
-  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
-  TestContractConstraints w e a =>
+  forall (w :: Type) (s :: Row Type) (e :: Type).
+  TestContractConstraints w e (NonEmpty Value) =>
   NonEmpty PaymentPubKeyHash ->
-  Contract w s e a ->
-  Contract w s e (a, NonEmpty Value)
-wrapContract collectValuesPkhs contract = do
-  res <- contract
-  void $ waitNSlots 1
-  values <- traverse (valueAt . (`pubKeyHashAddress` Nothing)) collectValuesPkhs
-  pure (res, values)
+  Contract w s e (NonEmpty Value)
+wrapContract collectValuesPkhs =
+  void (waitNSlots 1)
+    >> traverse (valueAt . (`pubKeyHashAddress` Nothing)) collectValuesPkhs
 
 newtype StatsReport w e a = StatsReport (IO (ExecutionResult w e (a, NonEmpty Value)))
 

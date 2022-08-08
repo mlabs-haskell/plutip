@@ -10,9 +10,7 @@ import Data.Maybe (isJust)
 import Data.Text (Text, isInfixOf, pack)
 import Ledger.Constraints (MkTxError (OwnPubKeyMissing))
 import Plutus.Contract (
-  Contract,
   ContractError (ConstraintResolutionContractError),
-  EmptySchema,
   waitNSlots,
  )
 import Plutus.Contract qualified as Contract
@@ -235,13 +233,10 @@ testValueAssertionsOrderCorrectness =
                 <> initAndAssertLovelace [wallet2] wallet2After
           )
           ( do
-              void $
-                withContract $ \[w1pkh, w2pkh] -> do
-                  _ <- payTo w1pkh (toInteger payTo1Amt)
-                  _ <- waitNSlots 2
-                  payTo w2pkh (toInteger payTo2Amt)
-
-              withContract $ \_ -> return () :: Contract () EmptySchema Text ()
+              withContract $ \[w1pkh, w2pkh] -> do
+                _ <- payTo w1pkh (toInteger payTo1Amt)
+                _ <- waitNSlots 2
+                payTo w2pkh (toInteger payTo2Amt)
           )
           [shouldSucceed]
   , -- withContractAs case
@@ -282,11 +277,8 @@ testValueAssertionsOrderCorrectness =
                   _ <- waitNSlots 2
                   payTo w2pkh (toInteger payTo2Amt)
 
-              void $
-                withContractAs 2 $ \[_, w1pkh] -> do
-                  payTo w1pkh (toInteger payTo1Amt)
-
-              withContractAs 0 $ \_ -> return () :: Contract () EmptySchema Text ()
+              withContractAs 2 $ \[_, w1pkh] -> do
+                payTo w1pkh (toInteger payTo1Amt)
           )
           [shouldSucceed]
   ]

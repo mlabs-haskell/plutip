@@ -265,7 +265,7 @@ testValueAssertionsOrderCorrectness =
             - payFee
      in assertExecution
           "Values asserted in correct order with withContractAs"
-          ( initCollateral $
+          ( initCollateral $ -- Initialize all the wallets with the collateral utxo.
               initAndAssertLovelace [wallet0] wallet0After
                 <> initAndAssertLovelace [wallet1] wallet1After
                 <> initAndAssertLovelace [wallet2] wallet2After

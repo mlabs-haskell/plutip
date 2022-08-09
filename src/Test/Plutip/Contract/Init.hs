@@ -105,6 +105,8 @@ initAndAssertAda :: [Positive] -> Positive -> TestWallets
 initAndAssertAda initial expect =
   initAndAssertLovelace (map ada initial) (ada expect)
 
+-- | Initialize all the 'TestWallets' with the collateral utxo and
+--   adjust the 'twExpected' value accordingly.
 initCollateral :: TestWallets -> TestWallets
 initCollateral TestWallets {..} = TestWallets $ NonEmpty.map go unTestWallets
   where

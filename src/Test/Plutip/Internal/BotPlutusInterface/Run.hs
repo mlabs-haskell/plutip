@@ -69,6 +69,7 @@ import Test.Plutip.Internal.Types (
  )
 import Wallet.Types (ContractInstanceId (ContractInstanceId))
 
+-- | default collateral size that's to be used as collateral.
 defCollateralSize :: Integer
 defCollateralSize = 10_000_000
 
@@ -142,7 +143,7 @@ runContractWithLogLvl logLvl cEnv bpiWallet contract = do
         , pcCollectLogs = True
         , pcBudgetMultiplier = budgetMultiplier (plutipConf cEnv)
         , pcTxStatusPolling = TxStatusPolling 500_000 8
-        , pcCollateralSize = 10_000_000
+        , pcCollateralSize = fromInteger defCollateralSize
         }
 
     runContract' :: ContractEnvironment w -> m (ExecutionResult w e a)

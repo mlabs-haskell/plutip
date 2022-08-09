@@ -239,6 +239,7 @@ executable local-cluster
     , base
     , data-default
     , mtl
+    , optparse-applicative
     , plutip
 
   ghc-options:   -Wall -threaded -rtsopts

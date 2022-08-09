@@ -71,3 +71,14 @@ amount will be 5.000001 ADA instead of 4.999999 ADA.
 
 Create `NUM` UTxOs in each wallet created. Note that each UTxO created has the amount
 of ADA determined by the `--ada` and `--lovelace` arguments.
+
+```
+--working-dir /path/
+-w /path/
+```
+
+This determines where the node database, chain-index database, and bot-plutus-interface
+files will be stored for a running cluster. If specified, this will store cluster
+data in the provided path (can be relative or absolute), the files will be deleted
+on cluster shutdown by default. Otherwise, the cluster data is stored in a temporary
+directory and will be deleted on cluster shutdown.

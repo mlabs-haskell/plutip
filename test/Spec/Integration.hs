@@ -35,8 +35,8 @@ import Test.Plutip.Contract (
   initAndAssertAda,
   initAndAssertAdaWith,
   initAndAssertLovelace,
-  withCollateral,
   initLovelace,
+  withCollateral,
   withContract,
   withContractAs,
  )

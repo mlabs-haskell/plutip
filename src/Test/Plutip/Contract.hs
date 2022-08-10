@@ -161,10 +161,10 @@ import Test.Plutip.Contract.Init (
   initAndAssertAdaWith,
   initAndAssertLovelace,
   initAndAssertLovelaceWith,
-  withCollateral,
   initLovelace,
   initLovelaceAssertValue,
   initLovelaceAssertValueWith,
+  withCollateral,
  )
 import Test.Plutip.Contract.Types (
   TestContract (TestContract),
@@ -325,7 +325,7 @@ withContractAs walletIdx toContract = do
       otherWalletsPkhs :: [PaymentPubKeyHash]
       otherWalletsPkhs = fmap ledgerPaymentPkh otherWallets
 
-      -- contract that gets all the values present at the test wallet.
+      -- contract that gets all the values present at the test wallets.
       valuesAtWallet :: Contract w s e (NonEmpty Value)
       valuesAtWallet =
         void (waitNSlots 1)

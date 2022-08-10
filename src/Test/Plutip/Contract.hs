@@ -325,11 +325,17 @@ withContractAs walletIdx toContract = do
       otherWalletsPkhs :: [PaymentPubKeyHash]
       otherWalletsPkhs = fmap ledgerPaymentPkh otherWallets
 
+      -- contract that gets all the values present at the test wallet.
+      valuesAtWallet :: Contract w s e (NonEmpty Value)
+      valuesAtWallet =
+        void (waitNSlots 1)
+          >> traverse (valueAt . (`pubKeyHashAddress` Nothing)) collectValuesPkhs
+
   -- run the test contract
   execRes <- liftIO $ runContract cEnv ownWallet (toContract otherWalletsPkhs)
 
-  -- run the 'wrapContract' to get all the values present at the test wallets.
-  execValues <- liftIO $ runContract cEnv ownWallet (wrapContract @w @s @e collectValuesPkhs)
+  -- get all the values present at the test wallets after the user given contracts has been executed.
+  execValues <- liftIO $ runContract cEnv ownWallet valuesAtWallet
 
   case outcome execValues of
     Left _ -> fail "Failed to get values"
@@ -339,19 +345,6 @@ withContractAs walletIdx toContract = do
     separateWallets i xss
       | (xs, y : ys) <- NonEmpty.splitAt i xss = (y, xs <> ys)
       | otherwise = error $ "Should fail: bad wallet index for own wallet: " <> show i
-
--- | Wrap contract waits for transaction submission and
---   gets the utxo amount at all the test wallets after the contract has been
---   run. This contract is usually run after some test contract has been run.
--- @since 0.2
-wrapContract ::
-  forall (w :: Type) (s :: Row Type) (e :: Type).
-  TestContractConstraints w e (NonEmpty Value) =>
-  NonEmpty PaymentPubKeyHash ->
-  Contract w s e (NonEmpty Value)
-wrapContract collectValuesPkhs =
-  void (waitNSlots 1)
-    >> traverse (valueAt . (`pubKeyHashAddress` Nothing)) collectValuesPkhs
 
 newtype StatsReport w e a = StatsReport (IO (ExecutionResult w e (a, NonEmpty Value)))
 

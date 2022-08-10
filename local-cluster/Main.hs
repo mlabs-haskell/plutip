@@ -8,11 +8,12 @@ import Control.Applicative (optional, (<**>))
 import Control.Monad (void, replicateM, forM_)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ReaderT (ReaderT))
+import Data.Default (def)
 import Options.Applicative qualified as Options
 import Options.Applicative (Parser, info, helper)
 import Test.Plutip.Config (
   WorkingDirectory (Temporary, Fixed),
-  PlutipConfig (PlutipConfig),
+  PlutipConfig (clusterWorkingDir),
  )
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (walletPkh, addSomeWalletDir)
 import Test.Plutip.Internal.Types (nodeSocket)
@@ -26,7 +27,7 @@ import Test.Plutip.LocalCluster (
 main :: IO ()
 main = do
   args <- Options.execParser (info (pClusterConfig <**> helper) mempty)
-  let workingDir = maybe Temporary (flip Fixed False) (dirWorking args)
+  let workingDir = maybe Temporary (flip Fixed False) (workDir args)
       plutipConfig = def {clusterWorkingDir = workingDir}
   (st, _) <- startCluster plutipConfig $ do
     let nWall = numWallets args
@@ -97,8 +98,8 @@ pnumUtxos = Options.option Options.auto
   <> Options.value 1
   )
 
-pdirWorking :: Parser (Maybe FilePath)
-pdirWorking = optional $ Options.strOption
+pWorkDir :: Parser (Maybe FilePath)
+pWorkDir = optional $ Options.strOption
   (  Options.long "working-dir"
   <> Options.short 'w'
   <> Options.metavar "FILEPATH"
@@ -111,7 +112,7 @@ pClusterConfig = CWalletConfig
   <*> padaAmount
   <*> plvlAmount
   <*> pnumUtxos
-  <*> pdirWorking
+  <*> pWorkDir
 
 -- | Basic info about the cluster, to
 -- be used by the command-line
@@ -121,6 +122,6 @@ data CWalletConfig = CWalletConfig
   , adaAmount  :: Integer
   , lvlAmount  :: Integer
   , numUtxos :: Int
-  , dirWorking :: Maybe FilePath
+  , workDir  :: Maybe FilePath
   } deriving stock (Show, Eq)
 

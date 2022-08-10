@@ -27,7 +27,7 @@ main :: IO ()
 main = do
   args <- Options.execParser (info (pClusterConfig <**> helper) mempty)
   let workingDir = maybe Temporary (flip Fixed False) (dirWorking args)
-      plutipConfig = PlutipConfig Nothing Nothing Nothing 1 workingDir []
+      plutipConfig = def {clusterWorkingDir = workingDir}
   (st, _) <- startCluster plutipConfig $ do
     let nWall = numWallets args
         wPath = dirWallets args

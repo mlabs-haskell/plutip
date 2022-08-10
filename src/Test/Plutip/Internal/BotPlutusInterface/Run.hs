@@ -4,6 +4,7 @@
 {-# HLINT ignore "Functor law" #-}
 
 module Test.Plutip.Internal.BotPlutusInterface.Run (
+  defCollateralSize,
   runContractWithLogLvl,
   runContract,
   runContract_,
@@ -15,6 +16,7 @@ import BotPlutusInterface.Types (
   ContractEnvironment (ContractEnvironment),
   ContractState (ContractState, csObservableState),
   LogLevel (Error),
+  LogType (AnyLog),
   PABConfig (
     PABConfig,
     pcBudgetMultiplier,
@@ -67,6 +69,10 @@ import Test.Plutip.Internal.Types (
  )
 import Wallet.Types (ContractInstanceId (ContractInstanceId))
 
+-- | default collateral size that's to be used as collateral.
+defCollateralSize :: Integer
+defCollateralSize = 10_000_000
+
 runContract_ ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (m :: Type -> Type).
   (ToJSON w, Monoid w, MonadIO m) =>
@@ -82,7 +88,7 @@ runContract ::
   BpiWallet ->
   Contract w s e a ->
   m (ExecutionResult w e a)
-runContract = runContractWithLogLvl Error
+runContract = runContractWithLogLvl $ Error [AnyLog]
 
 -- | "By default" contracts a being run with `runContract` with maximum severity
 -- and logs are collected by framework and can be obtained from `ExecutionResult`,
@@ -113,6 +119,7 @@ runContractWithLogLvl logLvl cEnv bpiWallet contract = do
         <*> newTVarIO (ContractState Active (mempty :: w))
         <*> newTVarIO mempty
         <*> newTVarIO mempty
+        <*> (Bpi.CollateralVar <$> newTVarIO Nothing)
 
     mkPabConfig pparams =
       PABConfig
@@ -136,6 +143,7 @@ runContractWithLogLvl logLvl cEnv bpiWallet contract = do
         , pcCollectLogs = True
         , pcBudgetMultiplier = budgetMultiplier (plutipConf cEnv)
         , pcTxStatusPolling = TxStatusPolling 500_000 8
+        , pcCollateralSize = fromInteger defCollateralSize
         }
 
     runContract' :: ContractEnvironment w -> m (ExecutionResult w e a)

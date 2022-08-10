@@ -10,20 +10,26 @@ module Test.Plutip.Contract.Init (
   initAdaAssertValue,
   initAndAssertAdaWith,
   initAndAssertAda,
+  withCollateral,
 ) where
 
 import Data.List.NonEmpty (NonEmpty ((:|)))
+import Data.List.NonEmpty qualified as NonEmpty
+
+import Data.Bifunctor (second)
 
 import Ledger (Value)
 import Ledger.Ada qualified as Ada
+import Ledger.Value qualified as Value
 
 import Numeric.Positive (Positive)
 
 import Test.Plutip.Contract.Types (
-  TestWallet (TestWallet),
-  TestWallets (TestWallets),
+  TestWallet (TestWallet, twExpected, twInitDistribuition),
+  TestWallets (TestWallets, unTestWallets),
   ValueOrdering (VEq),
  )
+import Test.Plutip.Internal.BotPlutusInterface.Run (defCollateralSize)
 import Test.Plutip.Tools (ada)
 
 -- | Create a wallet with the given amounts of lovelace.
@@ -98,3 +104,16 @@ initAndAssertAdaWith initial ord expect =
 initAndAssertAda :: [Positive] -> Positive -> TestWallets
 initAndAssertAda initial expect =
   initAndAssertLovelace (map ada initial) (ada expect)
+
+-- | Initialize all the 'TestWallets' with the collateral utxo and
+--   adjust the 'twExpected' value accordingly.
+withCollateral :: TestWallets -> TestWallets
+withCollateral TestWallets {..} = TestWallets $ NonEmpty.map go unTestWallets
+  where
+    go :: TestWallet -> TestWallet
+    go TestWallet {..} =
+      TestWallet
+        { twInitDistribuition = fromInteger defCollateralSize : twInitDistribuition
+        , twExpected =
+            second (Value.unionWith (+) $ Ada.lovelaceValueOf defCollateralSize) <$> twExpected
+        }

@@ -47,6 +47,7 @@ This format is based on [Keep A Changelog](https://keepachangelog.com/en/1.0.0).
     - `initAdaAssertValueWith`
     - `initLovelaceAssertValue`
     - `initLovelaceAssertValueWith`
+    - `withCollateral`
 
 ## 0.1 -- 2022-02-14
 

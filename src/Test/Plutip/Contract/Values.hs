@@ -45,7 +45,8 @@ valueAt addr = do
 assertValues :: NonEmpty (Maybe (ValueOrdering, Value)) -> NonEmpty Value -> Either Text ()
 assertValues expected values =
   maybe (Right ()) (Left . report) $
-    find findFailing $ zip3 [0 :: Int ..] (NonEmpty.toList expected) (NonEmpty.toList values)
+    find findFailing $
+      zip3 [0 :: Int ..] (NonEmpty.toList expected) (NonEmpty.toList values)
   where
     findFailing (_, Nothing, _) = False
     findFailing (_, Just (ord, v), v') = not (compareValuesWith ord v' v)

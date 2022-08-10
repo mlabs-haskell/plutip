@@ -35,7 +35,7 @@ import Test.Plutip.Contract (
   initAndAssertAda,
   initAndAssertAdaWith,
   initAndAssertLovelace,
-  initCollateral,
+  withCollateral,
   initLovelace,
   withContract,
   withContractAs,
@@ -227,7 +227,7 @@ testValueAssertionsOrderCorrectness =
             - payFee
      in assertExecution
           "Values asserted in correct order with withContract"
-          ( initCollateral $
+          ( withCollateral $
               initAndAssertLovelace [wallet0] wallet0After
                 <> initAndAssertLovelace [wallet1] wallet1After
                 <> initAndAssertLovelace [wallet2] wallet2After
@@ -265,7 +265,7 @@ testValueAssertionsOrderCorrectness =
             - payFee
      in assertExecution
           "Values asserted in correct order with withContractAs"
-          ( initCollateral $ -- Initialize all the wallets with the collateral utxo.
+          ( withCollateral $ -- Initialize all the wallets with the collateral utxo.
               initAndAssertLovelace [wallet0] wallet0After
                 <> initAndAssertLovelace [wallet1] wallet1After
                 <> initAndAssertLovelace [wallet2] wallet2After

@@ -10,7 +10,7 @@ module Test.Plutip.Contract.Init (
   initAdaAssertValue,
   initAndAssertAdaWith,
   initAndAssertAda,
-  initCollateral,
+  withCollateral,
 ) where
 
 import Data.List.NonEmpty (NonEmpty ((:|)))
@@ -107,8 +107,8 @@ initAndAssertAda initial expect =
 
 -- | Initialize all the 'TestWallets' with the collateral utxo and
 --   adjust the 'twExpected' value accordingly.
-initCollateral :: TestWallets -> TestWallets
-initCollateral TestWallets {..} = TestWallets $ NonEmpty.map go unTestWallets
+withCollateral :: TestWallets -> TestWallets
+withCollateral TestWallets {..} = TestWallets $ NonEmpty.map go unTestWallets
   where
     go :: TestWallet -> TestWallet
     go TestWallet {..} =

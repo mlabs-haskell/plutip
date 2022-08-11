@@ -29,7 +29,7 @@ test = testCase "Bot interface integration" $ do
   where
     tipChainIndex = do
       mgr <- newManager defaultManagerSettings
-      req <- parseRequest "http://localhost:9083/tip" --TODO: port from cEnv
+      req <- parseRequest "http://localhost:9083/tip" -- TODO: port from cEnv
       httpNoBody req mgr
 
     allRequredDirsCreated cEnv = do

@@ -241,5 +241,6 @@ executable local-cluster
     , mtl
     , optparse-applicative
     , plutip
+    , positive
 
   ghc-options:   -Wall -threaded -rtsopts

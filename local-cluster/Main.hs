@@ -39,7 +39,7 @@ main = do
       (st, _) <- startCluster plutipConfig $ do
         ws <- initWallets numWallets numUtxos amt dirWallets
         waitSeconds 2 -- let wallet Tx finish, it can take more time with bigger slot length
-        
+
         separate
         liftIO $ forM_ (zip ws [(1 :: Int) ..]) printWallet
         printNodeRelatedInfo
@@ -58,7 +58,7 @@ main = do
 
     totalAmount :: CWalletConfig -> Either String Positive
     totalAmount cwc =
-      case toAda (adaAmount cwc) + lvlAmount cwc of
+      case toAda (abs $ adaAmount cwc) + abs (lvlAmount cwc) of
         0 -> Left "One of --ada or --lovelace arguments should not be 0"
         amt -> Right $ fromInteger amt
 

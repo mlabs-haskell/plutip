@@ -80,7 +80,8 @@ mkValidator _ timeRmr ctx =
 
     endInNotRange =
       traceIfFalse "End in range (shouldn't be)" $
-        not $ rmrEnd `member` vRange
+        not $
+          rmrEnd `member` vRange
 
     lowerBoundsSame =
       traceIfFalse "Lower bounds not same" $ ctxLb == rmrLb

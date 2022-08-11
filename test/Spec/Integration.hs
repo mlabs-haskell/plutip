@@ -1,6 +1,6 @@
 module Spec.Integration (test) where
 
-import BotPlutusInterface.Types (LogContext (ContractLog), LogLevel (Debug))
+import BotPlutusInterface.Types (LogContext (ContractLog), LogLevel (Error), LogType (AnyLog))
 import Control.Exception (ErrorCall, Exception (fromException))
 import Control.Monad (void)
 import Data.Default (Default (def))
@@ -36,6 +36,7 @@ import Test.Plutip.Contract (
   initAndAssertAdaWith,
   initAndAssertLovelace,
   initLovelace,
+  withCollateral,
   withContract,
   withContractAs,
  )
@@ -87,7 +88,7 @@ test =
           , Predicate.not shouldSucceed
           ]
       , assertExecutionWith
-          [ShowTraceButOnlyContext ContractLog Debug]
+          [ShowTraceButOnlyContext ContractLog $ Error [AnyLog]]
           "Contract 3"
           (initAda [100])
           (withContract $ const $ Contract.logInfo @Text "Some contract log with Info level." >> getUtxosThrowsEx)
@@ -213,17 +214,23 @@ testValueAssertionsOrderCorrectness =
         wallet1 = 200_000_000
         wallet2 = 300_000_000
 
-        payFee = 146200 -- taken from trace
+        payFee = 146200
         payTo1Amt = 22_000_000
         payTo2Amt = 33_000_000
         wallet1After = wallet1 + payTo1Amt
         wallet2After = wallet2 + payTo2Amt
-        wallet0After = wallet0 - payTo1Amt - payFee - payTo2Amt - payFee
+        wallet0After =
+          wallet0
+            - payTo1Amt
+            - payFee
+            - payTo2Amt
+            - payFee
      in assertExecution
           "Values asserted in correct order with withContract"
-          ( initAndAssertLovelace [wallet0] wallet0After
-              <> initAndAssertLovelace [wallet1] wallet1After
-              <> initAndAssertLovelace [wallet2] wallet2After
+          ( withCollateral $
+              initAndAssertLovelace [wallet0] wallet0After
+                <> initAndAssertLovelace [wallet1] wallet1After
+                <> initAndAssertLovelace [wallet2] wallet2After
           )
           ( do
               withContract $ \[w1pkh, w2pkh] -> do
@@ -237,27 +244,31 @@ testValueAssertionsOrderCorrectness =
         wallet1 = 200_000_000
         wallet2 = 300_000_000
 
-        payFee = 146200 -- taken from trace
+        payFee = 146200
         payTo0Amt = 11_000_000
         payTo1Amt = 22_000_000
         payTo2Amt = 33_000_000
 
         wallet0After = wallet0 + payTo0Amt
         wallet2After =
-          wallet2 + payTo2Amt
+          wallet2
+            + payTo2Amt
             - payTo1Amt
             - payFee
+
         wallet1After =
-          wallet1 + payTo1Amt
+          wallet1
+            + payTo1Amt
             - payTo0Amt
             - payFee
             - payTo2Amt
             - payFee
      in assertExecution
           "Values asserted in correct order with withContractAs"
-          ( initAndAssertLovelace [wallet0] wallet0After
-              <> initAndAssertLovelace [wallet1] wallet1After
-              <> initAndAssertLovelace [wallet2] wallet2After
+          ( withCollateral $ -- Initialize all the wallets with the collateral utxo.
+              initAndAssertLovelace [wallet0] wallet0After
+                <> initAndAssertLovelace [wallet1] wallet1After
+                <> initAndAssertLovelace [wallet2] wallet2After
           )
           ( do
               void $

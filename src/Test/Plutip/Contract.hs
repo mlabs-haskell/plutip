@@ -110,6 +110,7 @@ module Test.Plutip.Contract (
   TestWallets (TestWallets, unTestWallets),
   TestWallet (twInitDistribuition, twExpected),
   initAda,
+  withCollateral,
   initAndAssertAda,
   initAndAssertAdaWith,
   initAdaAssertValue,
@@ -128,10 +129,16 @@ module Test.Plutip.Contract (
   ada,
 ) where
 
-import BotPlutusInterface.Types (LogContext, LogLevel, LogsList (getLogsList))
+import BotPlutusInterface.Types (
+  LogContext,
+  LogLevel,
+  LogLine (LogLine, logLineContext, logLineLevel, logLineMsg),
+  LogsList (getLogsList),
+  sufficientLogLevel,
+ )
+
 import Control.Arrow (left)
-import Control.Monad (void)
-import Control.Monad.Reader (MonadIO (liftIO), MonadReader (ask), ReaderT, runReaderT)
+import Control.Monad.Reader (MonadIO (liftIO), MonadReader (ask), ReaderT, runReaderT, void)
 import Data.Bool (bool)
 import Data.Kind (Type)
 import Data.List.NonEmpty (NonEmpty)
@@ -157,6 +164,7 @@ import Test.Plutip.Contract.Init (
   initLovelace,
   initLovelaceAssertValue,
   initLovelaceAssertValueWith,
+  withCollateral,
  )
 import Test.Plutip.Contract.Types (
   TestContract (TestContract),
@@ -225,6 +233,7 @@ assertExecutionWith ::
 assertExecutionWith options tag testWallets testRunner predicates =
   (testWallets, toTestGroup)
   where
+    toTestGroup :: IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree
     toTestGroup ioEnv =
       withResource (runReaderT testRunner =<< ioEnv) (const $ pure ()) $
         \ioRes ->
@@ -235,9 +244,11 @@ assertExecutionWith options tag testWallets testRunner predicates =
               ((toCase ioRes <$> predicates) <> ((`optionToTestTree` ioRes) <$> options))
 
     -- wraps IO with result of contract execution into single test
+    toCase :: IO (ExecutionResult w e (a, NonEmpty Value)) -> Predicate w e a -> TestTree
     toCase ioRes p =
       singleTest (pTag p) (TestContract p ioRes)
 
+    optionToTestTree :: TraceOption -> IO (ExecutionResult w e (a, NonEmpty Value)) -> TestTree
     optionToTestTree = \case
       ShowBudgets -> singleTest "Budget stats" . StatsReport
       ShowTrace -> singleTest logsName . LogsReport DisplayAllTrace
@@ -261,6 +272,7 @@ maybeAddValuesCheck ioRes tws =
   where
     expected = twExpected <$> unTestWallets tws
 
+    valuesCheckCase :: TestTree
     valuesCheckCase =
       testCase "Values check" $
         ioRes
@@ -305,36 +317,34 @@ withContractAs walletIdx toContract = do
       it is important to preserve this order for Values check with `assertValues`
       as there is no other mechanism atm to match `TestWallet` with collected `Value`
       -}
+      collectValuesPkhs :: NonEmpty PaymentPubKeyHash
       collectValuesPkhs = fmap ledgerPaymentPkh wallets'
 
-      -- wallelt `PaymentPubKeyHash`es that will be available in
+      -- wallet `PaymentPubKeyHash`es that will be available in
       -- `withContract` and `withContractAs`
+      otherWalletsPkhs :: [PaymentPubKeyHash]
       otherWalletsPkhs = fmap ledgerPaymentPkh otherWallets
-      contract =
-        wrapContract
-          collectValuesPkhs
-          (toContract otherWalletsPkhs)
-  liftIO $ runContract cEnv ownWallet contract
+
+      -- contract that gets all the values present at the test wallets.
+      valuesAtWallet :: Contract w s e (NonEmpty Value)
+      valuesAtWallet =
+        void (waitNSlots 1)
+          >> traverse (valueAt . (`pubKeyHashAddress` Nothing)) collectValuesPkhs
+
+  -- run the test contract
+  execRes <- liftIO $ runContract cEnv ownWallet (toContract otherWalletsPkhs)
+
+  -- get all the values present at the test wallets after the user given contracts has been executed.
+  execValues <- liftIO $ runContract cEnv ownWallet valuesAtWallet
+
+  case outcome execValues of
+    Left _ -> fail "Failed to get values"
+    Right values -> return $ execRes {outcome = (,values) <$> outcome execRes}
   where
+    separateWallets :: forall b. Int -> NonEmpty b -> (b, [b])
     separateWallets i xss
       | (xs, y : ys) <- NonEmpty.splitAt i xss = (y, xs <> ys)
       | otherwise = error $ "Should fail: bad wallet index for own wallet: " <> show i
-
--- | Wrap test contracts to wait for transaction submission and
--- to get the utxo amount at test wallets and wait for transaction.
---
--- @since 0.2
-wrapContract ::
-  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
-  TestContractConstraints w e a =>
-  NonEmpty PaymentPubKeyHash ->
-  Contract w s e a ->
-  Contract w s e (a, NonEmpty Value)
-wrapContract collectValuesPkhs contract = do
-  res <- contract
-  void $ waitNSlots 1
-  values <- traverse (valueAt . (`pubKeyHashAddress` Nothing)) collectValuesPkhs
-  pure (res, values)
 
 newtype StatsReport w e a = StatsReport (IO (ExecutionResult w e (a, NonEmpty Value)))
 
@@ -377,14 +387,19 @@ instance
         render
           . vcat
           . zipWith indexedMsg [0 ..]
-          . map (\(_, _, msg) -> msg)
+          . map logLineMsg
           . filterOrDont
           . getLogsList
+
       filterOrDont = case option of
         DisplayAllTrace ->
           id -- don't
         DisplayOnlyFromContext logCtx logLvl ->
-          filter (\(ctx, lvl, _) -> ctx == logCtx && logLvl >= lvl)
+          filter
+            ( \LogLine {logLineContext, logLineLevel} ->
+                logLineContext == logCtx
+                  && sufficientLogLevel logLvl logLineLevel
+            )
 
       indexedMsg :: Int -> Doc ann -> Doc ann
       indexedMsg i msg = pretty i <> pretty ("." :: String) <+> msg

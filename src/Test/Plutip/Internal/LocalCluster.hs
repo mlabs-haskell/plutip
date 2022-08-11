@@ -2,6 +2,12 @@ module Test.Plutip.Internal.LocalCluster (
   startCluster,
   stopCluster,
   withPlutusInterface,
+  ClusterStatus (
+    ClusterStarting,
+    ClusterStarted,
+    ClusterClosing,
+    ClusterClosed
+  ),
 ) where
 
 import Cardano.Api qualified as CAPI
@@ -220,7 +226,8 @@ checkProcessesAvailable requiredProcesses = do
   results <- mapM findExecutable requiredProcesses
   unless (isJust `all` results) $
     die $
-      "This processes should be available in the environment:\n " <> show requiredProcesses
+      "This processes should be available in the environment:\n "
+        <> show requiredProcesses
         <> "\n but only these were found:\n "
         <> show (catMaybes results)
 

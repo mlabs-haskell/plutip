@@ -1,5 +1,3 @@
-{-# LANGUAGE ViewPatterns #-}
-
 -- | Helpers based on Cardano.Api (do not use `cardano-cli` executable)
 module Test.Plutip.Tools.CardanoApi (
   currentBlock,

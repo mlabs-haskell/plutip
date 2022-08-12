@@ -25,6 +25,7 @@ import Test.Plutip.LocalCluster
     stopCluster,
     waitSeconds,
   )
+import GHC.Natural (Natural)
 
 main :: IO ()
 main = do
@@ -58,9 +59,9 @@ main = do
 
     totalAmount :: CWalletConfig -> Either String Positive
     totalAmount cwc =
-      case toAda (abs $ adaAmount cwc) + abs (lvlAmount cwc) of
+      case toAda (adaAmount cwc) + lvlAmount cwc of
         0 -> Left "One of --ada or --lovelace arguments should not be 0"
-        amt -> Right $ fromInteger amt
+        amt -> Right $ fromInteger . toInteger $ amt
 
     initWallets numWallets numUtxos amt dirWallets = do
       replicateM (max 0 numWallets) $
@@ -93,7 +94,7 @@ pdirWallets =
           <> Options.metavar "FILEPATH"
       )
 
-padaAmount :: Parser Integer
+padaAmount :: Parser Natural
 padaAmount =
   Options.option
     Options.auto
@@ -103,7 +104,7 @@ padaAmount =
         <> Options.value 10_000
     )
 
-plvlAmount :: Parser Integer
+plvlAmount :: Parser Natural
 plvlAmount =
   Options.option
     Options.auto
@@ -147,8 +148,8 @@ pClusterConfig =
 data CWalletConfig = CWalletConfig
   { numWallets :: Int,
     dirWallets :: Maybe FilePath,
-    adaAmount :: Integer,
-    lvlAmount :: Integer,
+    adaAmount :: Natural,
+    lvlAmount :: Natural,
     numUtxos :: Int,
     workDir :: Maybe FilePath
   }

@@ -58,11 +58,7 @@ This puts `AMOUNT` Lovelace into each UTxO in every wallet created, in addition 
 the amount specified by the `--ada` argument. Note that if you don't specify the
 amount of ADA to add, the total amount will be 10,000 ADA + `AMOUNT` lovelace.
 
-
-Note that for both `--ada` and `--lovelace`, the values' absolute values are taken
-and then added together to get the total amount to use for the UTxOs. Note that this
-means that if you use a command like `local-cluster --ada 5 --lovelace -1`, the final
-amount will be 5.000001 ADA instead of 4.999999 ADA.
+Note that both `--ada` and `--lovelace` can not be 0 at the same time.
 
 ```
 --utxos NUM
@@ -71,3 +67,14 @@ amount will be 5.000001 ADA instead of 4.999999 ADA.
 
 Create `NUM` UTxOs in each wallet created. Note that each UTxO created has the amount
 of ADA determined by the `--ada` and `--lovelace` arguments.
+
+```
+--working-dir /path/
+-w /path/
+```
+
+This determines where the node database, chain-index database, and bot-plutus-interface
+files will be stored for a running cluster. If specified, this will store cluster
+data in the provided path (can be relative or absolute), the files will be deleted
+on cluster shutdown by default. Otherwise, the cluster data is stored in a temporary
+directory and will be deleted on cluster shutdown.

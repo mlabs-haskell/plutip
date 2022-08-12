@@ -55,7 +55,11 @@ instance
     result <- runResult
     pure $
       bool
-        (testFailed $ debugInfo predicate result)
+        ( testFailed $
+            debugInfo predicate result
+              <> "\n\n"
+              <> "Use assertExecutionWith to show contract logs or budgets."
+        )
         (testPassed "")
         (pCheck predicate result)
 

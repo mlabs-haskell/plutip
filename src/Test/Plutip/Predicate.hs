@@ -29,8 +29,10 @@ import Data.Map (Map)
 import Data.Map qualified as Map
 import Ledger (ExBudget (ExBudget), ExCPU (ExCPU), ExMemory (ExMemory), TxId, Value)
 import PlutusCore.Evaluation.Machine.ExMemory (CostingInteger)
+import Prettyprinter (Doc, align, defaultLayoutOptions, indent, layoutPretty, viaShow, vsep, (<+>))
+import Prettyprinter.Render.String (renderString)
 import Test.Plutip.Internal.Types (
-  ExecutionResult (contractState, outcome),
+  ExecutionResult (ExecutionResult, contractState, outcome),
   FailureReason (CaughtException, ContractExecutionError),
   budgets,
   isSuccessful,
@@ -83,8 +85,22 @@ shouldSucceed =
   Predicate
     "Contract should succeed"
     "Contract should fail"
-    (mappend "But it didn't.\nResult: " . show)
+    (mappend "But it didn't.\nResult: " . renderString . layoutPretty defaultLayoutOptions . prettyExecutionResult)
     isSuccessful
+
+-- | Pretty print ExecutionResult hiding budget stats and logs.
+prettyExecutionResult :: (Show e, Show w, Show a) => ExecutionResult e w a -> Doc ann
+prettyExecutionResult ExecutionResult {outcome, contractState} =
+  vsep
+    [ "Execution result {"
+    , indent 4 $
+        align $
+          vsep
+            [ "outcome:" <+> viaShow outcome
+            , "final state: " <+> viaShow contractState
+            ]
+    , "}"
+    ]
 
 -- | Check that Contract didn't succeed.
 --

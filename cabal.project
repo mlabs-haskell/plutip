@@ -15,7 +15,7 @@ constraints:
 
 extra-packages:
 --  Boolean ==0.2.4,
-  Cabal ==3.2.1.0,
+  -- Cabal ==3.2.1.0,
 --  HUnit ==1.6.2.0,
 --  IntervalMap ==0.6.1.2,
 --  ListLike ==4.7.6,
@@ -28,7 +28,7 @@ extra-packages:
 --  QuickCheck ==2.14.2,
 --  SHA ==1.6.4.4,
 --  StateVar ==1.2.2,
---  Unique ==0.4.7.9,
+  Unique >= 0.4.7.7,
 --  Win32-network ==0.1.0.0,
   haskell-adjunctions ==4.4.1,
   haskell-aeson ==2.0.2.0,
@@ -76,11 +76,11 @@ extra-packages:
   -- blaze-markup ==0.8.2.8,
   -- blaze-textual ==0.2.2.1,
   -- blockfrost-api ==0.4.0.0,
-  blockfrost-client ==0.4.0.1,
-  blockfrost-client-core ==0.4.0.1,
-  bsb-http-chunked ==0.0.0.4,
-  byron-spec-chain ==0.1.0.0,
-  byron-spec-ledger ==0.1.0.0,
+  -- blockfrost-client ==0.4.0.1,
+  -- blockfrost-client-core ==0.4.0.1,
+  -- bsb-http-chunked ==0.0.0.4,
+  -- byron-spec-chain ==0.1.0.0,
+  -- byron-spec-ledger ==0.1.0.0,
   byteorder ==1.0.4,
   bytestring ==0.10.12.0,
   bytestring-builder ==0.10.8.2.0,
@@ -538,6 +538,14 @@ package cardano-wallet-launcher
   optimization: False
 package cardano-wallet-core-integration
   optimization: False
+
+-- This one is on hackage, but somehow cabal doesn't find it.
+source-repository-package
+  type: git
+  location: https://github.com/kapralVV/Unique
+ tag: 826e0dbdc7e499bb7abc1d55ba61dd4134f2f498
+
+
 
 -- This one is on hackage, but somehow cabal doesn't find it.
 source-repository-package

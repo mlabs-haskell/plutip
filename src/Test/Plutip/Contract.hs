@@ -127,6 +127,7 @@ module Test.Plutip.Contract (
   assertExecution,
   assertExecutionWith,
   ada,
+  Wallets,
 ) where
 
 import BotPlutusInterface.Types (

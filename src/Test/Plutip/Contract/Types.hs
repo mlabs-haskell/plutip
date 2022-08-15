@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -Wno-redundant-constraints #-}
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -11,11 +10,11 @@ module Test.Plutip.Contract.Types (
   compareValuesWith,
   ValueOrdering (..),
   Wallets(Nil),
-  (+>),
   initTestWallet,
   toList,
   NthWallet(..),
   Predicate(..),
+  IsWallet(..)
 ) where
 
 import Data.Aeson (ToJSON)
@@ -99,10 +98,10 @@ instance Traversable (Wallets idxs) where
   traverse _ Nil               = pure Nil
   traverse f (UnsafeCons ws w) = UnsafeCons <$> traverse f ws <*> f w
 
-(+>) :: IsWallet w => Wallets xs w -> w -> Wallets (Insert xs) w
-Nil +> w = UnsafeCons Nil w
-ws +> w  = UnsafeCons ws w
-infixl 5 +>
+-- (+>) :: IsWallet w => Wallets xs w -> w -> Wallets (Insert xs) w
+-- Nil +> w = UnsafeCons Nil w
+-- ws +> w  = UnsafeCons ws w
+-- infixl 5 +>
 
 toList :: Wallets idxs w -> [w]
 toList Nil               = []
@@ -119,7 +118,11 @@ class NthWallet (x :: Nat) (xs :: [Nat]) where
 instance (KnownNat n, Eval (Elem n xs) ~ 'True) => NthWallet n xs where
   nthWallet ws = unsafeIndex ws (length ws - fromInteger (natVal @n Proxy) - 1)
   
-class IsWallet (w :: Type)
+class IsWallet (w :: Type) where
+  (+>) :: Wallets xs w -> w -> Wallets (Insert xs) w
+  Nil +> w = UnsafeCons Nil w
+  ws +> w  = UnsafeCons ws w
+  infixl 5 +>
 
 initTestWallet :: [Positive] -> Maybe (ValueOrdering, Value) -> TestWallet
 initTestWallet = TestWallet

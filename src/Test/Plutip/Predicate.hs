@@ -24,10 +24,9 @@ module Test.Plutip.Predicate (
 ) where
 
 import BotPlutusInterface.Types (TxBudget (TxBudget), mintBudgets, spendBudgets)
-import Data.List.NonEmpty (NonEmpty)
 import Data.Map (Map)
 import Data.Map qualified as Map
-import Ledger (ExBudget (ExBudget), ExCPU (ExCPU), ExMemory (ExMemory), TxId, Value)
+import Ledger (ExBudget (ExBudget), ExCPU (ExCPU), ExMemory (ExMemory), TxId)
 import PlutusCore.Evaluation.Machine.ExMemory (CostingInteger)
 import Prettyprinter (Doc, align, defaultLayoutOptions, indent, layoutPretty, viaShow, vsep, (<+>))
 import Prettyprinter.Render.String (renderString)
@@ -37,38 +36,21 @@ import Test.Plutip.Internal.Types (
   budgets,
   isSuccessful,
  )
+import Test.Plutip.Contract.Types (Predicate(..))
 import Test.Plutip.Tools.Format (fmtExBudget, fmtTxBudgets)
 import Text.Show.Pretty (ppShow)
 
--- | Predicate is used to build test cases for Contract.
---  List of predicates should be passed to `Test.Plutip.Contract.assertExecution`
---  to make assertions about contract execution.
---  Each predicate will result in separate test case.
---
--- @since 0.2
-data Predicate w e a = Predicate
-  { -- | description for the case when predicate holds
-    positive :: String
-  , -- | description for the opposite of `positive` case (mostly for `not` functionality)
-    negative :: String
-  , -- | some useful debugging info that `Predicate` can print based on contract execution result,
-    -- used to print info in case of check failure
-    debugInfo :: ExecutionResult w e (a, NonEmpty Value) -> String
-  , -- | check that `Predicate` performs on Contract execution result,
-    -- if check evaluates to `False` test case considered failure
-    pCheck :: ExecutionResult w e (a, NonEmpty Value) -> Bool
-  }
 
 -- | `positive` description of `Predicate` that will be used as test case tag.
 --
 -- @since 0.2
-pTag :: Predicate w e a -> String
+pTag :: Predicate w e a idxs -> String
 pTag = positive
 
 -- | Switch the meaning of `Predicate` to the opposite.
 --
 -- @since 0.2
-not :: Predicate w e a -> Predicate w e a
+not :: Predicate w e a idxs -> Predicate w e a idxs
 not predicate =
   let (Predicate pos' neg' dbgInfo' check') = predicate
    in Predicate neg' pos' dbgInfo' (Prelude.not . check')
@@ -80,7 +62,7 @@ not predicate =
 -- | Check that Contract didn't fail.
 --
 -- @since 0.2
-shouldSucceed :: (Show e, Show a, Show w) => Predicate w e a
+shouldSucceed :: (Show e, Show a, Show w) => Predicate w e a idxs
 shouldSucceed =
   Predicate
     "Contract should succeed"
@@ -105,7 +87,7 @@ prettyExecutionResult ExecutionResult {outcome, contractState} =
 -- | Check that Contract didn't succeed.
 --
 -- @since 0.2
-shouldFail :: (Show e, Show a, Show w) => Predicate w e a
+shouldFail :: (Show e, Show a, Show w) => Predicate w e a idxs
 shouldFail = Test.Plutip.Predicate.not shouldSucceed
 
 -- Contract result --
@@ -113,7 +95,7 @@ shouldFail = Test.Plutip.Predicate.not shouldSucceed
 -- | Check that Contract returned the expected value.
 --
 -- @since 0.2
-shouldYield :: (Show a, Eq a) => a -> Predicate w e a
+shouldYield :: (Show a, Eq a) => a -> Predicate w e a idxs
 shouldYield expected =
   (yieldSatisfies "" (== expected))
     { positive = "Should yield '" <> ppShow expected <> "'"
@@ -125,7 +107,7 @@ shouldYield expected =
 --  Provided `String` description will be used in tes case tag.
 --
 -- @since 0.2
-yieldSatisfies :: (Show a) => String -> (a -> Bool) -> Predicate w e a
+yieldSatisfies :: (Show a) => String -> (a -> Bool) -> Predicate w e a idxs
 yieldSatisfies description p =
   Predicate
     description
@@ -148,7 +130,7 @@ yieldSatisfies description p =
 --  State will be accessible even if Contract failed.
 --
 -- @since 0.2
-stateIs :: (Show w, Eq w) => w -> Predicate w e a
+stateIs :: (Show w, Eq w) => w -> Predicate w e a idxs
 stateIs expected =
   (stateSatisfies "" (== expected))
     { positive = "State should be '" <> ppShow expected <> "'"
@@ -161,7 +143,7 @@ stateIs expected =
 --  Provided `String` description will be used in test case tag.
 --
 -- @since 0.2
-stateSatisfies :: Show w => String -> (w -> Bool) -> Predicate w e a
+stateSatisfies :: Show w => String -> (w -> Bool) -> Predicate w e a idxs
 stateSatisfies description p =
   Predicate
     description
@@ -182,7 +164,7 @@ stateSatisfies description p =
 --  predicate won't hold.
 --
 -- @since 0.2
-shouldThrow :: (Show e, Eq e) => e -> Predicate w e a
+shouldThrow :: (Show e, Eq e) => e -> Predicate w e a idxs
 shouldThrow expected =
   (errorSatisfies "" (== expected))
     { positive = "Should throw '" <> ppShow expected <> "'"
@@ -196,7 +178,7 @@ shouldThrow expected =
 --  Provided `String` description will be used in test case tag.
 --
 -- @since 0.2
-errorSatisfies :: Show e => String -> (e -> Bool) -> Predicate w e a
+errorSatisfies :: Show e => String -> (e -> Bool) -> Predicate w e a idxs
 errorSatisfies description p =
   failReasonSatisfies description $ \case
     ContractExecutionError e -> p e
@@ -208,7 +190,7 @@ errorSatisfies description p =
 --  Provided `String` description will be used in test case tag.
 --
 -- @since 0.2
-failReasonSatisfies :: Show e => String -> (FailureReason e -> Bool) -> Predicate w e a
+failReasonSatisfies :: Show e => String -> (FailureReason e -> Bool) -> Predicate w e a idxs
 failReasonSatisfies description p =
   Predicate
     description
@@ -234,7 +216,7 @@ failReasonSatisfies description p =
 -- If heck fails, all collected budgets will be printed to output.
 --
 -- @since 0.2
-overallBudgetFits :: ExCPU -> ExMemory -> Predicate w e a
+overallBudgetFits :: ExCPU -> ExMemory -> Predicate w e a idxs
 overallBudgetFits cpuLimit memLimit =
   let p =
         assertOverallBudget
@@ -249,7 +231,7 @@ overallBudgetFits cpuLimit memLimit =
 -- If heck fails, all collected budgets will be printed to output.
 --
 -- @since 0.2
-assertOverallBudget :: String -> (ExCPU -> Bool) -> (ExMemory -> Bool) -> Predicate w e a
+assertOverallBudget :: String -> (ExCPU -> Bool) -> (ExMemory -> Bool) -> Predicate w e a idxs
 assertOverallBudget description cpuCheck memCheck =
   let positive = description
       negative = ("Should violate '" <> description <> "'")
@@ -285,7 +267,7 @@ assertOverallBudget description cpuCheck memCheck =
 -- If check fails, any budget that didn't fit limit, will be printed to output.
 --
 -- @since 0.2
-budgetsFitUnder :: Limit 'Script -> Limit 'Policy -> Predicate w e a
+budgetsFitUnder :: Limit 'Script -> Limit 'Policy -> Predicate w e a idxs
 budgetsFitUnder (Limit sCpu sMem) (Limit pCpu pMem) =
   let positive =
         mconcat

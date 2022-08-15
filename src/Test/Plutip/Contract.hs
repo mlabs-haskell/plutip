@@ -1,5 +1,6 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 
 -- |
 --  This module together with `Test.Plutip.Predicate` provides the way
@@ -107,7 +108,6 @@ module Test.Plutip.Contract (
   withContract,
   withContractAs,
   -- Wallet initialisation
-  TestWallets (TestWallets, unTestWallets),
   TestWallet (twInitDistribuition, twExpected),
   initAda,
   withCollateral,
@@ -141,12 +141,11 @@ import Control.Arrow (left)
 import Control.Monad.Reader (MonadIO (liftIO), MonadReader (ask), ReaderT, runReaderT, void)
 import Data.Bool (bool)
 import Data.Kind (Type)
-import Data.List.NonEmpty (NonEmpty)
-import Data.List.NonEmpty qualified as NonEmpty
 import Data.Maybe (isJust)
 import Data.Row (Row)
 import Data.Tagged (Tagged (Tagged))
 import Data.Text qualified as Text
+import GHC.TypeLits (Nat)
 import Ledger (PaymentPubKeyHash)
 import Ledger.Address (pubKeyHashAddress)
 import Ledger.Value (Value)
@@ -170,8 +169,9 @@ import Test.Plutip.Contract.Types (
   TestContract (TestContract),
   TestContractConstraints,
   TestWallet (twExpected, twInitDistribuition),
-  TestWallets (TestWallets, unTestWallets),
+  Wallets,
   ValueOrdering (VEq, VGEq, VGt, VLEq, VLt),
+  NthWallet(nthWallet)
  )
 import Test.Plutip.Contract.Values (assertValues, valueAt)
 import Test.Plutip.Internal.BotPlutusInterface.Run (runContract)
@@ -189,8 +189,8 @@ import Test.Tasty (testGroup, withResource)
 import Test.Tasty.HUnit (assertFailure, testCase)
 import Test.Tasty.Providers (IsTest (run, testOptions), TestTree, singleTest, testPassed)
 
-type TestRunner (w :: Type) (e :: Type) (a :: Type) =
-  ReaderT (ClusterEnv, NonEmpty BpiWallet) IO (ExecutionResult w e (a, NonEmpty Value))
+type TestRunner (w :: Type) (e :: Type) (a :: Type) (idxs :: [Nat]) =
+  ReaderT (ClusterEnv, Wallets idxs BpiWallet) IO (ExecutionResult w e (a, Wallets idxs Value))
 
 -- | When used with `withCluster`, builds `TestTree` from initial wallets distribution,
 --  Contract and list of assertions (predicates). Each assertion will be run as separate test case,
@@ -207,13 +207,13 @@ type TestRunner (w :: Type) (e :: Type) (a :: Type) =
 --
 -- @since 0.2
 assertExecution ::
-  forall (w :: Type) (e :: Type) (a :: Type).
-  TestContractConstraints w e a =>
+  forall (w :: Type) (e :: Type) (a :: Type) (idxs :: [Nat]).
+  TestContractConstraints w e a idxs =>
   String ->
-  TestWallets ->
-  TestRunner w e a ->
-  [Predicate w e a] ->
-  (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
+  Wallets idxs TestWallet ->
+  TestRunner w e a idxs ->
+  [Predicate w e a idxs] ->
+  (Wallets idxs TestWallet, IO (ClusterEnv, Wallets idxs BpiWallet) -> TestTree)
 assertExecution = assertExecutionWith mempty
 
 -- | Version of assertExecution parametrised with a list of extra TraceOption's.
@@ -222,18 +222,18 @@ assertExecution = assertExecutionWith mempty
 --
 -- to print additional transaction budget calculations and contract execution logs
 assertExecutionWith ::
-  forall (w :: Type) (e :: Type) (a :: Type).
-  TestContractConstraints w e a =>
+  forall (w :: Type) (e :: Type) (a :: Type) (idxs :: [Nat]).
+  TestContractConstraints w e a idxs =>
   [TraceOption] ->
   String ->
-  TestWallets ->
-  TestRunner w e a ->
-  [Predicate w e a] ->
-  (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
+  Wallets idxs TestWallet ->
+  TestRunner w e a idxs ->
+  [Predicate w e a idxs] ->
+  (Wallets idxs TestWallet, IO (ClusterEnv, Wallets idxs BpiWallet) -> TestTree)
 assertExecutionWith options tag testWallets testRunner predicates =
   (testWallets, toTestGroup)
   where
-    toTestGroup :: IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree
+    toTestGroup :: IO (ClusterEnv, Wallets idxs BpiWallet) -> TestTree
     toTestGroup ioEnv =
       withResource (runReaderT testRunner =<< ioEnv) (const $ pure ()) $
         \ioRes ->
@@ -244,11 +244,11 @@ assertExecutionWith options tag testWallets testRunner predicates =
               ((toCase ioRes <$> predicates) <> ((`optionToTestTree` ioRes) <$> options))
 
     -- wraps IO with result of contract execution into single test
-    toCase :: IO (ExecutionResult w e (a, NonEmpty Value)) -> Predicate w e a -> TestTree
+    toCase :: IO (ExecutionResult w e (a, Wallets idxs Value)) -> Predicate w e a idxs -> TestTree
     toCase ioRes p =
       singleTest (pTag p) (TestContract p ioRes)
 
-    optionToTestTree :: TraceOption -> IO (ExecutionResult w e (a, NonEmpty Value)) -> TestTree
+    optionToTestTree :: TraceOption -> IO (ExecutionResult w e (a, Wallets idxs Value)) -> TestTree
     optionToTestTree = \case
       ShowBudgets -> singleTest "Budget stats" . StatsReport
       ShowTrace -> singleTest logsName . LogsReport DisplayAllTrace
@@ -263,14 +263,15 @@ assertExecutionWith options tag testWallets testRunner predicates =
 -- @since 0.2
 maybeAddValuesCheck ::
   Show e =>
-  IO (ExecutionResult w e (a, NonEmpty Value)) ->
-  TestWallets ->
+  IO (ExecutionResult w e (a, Wallets idxs Value)) ->
+  Wallets idxs TestWallet ->
   [TestTree] ->
   [TestTree]
 maybeAddValuesCheck ioRes tws =
-  bool id (valuesCheckCase :) (any isJust expected)
+  -- bool id (valuesCheckCase :) (any isJust expected)
+  if any isJust expected then (valuesCheckCase :) else id
   where
-    expected = twExpected <$> unTestWallets tws
+    expected = twExpected <$> tws
 
     valuesCheckCase :: TestTree
     valuesCheckCase =
@@ -280,6 +281,7 @@ maybeAddValuesCheck ioRes tws =
             . checkValues
             . outcome
 
+    -- checkValues :: _
     checkValues o =
       left (Text.pack . show) o
         >>= \(_, vs) -> assertValues expected vs
@@ -289,69 +291,47 @@ maybeAddValuesCheck ioRes tws =
 --
 -- @since 0.2
 withContract ::
-  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
-  TestContractConstraints w e a =>
-  ([PaymentPubKeyHash] -> Contract w s e a) ->
-  TestRunner w e a
-withContract = withContractAs 0
+  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (idxs :: [Nat]).
+  (TestContractConstraints w e a idxs, NthWallet 0 idxs) =>
+  (Wallets idxs PaymentPubKeyHash -> Contract w s e a) ->
+  TestRunner w e a idxs
+withContract = withContractAs @0
 
 -- | Run a contract using the nth wallet as own wallet, and return `ExecutionResult`.
 -- This could be used by itself, or combined with multiple other contracts.
 --
 -- @since 0.2
 withContractAs ::
-  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
-  TestContractConstraints w e a =>
-  Int ->
-  ([PaymentPubKeyHash] -> Contract w s e a) ->
-  TestRunner w e a
-withContractAs walletIdx toContract = do
+  forall (idx :: Nat) (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (idxs :: [Nat]).
+  (TestContractConstraints w e a idxs, NthWallet idx idxs) =>
+  (Wallets idxs PaymentPubKeyHash -> Contract w s e a) ->
+  TestRunner w e a idxs
+withContractAs toContract = do
   (cEnv, wallets') <- ask
   let -- pick wallet for Contract's "own PKH", other wallets PKHs will be provided
       -- to the user in `withContractAs`
-      (ownWallet, otherWallets) = separateWallets walletIdx wallets'
+      ownWallet = nthWallet @idx wallets'
 
-      {- these are `PaymentPubKeyHash`es of all wallets used in test case
-      they stay in list is same order as `TestWallets` defined in test case
-      so collected Values will be in same order as well
-      it is important to preserve this order for Values check with `assertValues`
-      as there is no other mechanism atm to match `TestWallet` with collected `Value`
-      -}
-      collectValuesPkhs :: NonEmpty PaymentPubKeyHash
       collectValuesPkhs = fmap ledgerPaymentPkh wallets'
 
-      -- wallet `PaymentPubKeyHash`es that will be available in
-      -- `withContract` and `withContractAs`
-      otherWalletsPkhs :: [PaymentPubKeyHash]
-      otherWalletsPkhs = fmap ledgerPaymentPkh otherWallets
-
-      -- contract that gets all the values present at the test wallets.
-      valuesAtWallet :: Contract w s e (NonEmpty Value)
+      valuesAtWallet :: (Contract w s e (Wallets idxs Value))
       valuesAtWallet =
         void (waitNSlots 1)
           >> traverse (valueAt . (`pubKeyHashAddress` Nothing)) collectValuesPkhs
 
-  -- run the test contract
-  execRes <- liftIO $ runContract cEnv ownWallet (toContract otherWalletsPkhs)
-
-  -- get all the values present at the test wallets after the user given contracts has been executed.
+  execRes <- liftIO $ runContract cEnv ownWallet (toContract collectValuesPkhs)
   execValues <- liftIO $ runContract cEnv ownWallet valuesAtWallet
 
   case outcome execValues of
     Left _ -> fail "Failed to get values"
     Right values -> return $ execRes {outcome = (,values) <$> outcome execRes}
-  where
-    separateWallets :: forall b. Int -> NonEmpty b -> (b, [b])
-    separateWallets i xss
-      | (xs, y : ys) <- NonEmpty.splitAt i xss = (y, xs <> ys)
-      | otherwise = error $ "Should fail: bad wallet index for own wallet: " <> show i
 
-newtype StatsReport w e a = StatsReport (IO (ExecutionResult w e (a, NonEmpty Value)))
+newtype StatsReport w e a idxs = StatsReport (IO (ExecutionResult w e (a, Wallets idxs Value)))
 
 instance
-  forall (w :: Type) (e :: Type) (a :: Type).
-  TestContractConstraints w e a =>
-  IsTest (StatsReport w e a)
+  forall (w :: Type) (e :: Type) (a :: Type) (idxs :: [Nat]).
+  TestContractConstraints w e a idxs =>
+  IsTest (StatsReport w e a idxs)
   where
   run _ (StatsReport ioRes) _ =
     testPassed . mkDescription <$> ioRes
@@ -363,7 +343,7 @@ instance
   testOptions = Tagged []
 
 -- | Test case used internally for logs printing.
-data LogsReport w e a = LogsReport LogsReportOption (IO (ExecutionResult w e (a, NonEmpty Value)))
+data LogsReport w e a idxs = LogsReport LogsReportOption (IO (ExecutionResult w e (a, Wallets idxs Value)))
 
 -- | TraceOption stripped to what LogsReport wants to know.
 data LogsReportOption
@@ -376,9 +356,9 @@ data LogsReportOption
       LogLevel
 
 instance
-  forall (w :: Type) (e :: Type) (a :: Type).
-  TestContractConstraints w e a =>
-  IsTest (LogsReport w e a)
+  forall (w :: Type) (e :: Type) (a :: Type) (idxs :: [Nat]).
+  TestContractConstraints w e a idxs =>
+  IsTest (LogsReport w e a idxs)
   where
   run _ (LogsReport option ioRes) _ =
     testPassed . ppShowLogs . contractLogs <$> ioRes

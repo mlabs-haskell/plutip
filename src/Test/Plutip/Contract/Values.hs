@@ -10,8 +10,6 @@ import Data.Aeson.Extras (encodeByteString)
 import Data.Either (fromRight)
 import Data.Kind (Type)
 import Data.List (find)
-import Data.List.NonEmpty (NonEmpty)
-import Data.List.NonEmpty qualified as NonEmpty
 import Data.Map qualified as Map
 import Data.Row (Row)
 import Data.Text (Text)
@@ -26,6 +24,8 @@ import PlutusTx.Builtins (fromBuiltin)
 
 import Test.Plutip.Contract.Types (
   ValueOrdering (VEq, VGEq, VGt, VLEq, VLt),
+  Wallets,
+  toList,
   compareValuesWith,
  )
 
@@ -42,11 +42,12 @@ valueAt addr = do
     utxoValue (PublicKeyChainIndexTxOut _ v) = v
     utxoValue (ScriptChainIndexTxOut _ _ _ v) = v
 
-assertValues :: NonEmpty (Maybe (ValueOrdering, Value)) -> NonEmpty Value -> Either Text ()
+-- TODO: improve this
+assertValues :: Wallets idxs (Maybe (ValueOrdering, Value)) -> Wallets idxs Value -> Either Text ()
 assertValues expected values =
   maybe (Right ()) (Left . report) $
     find findFailing $
-      zip3 [0 :: Int ..] (NonEmpty.toList expected) (NonEmpty.toList values)
+      zip3 [0 :: Int ..] (toList expected) (toList values)
   where
     findFailing (_, Nothing, _) = False
     findFailing (_, Just (ord, v), v') = not (compareValuesWith ord v' v)

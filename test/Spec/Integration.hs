@@ -2,14 +2,14 @@ module Spec.Integration (test) where
 
 import Data.Default (Default (def))
 import Spec.TestContract.SimpleContracts (
-  getUtxos,
+  getUtxos, payTo
  )
 import Test.Plutip.Contract (
   assertExecution,
   initAda,
-  withContract,
+  withContract, withContractAs
  )
-import Test.Plutip.Contract.Types ((+>), Wallets(Nil), TestWallet)
+import Test.Plutip.Contract.Types ((+>), Wallets(Nil), TestWallet, NthWallet (nthWallet))
 import Test.Plutip.LocalCluster (singleTestCluster)
 import Test.Plutip.Predicate (
   shouldFail,
@@ -17,23 +17,70 @@ import Test.Plutip.Predicate (
  )
 import Test.Plutip.Predicate qualified as Predicate
 import Test.Tasty (TestTree)
+import Test.Plutip.Contract.Init (initAndAssertLovelace, withCollateral)
+import Control.Monad (void)
+import Plutus.Contract (waitNSlots)
 
 test :: TestTree
 test =
-  singleTestCluster
-    "Basic integration: launch, add wallet, tx from wallet to wallet"
-    (
-        assertExecution
-          "Contract 1"
-          w
-          (withContract $ const getUtxos)
-            [ shouldSucceed
-            , Predicate.not shouldFail
-            ]
-    )
-    where
-      w :: Wallets '[0] TestWallet
-      w = Nil +> initAda [100]
+    let wallet0 = 100_000_000
+        wallet1 = 200_000_000
+        wallet2 = 300_000_000
+
+        payFee = 146200
+        payTo0Amt = 11_000_000
+        payTo1Amt = 22_000_000
+        payTo2Amt = 33_000_000
+
+        wallet0After = wallet0 + payTo0Amt
+        wallet2After =
+          wallet2
+            + payTo2Amt
+            - payTo1Amt
+            - payFee
+
+        wallet1After =
+          wallet1
+            + payTo1Amt
+            - payTo0Amt
+            - payFee
+            - payTo2Amt
+            - payFee
+        wallets = Nil
+                +> initAndAssertLovelace [wallet0] wallet0After
+                +> initAndAssertLovelace [wallet1] wallet1After
+                +> initAndAssertLovelace [wallet2] wallet2After
+     in singleTestCluster "aa" $
+         assertExecution
+          "Values asserted in correct order with withContractAs"
+          (withCollateral wallets
+          )
+          ( do
+              void $
+                withContractAs @2 $ \pkhs -> do
+                  _ <- payTo (nthWallet @0 pkhs) (toInteger payTo0Amt)
+                  _ <- waitNSlots 2
+                  payTo (nthWallet @2 pkhs) (toInteger payTo2Amt)
+
+              withContractAs @2 $ \pkhs -> do
+                payTo (nthWallet @1 pkhs) (toInteger payTo1Amt)
+          )
+          [shouldSucceed]
+
+  -- singleTestCluster
+  --   "Basic integration: launch, add wallet, tx from wallet to wallet"
+  --   (
+  --       assertExecution
+  --         "Contract 1"
+  --         w
+  --         (withContract $ const getUtxos)
+  --           [ shouldSucceed
+  --           , Predicate.not shouldFail
+  --           ]
+  --   )
+  --   where
+  --     w :: Wallets '[0] TestWallet
+  --     w = Nil +> initAda [100]
 --     $ [
 --         -- Basic Succeed or Failed tests
 --         assertExecution
@@ -207,45 +254,4 @@ test =
 --           )
 --           [shouldSucceed]
 --   , -- withContractAs case
---     let wallet0 = 100_000_000
---         wallet1 = 200_000_000
---         wallet2 = 300_000_000
---
---         payFee = 146200
---         payTo0Amt = 11_000_000
---         payTo1Amt = 22_000_000
---         payTo2Amt = 33_000_000
---
---         wallet0After = wallet0 + payTo0Amt
---         wallet2After =
---           wallet2
---             + payTo2Amt
---             - payTo1Amt
---             - payFee
---
---         wallet1After =
---           wallet1
---             + payTo1Amt
---             - payTo0Amt
---             - payFee
---             - payTo2Amt
---             - payFee
---      in assertExecution
---           "Values asserted in correct order with withContractAs"
---           ( withCollateral $ -- Initialize all the wallets with the collateral utxo.
---               initAndAssertLovelace [wallet0] wallet0After
---                 <> initAndAssertLovelace [wallet1] wallet1After
---                 <> initAndAssertLovelace [wallet2] wallet2After
---           )
---           ( do
---               void $
---                 withContractAs 1 $ \[w0pkh, w2pkh] -> do
---                   _ <- payTo w0pkh (toInteger payTo0Amt)
---                   _ <- waitNSlots 2
---                   payTo w2pkh (toInteger payTo2Amt)
---
---               withContractAs 2 $ \[_, w1pkh] -> do
---                 payTo w1pkh (toInteger payTo1Amt)
---           )
---           [shouldSucceed]
 --   ]

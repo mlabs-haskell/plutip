@@ -174,20 +174,21 @@ test =
           (withContract $ const lockThenSpend)
           [ shouldSucceed
           , budgetsFitUnder
-              (scriptLimit 426019962 1082502)
-              (policyLimit 428879716 1098524)
+              (scriptLimit 406250690 1016102)
+              (policyLimit 405210181 1019024)
           , assertOverallBudget
-              "Assert CPU == 1156006922 and MEM == 2860068"
-              (== 1156006922)
-              (== 2860068)
-          , overallBudgetFits 1156006922 2860068
+              "Assert CPU == 1106851699 and MEM == 2694968"
+              (== 1106851699)
+              (== 2694968)
+          , overallBudgetFits 1106851699 2694968
           ]
       , -- regression tests for time <-> slot conversions
         assertExecution
           "Fails because outside validity interval"
           (initAda [100])
           (withContract $ const failingTimeContract)
-          [shouldFail]
+          [shouldFail] -- FIXME: add check that "OutsideValidityIntervalUTxO" is in error message
+          -- [shouldSucceed] 
       , assertExecution
           "Passes validation with exact time range checks"
           (initAda [100])

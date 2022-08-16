@@ -75,8 +75,8 @@ spendFromScript = do
               <> Constraints.mustMintValueWithRedeemer Scripts.unitRedeemer token
           lookups1 =
             Constraints.unspentOutputs (Map.fromList utxos1)
-              <> Constraints.otherScript validator
-              <> Constraints.mintingPolicy mintingPolicy
+              <> Constraints.plutusV1OtherScript validator
+              <> Constraints.plutusV1MintingPolicy mintingPolicy
 
       let txc2 =
             Constraints.mustSpendScriptOutput oref2 Scripts.unitRedeemer
@@ -85,7 +85,7 @@ spendFromScript = do
                 (adaValueOf 200)
           lookups2 =
             Constraints.unspentOutputs (Map.fromList utxos2)
-              <> Constraints.otherScript (validator2 2)
+              <> Constraints.plutusV1OtherScript (validator2 2)
 
       tx <-
         submitTxConstraintsWith @TestLockSpend

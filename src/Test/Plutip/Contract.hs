@@ -338,7 +338,7 @@ withContractAs walletIdx toContract = do
   execValues <- liftIO $ runContract cEnv ownWallet valuesAtWallet
 
   case outcome execValues of
-    Left _ -> fail "Failed to get values"
+    Left e -> fail $ "Failed to get values. Error: " ++ show e
     Right values -> return $ execRes {outcome = (,values) <$> outcome execRes}
   where
     separateWallets :: forall b. Int -> NonEmpty b -> (b, [b])

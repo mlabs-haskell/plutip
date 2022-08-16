@@ -58,3 +58,10 @@ So things of interest for vasil testing are:
  - keys `cluster-data/utxo-keys/*`
  - configs `cluster-data/*.yaml`
  - cost model `cluster-data/cost-models-data/cost-model-update.json`
+
+### Cabal only build
+
+* Make sure you have patched `libSodium` on your path.
+* Install `secp256k1` from source, follow this [guide](https://forum.cardano.org/t/cardano-crypto-class-secp256k1-support-issue-on-arm64-with-cardano-node-1-35-0-solution/103765).
+* Make sure you have ghc version `8.10.7` as default ghc of your system.
+* After everything is done, then build plutip using `cabal build`.

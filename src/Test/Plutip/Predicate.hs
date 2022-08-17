@@ -1,3 +1,5 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 -- | This module provides some predicates or assertions, that could be used together with
 --  `Test.Plutip.Contract.assertExecution` to run tests for Contract in private testnet.
 --
@@ -6,6 +8,7 @@ module Test.Plutip.Predicate (
   Predicate (..),
   pTag,
   shouldSucceed,
+  shouldHave,
   Test.Plutip.Predicate.not,
   shouldFail,
   yieldSatisfies,
@@ -26,7 +29,7 @@ module Test.Plutip.Predicate (
 import BotPlutusInterface.Types (TxBudget (TxBudget), mintBudgets, spendBudgets)
 import Data.Map (Map)
 import Data.Map qualified as Map
-import Ledger (ExBudget (ExBudget), ExCPU (ExCPU), ExMemory (ExMemory), TxId)
+import Ledger (ExBudget (ExBudget), ExCPU (ExCPU), ExMemory (ExMemory), TxId, Value)
 import PlutusCore.Evaluation.Machine.ExMemory (CostingInteger)
 import Prettyprinter (Doc, align, defaultLayoutOptions, indent, layoutPretty, viaShow, vsep, (<+>))
 import Prettyprinter.Render.String (renderString)
@@ -36,9 +39,27 @@ import Test.Plutip.Internal.Types (
   budgets,
   isSuccessful,
  )
-import Test.Plutip.Contract.Types (Predicate(..))
+import Test.Plutip.Contract.Types (Predicate(..), NthWallet(..), Wallets)
 import Test.Plutip.Tools.Format (fmtExBudget, fmtTxBudgets)
 import Text.Show.Pretty (ppShow)
+
+shouldHave :: forall idx w e a idxs. (NthWallet idx idxs, Show w, Show e, Show a)
+           => Value
+           -> Predicate w e a idxs
+shouldHave value =
+  Predicate
+    ("should have value " ++ show value)
+    ("Error: Expected value " ++ show value)
+    (mappend "But it didn't.\nResult: " . renderString . layoutPretty defaultLayoutOptions . prettyExecutionResult)
+    (either (const False) (haveVal @idx value . snd) . outcome)
+
+
+haveVal :: forall idx idxs. (NthWallet idx idxs)
+           => Value
+           -> Wallets idxs Value
+           -> Bool
+haveVal value ws = value == nthWallet @idx ws
+
 
 
 -- | `positive` description of `Predicate` that will be used as test case tag.
@@ -343,3 +364,4 @@ filterBudget spendFilter mintFilter txB =
 
 isEmpty :: TxBudget -> Bool
 isEmpty (TxBudget s p) = null s && null p
+

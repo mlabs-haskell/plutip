@@ -128,6 +128,7 @@ module Test.Plutip.Contract (
   assertExecutionWith,
   ada,
   Wallets,
+  WrappedContract,
 ) where
 
 import BotPlutusInterface.Types (
@@ -147,7 +148,6 @@ import Data.Row (Row)
 import Data.Tagged (Tagged (Tagged))
 import Data.Text qualified as Text
 import GHC.TypeLits (Nat)
-import Ledger (PaymentPubKeyHash)
 import Ledger.Address (pubKeyHashAddress)
 import Ledger.Value (Value)
 import Plutus.Contract (Contract, waitNSlots)
@@ -192,6 +192,10 @@ import Test.Tasty.Providers (IsTest (run, testOptions), TestTree, singleTest, te
 
 type TestRunner (w :: Type) (e :: Type) (a :: Type) (idxs :: [Nat]) =
   ReaderT (ClusterEnv, Wallets idxs BpiWallet) IO (ExecutionResult w e (a, Wallets idxs Value))
+
+type WrappedContract (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (idxs :: [Nat])
+  = ReaderT (Wallets idxs BpiWallet) (Contract w s e) a
+
 
 -- | When used with `withCluster`, builds `TestTree` from initial wallets distribution,
 --  Contract and list of assertions (predicates). Each assertion will be run as separate test case,
@@ -294,7 +298,7 @@ maybeAddValuesCheck ioRes tws =
 withContract ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (idxs :: [Nat]).
   (TestContractConstraints w e a idxs, NthWallet 0 idxs) =>
-  (Wallets idxs PaymentPubKeyHash -> Contract w s e a) ->
+  WrappedContract w s e a idxs ->
   TestRunner w e a idxs
 withContract = withContractAs @0
 
@@ -305,7 +309,7 @@ withContract = withContractAs @0
 withContractAs ::
   forall (idx :: Nat) (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (idxs :: [Nat]).
   (TestContractConstraints w e a idxs, NthWallet idx idxs) =>
-  (Wallets idxs PaymentPubKeyHash -> Contract w s e a) ->
+  WrappedContract w s e a idxs ->
   TestRunner w e a idxs
 withContractAs toContract = do
   (cEnv, wallets') <- ask
@@ -320,7 +324,7 @@ withContractAs toContract = do
         void (waitNSlots 1)
           >> traverse (valueAt . (`pubKeyHashAddress` Nothing)) collectValuesPkhs
 
-  execRes <- liftIO $ runContract cEnv ownWallet (toContract collectValuesPkhs)
+  execRes <- liftIO $ runContract cEnv ownWallet (runReaderT toContract wallets')
   execValues <- liftIO $ runContract cEnv ownWallet valuesAtWallet
 
   case outcome execValues of

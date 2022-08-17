@@ -1,23 +1,21 @@
 module Spec.Integration (test) where
 
-import Data.Default (Default (def))
+import Control.Monad.Reader (lift)
 import Spec.TestContract.SimpleContracts (
-  getUtxos, payTo
+  payTo
  )
 import Test.Plutip.Contract (
-  assertExecution,
-  initAda,
-  withContract, withContractAs
+  assertExecution, withContractAs
  )
-import Test.Plutip.Contract.Types ((+>), Wallets(Nil), TestWallet, NthWallet (nthWallet))
+import Test.Plutip.Contract.Types ((+>), Wallets(Nil))
 import Test.Plutip.LocalCluster (singleTestCluster)
 import Test.Plutip.Predicate (
-  shouldFail,
   shouldSucceed,
+  shouldHave
  )
-import Test.Plutip.Predicate qualified as Predicate
+import Ledger.Ada (lovelaceValueOf)
 import Test.Tasty (TestTree)
-import Test.Plutip.Contract.Init (initAndAssertLovelace, withCollateral)
+import Test.Plutip.Contract.Init (withCollateral, initLovelace)
 import Control.Monad (void)
 import Plutus.Contract (waitNSlots)
 
@@ -27,17 +25,20 @@ test =
         wallet1 = 200_000_000
         wallet2 = 300_000_000
 
+        defCollateralSize = 10_000_000
+
         payFee = 146200
         payTo0Amt = 11_000_000
         payTo1Amt = 22_000_000
         payTo2Amt = 33_000_000
 
-        wallet0After = wallet0 + payTo0Amt
+        wallet0After = wallet0 + payTo0Amt + defCollateralSize
         wallet2After =
           wallet2
             + payTo2Amt
             - payTo1Amt
             - payFee
+            + defCollateralSize
 
         wallet1After =
           wallet1
@@ -46,26 +47,31 @@ test =
             - payFee
             - payTo2Amt
             - payFee
+            + defCollateralSize
+
         wallets = Nil
-                +> initAndAssertLovelace [wallet0] wallet0After
-                +> initAndAssertLovelace [wallet1] wallet1After
-                +> initAndAssertLovelace [wallet2] wallet2After
+                +> initLovelace [wallet0]
+                +> initLovelace [wallet1]
+                +> initLovelace [wallet2]
      in singleTestCluster "aa" $
          assertExecution
           "Values asserted in correct order with withContractAs"
-          (withCollateral wallets
-          )
+          (withCollateral wallets)
           ( do
               void $
-                withContractAs @2 $ \pkhs -> do
-                  _ <- payTo (nthWallet @0 pkhs) (toInteger payTo0Amt)
-                  _ <- waitNSlots 2
-                  payTo (nthWallet @2 pkhs) (toInteger payTo2Amt)
+                withContractAs @1 $ do
+                  _ <- payTo @0 (toInteger payTo0Amt)
+                  _ <- lift $ waitNSlots 2
+                  payTo @2 (toInteger payTo2Amt)
 
-              withContractAs @2 $ \pkhs -> do
-                payTo (nthWallet @1 pkhs) (toInteger payTo1Amt)
+              withContractAs @2 $
+                payTo @1 (toInteger payTo1Amt)
           )
-          [shouldSucceed]
+          [ shouldSucceed
+          , shouldHave @0 (lovelaceValueOf $ toInteger wallet0After)
+          , shouldHave @1 (lovelaceValueOf $ toInteger wallet1After)
+          , shouldHave @2 (lovelaceValueOf $ toInteger wallet2After)
+          ]
 
   -- singleTestCluster
   --   "Basic integration: launch, add wallet, tx from wallet to wallet"

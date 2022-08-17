@@ -1,3 +1,4 @@
+{-# LANGUAGE AllowAmbiguousTypes #-}
 module Spec.TestContract.SimpleContracts (
   getUtxos,
   getUtxosThrowsErr,
@@ -18,7 +19,6 @@ import Plutus.Contract qualified as Contract
 import Ledger (
   CardanoTx,
   ChainIndexTxOut,
-  PaymentPubKeyHash,
   TxOutRef,
   Value,
   ciTxOutValue,
@@ -28,12 +28,16 @@ import Ledger (
 import Data.Map (Map)
 import Ledger.Ada qualified as Ada
 
+import Control.Monad.Reader (MonadReader (ask), runReaderT, void, lift)
 import Control.Lens ((^.))
-import Control.Monad (void)
 import Data.Text (Text)
 import Ledger.Constraints (MkTxError (OwnPubKeyMissing))
 import Ledger.Constraints qualified as Constraints
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
+
+import Test.Plutip.Internal.BotPlutusInterface.Wallet (ledgerPaymentPkh)
+import Test.Plutip.Contract.Types (NthWallet(..))
+import Test.Plutip.Contract (WrappedContract)
 
 getUtxos :: Contract [Value] EmptySchema Text (Map TxOutRef ChainIndexTxOut)
 getUtxos = do
@@ -47,9 +51,11 @@ getUtxosThrowsErr =
 getUtxosThrowsEx :: Contract () EmptySchema Text (Map TxOutRef ChainIndexTxOut)
 getUtxosThrowsEx = error "This Exception was thrown intentionally in Contract.\n"
 
-payTo :: PaymentPubKeyHash -> Integer -> Contract () EmptySchema Text CardanoTx
-payTo toPkh amt =
-  submitTx (Constraints.mustPayToPubKey toPkh (Ada.lovelaceValueOf amt))
+payTo :: forall idx idxs. (NthWallet idx idxs) => Integer -> WrappedContract () EmptySchema Text CardanoTx idxs
+payTo amt = do
+  wallets <- ask
+  let payToWallet = ledgerPaymentPkh $ nthWallet @idx wallets
+  lift $ submitTx (Constraints.mustPayToPubKey payToWallet (Ada.lovelaceValueOf amt))
 
 ownValue :: Contract [Value] EmptySchema Text Value
 ownValue = foldMap (^. ciTxOutValue) <$> getUtxos

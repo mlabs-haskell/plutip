@@ -9,7 +9,7 @@ To build executable only with `cabal` some environment setup is required:
 * Make sure you have correct patched `libSodium` on your path.
 * Install `secp256k1` from source, follow this [guide](https://forum.cardano.org/t/cardano-crypto-class-secp256k1-support-issue-on-arm64-with-cardano-node-1-35-0-solution/103765).
 * Make sure you have ghc version `8.10.7` as default ghc of your system.
-* Make sure you have `cardano-cli` and `cardano-node` binaries added to `PATH` (setup was tested with ver. 1.35.0; alternatively, exact version used by `local-cluster` executable can be built with `cabal install cardano-node`)
+* Make sure you have `cardano-cli` and `cardano-node` binaries added to `PATH` (setup was tested with ver. 1.35.0; alternatively, exact version used by `local-cluster` executable can be built with `cabal install cardano-node` and `cabal install cardano-cli`)
 
 If everything set correctly, executable can be built/run with `cabal`.
 

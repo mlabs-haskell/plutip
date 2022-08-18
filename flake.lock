@@ -71,17 +71,17 @@
         "typed-protocols": "typed-protocols"
       },
       "locked": {
-        "lastModified": 1660654407,
-        "narHash": "sha256-P1U5guPrx9QTUz3aQG2EjgnMgRyqYzQojw4tC9W29O8=",
+        "lastModified": 1660805296,
+        "narHash": "sha256-e8M36UUCzGXjc05mSUH8Dq7+ZprwMdlSsd38gOFY7Gk=",
         "owner": "mlabs-haskell",
         "repo": "bot-plutus-interface",
-        "rev": "7ac4f6fe11ae32edc5d5894077fedcd552e180b8",
+        "rev": "c5d2624440c7320a22269f0c085d4eefc889bc2f",
         "type": "github"
       },
       "original": {
         "owner": "mlabs-haskell",
         "repo": "bot-plutus-interface",
-        "rev": "7ac4f6fe11ae32edc5d5894077fedcd552e180b8",
+        "rev": "c5d2624440c7320a22269f0c085d4eefc889bc2f",
         "type": "github"
       }
     },

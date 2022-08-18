@@ -132,7 +132,7 @@ module Test.Plutip.Contract (
 import BotPlutusInterface.Types (
   LogContext,
   LogLevel,
-  LogLine (LogLine, logLineContext, logLineLevel, logLineMsg),
+  LogLine (LogLine, logLineContext, logLineLevel),
   LogsList (getLogsList),
   sufficientLogLevel,
  )
@@ -387,7 +387,7 @@ instance
         render
           . vcat
           . zipWith indexedMsg [0 ..]
-          . map logLineMsg
+          . map pretty
           . filterOrDont
           . getLogsList
 

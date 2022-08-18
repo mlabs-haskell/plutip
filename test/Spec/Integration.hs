@@ -91,7 +91,11 @@ test =
           [ShowTraceButOnlyContext ContractLog $ Error [AnyLog]]
           "Contract 3"
           (initAda [100])
-          (withContract $ const $ Contract.logInfo @Text "Some contract log with Info level." >> getUtxosThrowsEx)
+          ( withContract $
+              const $ do
+                Contract.logInfo @Text "Some contract log with Info level."
+                Contract.logDebug @Text "Another contract log with debug level." >> getUtxosThrowsEx
+          )
           [ shouldFail
           , Predicate.not shouldSucceed
           ]

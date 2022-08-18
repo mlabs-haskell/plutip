@@ -12,3 +12,5 @@ allow-newer:
 constraints:
     aeson >= 2
   , hedgehog >= 1.1
+
+test-show-details: direct

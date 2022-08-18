@@ -70,7 +70,7 @@ import Test.Tasty (TestTree)
 test :: TestTree
 test =
   withConfiguredCluster
-    def {clusterWorkingDir = Fixed "/home/mike/dev/dev-tmp/plutip-cluster" True}
+    def
     "Basic integration: launch, add wallet, tx from wallet to wallet"
     $ [
         -- Basic Succeed or Failed tests

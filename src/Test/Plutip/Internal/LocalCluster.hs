@@ -11,9 +11,9 @@ module Test.Plutip.Internal.LocalCluster (
 ) where
 
 import Cardano.Api qualified as CAPI
+import Cardano.BM.Configuration.Model qualified as CM
 import Cardano.BM.Data.Severity qualified as Severity
 import Cardano.BM.Data.Tracer (HasPrivacyAnnotation, HasSeverityAnnotation (getSeverityAnnotation))
-import Cardano.BM.Configuration.Model qualified as CM
 import Cardano.CLI (LogOutput (LogToFile), withLoggingNamed)
 import Cardano.Launcher.Node (nodeSocketFile)
 import Cardano.Startup (installSignalHandlers, setDefaultFilePermissions, withUtf8Encoding)

@@ -74,7 +74,7 @@
             compiler-nix-name = "ghc8107";
 
             shell = {
-              withHoogle = false;
+              withHoogle = true;
               exactDeps = true;
 
               additional = ps: [ ps.bot-plutus-interface ];

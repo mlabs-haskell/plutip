@@ -10,6 +10,7 @@ module Test.Plutip.Internal.LocalCluster (
   ),
 ) where
 
+import Cardano.Api (ChainTip (ChainTip), SlotNo (SlotNo))
 import Cardano.Api qualified as CAPI
 import Cardano.BM.Configuration.Model qualified as CM
 import Cardano.BM.Data.Severity qualified as Severity
@@ -69,7 +70,7 @@ import Test.Plutip.Internal.Types (
  )
 import Test.Plutip.Tools.CardanoApi qualified as Tools
 import Text.Printf (printf)
-import UnliftIO.Concurrent (forkFinally, myThreadId, throwTo)
+import UnliftIO.Concurrent (forkFinally, myThreadId, throwTo, threadDelay)
 import UnliftIO.Exception (bracket, catchIO, finally)
 import UnliftIO.STM (TVar, atomically, newTVarIO, readTVar, retrySTM, writeTVar)
 
@@ -232,12 +233,20 @@ checkProcessesAvailable requiredProcesses = do
         <> show (catMaybes results)
 
 waitForRelayNode :: Tracer IO TestsLog -> RunningNode -> IO ()
-waitForRelayNode trCluster rn = do
-  liftIO $ recoverAll policy (const getTip)
+waitForRelayNode trCluster rn = 
+  liftIO $  do
+    recoverAll policy wait
+    threadDelay 2_000_000
   where
-    policy = constantDelay 500000 <> limitRetries 5
-    getTip = trace >> void (Tools.queryTip rn)
+    policy = constantDelay 500000 <> limitRetries 50
+    getTip = trace >> Tools.queryTip rn
     trace = traceWith trCluster WaitingRelayNode
+    wait _ = do
+      -- give some time for setup
+      (ChainTip (SlotNo ((> 5) -> True)) _ _) <- getTip
+      pure ()
+
+-- putStrLn $ "TIP: " ++ show tip
 
 -- | Launch the chain index in a separate thread.
 launchChainIndex :: PlutipConfig -> RunningNode -> FilePath -> IO Int

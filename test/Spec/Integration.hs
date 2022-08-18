@@ -26,6 +26,7 @@ import Spec.TestContract.SimpleContracts (
   payTo,
  )
 import Spec.TestContract.ValidateTimeRange (failingTimeContract, successTimeContract)
+import Test.Plutip.Config (WorkingDirectory (Fixed), clusterWorkingDir)
 import Test.Plutip.Contract (
   TestWallets,
   ValueOrdering (VLt),
@@ -69,7 +70,7 @@ import Test.Tasty (TestTree)
 test :: TestTree
 test =
   withConfiguredCluster
-    def
+    def {clusterWorkingDir = Fixed "/home/mike/dev/dev-tmp/plutip-cluster" True}
     "Basic integration: launch, add wallet, tx from wallet to wallet"
     $ [
         -- Basic Succeed or Failed tests
@@ -108,6 +109,7 @@ test =
         assertExecution
           "Pay from wallet to wallet"
           (initAda [100] <> initAndAssertAda [100, 13] 123)
+          -- (initAda [100] <> initAda [100, 13])
           (withContract $ \[pkh1] -> payTo pkh1 10_000_000)
           [shouldSucceed]
       , assertExecution

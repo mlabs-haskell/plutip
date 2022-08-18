@@ -276,9 +276,12 @@ maybeAddValuesCheck ioRes tws =
     valuesCheckCase =
       testCase "Values check" $
         ioRes
-          >>= either (assertFailure . Text.unpack) (const $ pure ())
-            . checkValues
-            . outcome
+          >>= \res -> do
+            ( either (assertFailure . Text.unpack) (const $ pure ())
+                . checkValues
+                . outcome
+              )
+              res
 
     checkValues o =
       left (Text.pack . show) o
@@ -328,7 +331,7 @@ withContractAs walletIdx toContract = do
       -- contract that gets all the values present at the test wallets.
       valuesAtWallet :: Contract w s e (NonEmpty Value)
       valuesAtWallet =
-        void (waitNSlots 1)
+        void (waitNSlots 10)
           >> traverse (valueAt . (`pubKeyHashAddress` Nothing)) collectValuesPkhs
 
   -- run the test contract

@@ -122,9 +122,7 @@ validatorAddr = mkValidatorAddress validator
 failingTimeContract :: Contract () EmptySchema Text Hask.String
 failingTimeContract = do
   startTime <- Contract.currentTime
-  let noOfSlots = 10
-      slotLen = 1000
-      timeDiff = POSIXTime (noOfSlots * slotLen)
+  let timeDiff = POSIXTime 5_000
       endTime = startTime + timeDiff
 
       validInterval = Interval (lowerBound startTime) (strictUpperBound endTime)
@@ -133,7 +131,7 @@ failingTimeContract = do
         Constraints.mustPayToOtherScript (validatorHash validator) unitDatum (Ada.adaValueOf 4)
           <> Constraints.mustValidateIn validInterval
 
-  void $ Contract.awaitTime (endTime + POSIXTime 4_000)
+  void $ Contract.awaitTime (endTime - POSIXTime 1_000)
   tx <- submitTx constr
   awaitTxConfirmed $ getCardanoTxId tx
   pure "Light debug done"
@@ -154,9 +152,7 @@ lockAtScript = do
 unlockWithTimeCheck :: Contract () EmptySchema Text ()
 unlockWithTimeCheck = do
   startTime <- Contract.currentTime
-  let noOfSlots = 500
-      slotLen = 1000
-      timeDiff = POSIXTime (noOfSlots * slotLen)
+  let timeDiff = POSIXTime 2_000
       endTime = startTime + timeDiff
 
   utxos <- Map.toList <$> Contract.utxosAt validatorAddr
@@ -174,7 +170,7 @@ unlockWithTimeCheck = do
 
           lkps =
             Hask.mconcat
-              [ Constraints.otherScript validator
+              [ Constraints.plutusV1OtherScript validator
               , Constraints.unspentOutputs (Map.fromList utxos)
               ]
       tx <- submitTxConstraintsWith @TestTime lkps txc

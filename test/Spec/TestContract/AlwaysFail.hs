@@ -52,7 +52,7 @@ spendFromScript = do
 
           lkps =
             Hask.mconcat
-              [ Constraints.otherScript validator
+              [ Constraints.plutusV1OtherScript validator
               , Constraints.unspentOutputs (Map.fromList utxos)
               ]
       tx <- submitTxConstraintsWith @AlwaysFail lkps txc

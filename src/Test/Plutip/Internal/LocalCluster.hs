@@ -70,7 +70,7 @@ import Test.Plutip.Internal.Types (
  )
 import Test.Plutip.Tools.CardanoApi qualified as Tools
 import Text.Printf (printf)
-import UnliftIO.Concurrent (forkFinally, myThreadId, threadDelay, throwTo)
+import UnliftIO.Concurrent (forkFinally, myThreadId, throwTo)
 import UnliftIO.Exception (bracket, catchIO, finally)
 import UnliftIO.STM (TVar, atomically, newTVarIO, readTVar, retrySTM, writeTVar)
 
@@ -236,7 +236,6 @@ waitForRelayNode :: Tracer IO TestsLog -> RunningNode -> IO ()
 waitForRelayNode trCluster rn =
   liftIO $ do
     recoverAll policy wait
-    threadDelay 2_000_000
   where
     policy = constantDelay 500000 <> limitRetries 50
     getTip = trace >> Tools.queryTip rn
@@ -245,8 +244,6 @@ waitForRelayNode trCluster rn =
       -- give some time for setup
       (ChainTip (SlotNo ((> 5) -> True)) _ _) <- getTip
       pure ()
-
--- putStrLn $ "TIP: " ++ show tip
 
 -- | Launch the chain index in a separate thread.
 launchChainIndex :: PlutipConfig -> RunningNode -> FilePath -> IO Int

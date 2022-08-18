@@ -26,7 +26,6 @@ import Spec.TestContract.SimpleContracts (
   payTo,
  )
 import Spec.TestContract.ValidateTimeRange (failingTimeContract, successTimeContract)
-import Test.Plutip.Config (WorkingDirectory (Fixed), clusterWorkingDir)
 import Test.Plutip.Contract (
   TestWallets,
   ValueOrdering (VLt),
@@ -221,7 +220,7 @@ testValueAssertionsOrderCorrectness =
         wallet1 = 200_000_000
         wallet2 = 300_000_000
 
-        payFee = 146200
+        payFee = 146000
         payTo1Amt = 22_000_000
         payTo2Amt = 33_000_000
         wallet1After = wallet1 + payTo1Amt
@@ -251,7 +250,7 @@ testValueAssertionsOrderCorrectness =
         wallet1 = 200_000_000
         wallet2 = 300_000_000
 
-        payFee = 146200
+        payFee = 146000
         payTo0Amt = 11_000_000
         payTo1Amt = 22_000_000
         payTo2Amt = 33_000_000

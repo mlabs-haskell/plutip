@@ -71,17 +71,17 @@
         "typed-protocols": "typed-protocols"
       },
       "locked": {
-        "lastModified": 1660805296,
-        "narHash": "sha256-e8M36UUCzGXjc05mSUH8Dq7+ZprwMdlSsd38gOFY7Gk=",
-        "owner": "mlabs-haskell",
+        "lastModified": 1660844328,
+        "narHash": "sha256-KEz/tHe9YsJ1ZNWoUMWTOxr3oDmCPTI5k/2QcXk+x5Q=",
+        "owner": "MitchyCola",
         "repo": "bot-plutus-interface",
-        "rev": "c5d2624440c7320a22269f0c085d4eefc889bc2f",
+        "rev": "1b895cdd760ec6918fbc0b8c11b6fe66f9ddfce2",
         "type": "github"
       },
       "original": {
-        "owner": "mlabs-haskell",
+        "owner": "MitchyCola",
         "repo": "bot-plutus-interface",
-        "rev": "c5d2624440c7320a22269f0c085d4eefc889bc2f",
+        "rev": "1b895cdd760ec6918fbc0b8c11b6fe66f9ddfce2",
         "type": "github"
       }
     },
@@ -274,17 +274,17 @@
     "cardano-wallet": {
       "flake": false,
       "locked": {
-        "lastModified": 1660141505,
-        "narHash": "sha256-3Rnj/g3KLzOW5YSieqsUa9IF1Td22Eskk5KuVsOFgEQ=",
+        "lastModified": 1660821856,
+        "narHash": "sha256-W6h1QkPMNL/RTervS2BFWuV6ebA9hSf1CnCYgBVXLxQ=",
         "owner": "input-output-hk",
         "repo": "cardano-wallet",
-        "rev": "18a931648550246695c790578d4a55ee2f10463e",
+        "rev": "c047261e9cd552e000951df9dcb72a126b536726",
         "type": "github"
       },
       "original": {
         "owner": "input-output-hk",
         "repo": "cardano-wallet",
-        "rev": "18a931648550246695c790578d4a55ee2f10463e",
+        "rev": "c047261e9cd552e000951df9dcb72a126b536726",
         "type": "github"
       }
     },
@@ -834,17 +834,17 @@
     "plutus-apps": {
       "flake": false,
       "locked": {
-        "lastModified": 1660652339,
-        "narHash": "sha256-0lCjJWMHYCFW62B5QAmkPakqNWdj2hJBqQP4AWHjBFE=",
-        "owner": "mikekeke",
+        "lastModified": 1660842776,
+        "narHash": "sha256-NMPs6c5nucdMnESI6O7R1jMW5GkD/75XRxFUB99BbHY=",
+        "owner": "MitchyCola",
         "repo": "plutus-apps",
-        "rev": "efdb04b602ade22245769f7e52d07475b3e8c339",
+        "rev": "4164267185966f9ab129d084d3a338418007f377",
         "type": "github"
       },
       "original": {
-        "owner": "mikekeke",
+        "owner": "MitchyCola",
         "repo": "plutus-apps",
-        "rev": "efdb04b602ade22245769f7e52d07475b3e8c339",
+        "rev": "4164267185966f9ab129d084d3a338418007f377",
         "type": "github"
       }
     },

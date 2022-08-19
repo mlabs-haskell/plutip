@@ -126,7 +126,7 @@ withPlutusInterface conf action = do
           tr'
           dir
           clusterCfg
-          []
+          mempty
           (\rn -> restoreStdout $ runActionWthSetup rn dir trCluster action)
     handleLogs dir conf
     return result

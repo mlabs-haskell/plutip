@@ -188,7 +188,6 @@ import Test.Plutip.Tools.Format (fmtTxBudgets)
 import Test.Tasty (testGroup, withResource)
 import Test.Tasty.HUnit (assertFailure, testCase)
 import Test.Tasty.Providers (IsTest (run, testOptions), TestTree, singleTest, testPassed)
-import UnliftIO.Concurrent (threadDelay)
 
 type TestRunner (w :: Type) (e :: Type) (a :: Type) =
   ReaderT (ClusterEnv, NonEmpty BpiWallet) IO (ExecutionResult w e (a, NonEmpty Value))
@@ -332,14 +331,11 @@ withContractAs walletIdx toContract = do
       -- contract that gets all the values present at the test wallets.
       valuesAtWallet :: Contract w s e (NonEmpty Value)
       valuesAtWallet =
-        -- void (waitNSlots 10) >> -- debug: waiting exact time instead
-        traverse (valueAt . (`pubKeyHashAddress` Nothing)) collectValuesPkhs
+        void (waitNSlots 1)
+          >> traverse (valueAt . (`pubKeyHashAddress` Nothing)) collectValuesPkhs -- debug: waiting exact time instead
 
   -- run the test contract
   execRes <- liftIO $ runContract cEnv ownWallet (toContract otherWalletsPkhs)
-
-  -- debug: wait chain-index very patiently
-  liftIO (threadDelay 10_000_000)
 
   -- get all the values present at the test wallets after the user given contracts has been executed.
   execValues <- liftIO $ runContract cEnv ownWallet valuesAtWallet

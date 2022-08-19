@@ -152,7 +152,7 @@ lockAtScript = do
 unlockWithTimeCheck :: Contract () EmptySchema Text ()
 unlockWithTimeCheck = do
   startTime <- Contract.currentTime
-  let timeDiff = POSIXTime 2_000
+  let timeDiff = POSIXTime 5_000
       endTime = startTime + timeDiff
 
   utxos <- Map.toList <$> Contract.utxosAt validatorAddr

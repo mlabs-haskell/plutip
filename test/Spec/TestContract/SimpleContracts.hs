@@ -22,6 +22,7 @@ import Ledger (
   TxOutRef,
   Value,
   ciTxOutValue,
+  getCardanoTxId,
  )
 
 import Data.Map (Map)
@@ -48,8 +49,10 @@ getUtxosThrowsEx :: Contract () EmptySchema Text (Map TxOutRef ChainIndexTxOut)
 getUtxosThrowsEx = error "This Exception was thrown intentionally in Contract.\n"
 
 payTo :: PaymentPubKeyHash -> Integer -> Contract () EmptySchema Text CardanoTx
-payTo toPkh amt =
-  submitTx (Constraints.mustPayToPubKey toPkh (Ada.lovelaceValueOf amt))
+payTo toPkh amt = do
+  tx <- submitTx (Constraints.mustPayToPubKey toPkh (Ada.lovelaceValueOf amt))
+  _ <- Contract.awaitTxConfirmed (getCardanoTxId tx)
+  pure tx
 
 ownValue :: Contract [Value] EmptySchema Text Value
 ownValue = foldMap (^. ciTxOutValue) <$> getUtxos

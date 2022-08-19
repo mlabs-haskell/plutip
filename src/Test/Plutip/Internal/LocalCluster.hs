@@ -37,7 +37,6 @@ import GHC.IO.Handle (Handle, hDuplicate, hDuplicateTo, hFlush)
 import GHC.Stack.Types (HasCallStack)
 import Paths_plutip (getDataFileName)
 import Plutus.ChainIndex.App qualified as ChainIndex
-import Plutus.ChainIndex.Config (ChainIndexConfig (cicNetworkId, cicPort), cicDbPath, cicSocketPath)
 import Plutus.ChainIndex.Config qualified as ChainIndex
 import Plutus.ChainIndex.Logging (defaultConfig)
 import Servant.Client (BaseUrl (BaseUrl), Scheme (Http))
@@ -73,6 +72,15 @@ import Text.Printf (printf)
 import UnliftIO.Concurrent (forkFinally, myThreadId, throwTo)
 import UnliftIO.Exception (bracket, catchIO, finally)
 import UnliftIO.STM (TVar, atomically, newTVarIO, readTVar, retrySTM, writeTVar)
+
+import Data.Default (Default (def))
+import Data.Function ((&))
+import Ledger.TimeSlot (SlotConfig (scSlotLength))
+import Plutus.ChainIndex.Config qualified as CIC
+import PlutusPrelude ((.~), (^.))
+import Cardano.Wallet.Primitive.Types (NetworkParameters(NetworkParameters), 
+  SlottingParameters (SlottingParameters), SlotLength (SlotLength))
+import Data.Time (nominalDiffTimeToSeconds)
 
 -- | Starting a cluster with a setup action
 -- We're heavily depending on cardano-wallet local cluster tooling, however they don't allow the
@@ -126,7 +134,7 @@ withPlutusInterface conf action = do
           tr'
           dir
           clusterCfg
-          []
+          mempty
           (\rn -> restoreStdout $ runActionWthSetup rn dir trCluster action)
     handleLogs dir conf
     return result
@@ -190,8 +198,6 @@ withLocalClusterSetup ::
   (FilePath -> [LogOutput] -> [LogOutput] -> Handle -> IO a) ->
   IO a
 withLocalClusterSetup conf action = do
-  -- Setting required environment variables
-  -- setEnv "NO_POOLS" "1"
   setClusterDataDir
 
   -- Handle SIGTERM properly
@@ -247,23 +253,24 @@ waitForRelayNode trCluster rn =
 
 -- | Launch the chain index in a separate thread.
 launchChainIndex :: PlutipConfig -> RunningNode -> FilePath -> IO Int
-launchChainIndex conf (RunningNode sp _block0 (_gp, _vData) _) dir = do
+launchChainIndex conf (RunningNode sp _block0 (netParams, _vData) _) dir = do
+  let (NetworkParameters _ (SlottingParameters (SlotLength slotLen) _ _ _) _) = netParams
+  
   config <- defaultConfig
   CM.setMinSeverity config Severity.Notice
   let dbPath = dir </> "chain-index.db"
       chainIndexConfig =
-        ChainIndex.defaultConfig
-          { cicSocketPath = nodeSocketFile sp
-          , cicDbPath = dbPath
-          , cicNetworkId = CAPI.Mainnet
-          , cicPort =
-              maybe
-                (cicPort ChainIndex.defaultConfig)
-                fromEnum
-                (chainIndexPort conf)
-          }
+        CIC.defaultConfig
+          & CIC.socketPath .~ nodeSocketFile sp
+          & CIC.dbPath .~ dbPath
+          & CIC.networkId .~ CAPI.Mainnet
+          & CIC.port .~ maybe (CIC.cicPort ChainIndex.defaultConfig) fromEnum (chainIndexPort conf)
+          & CIC.slotConfig .~ (def {scSlotLength = toMilliseconds slotLen})
+
   void . async $ void $ ChainIndex.runMainWithLog (const $ return ()) config chainIndexConfig
-  return $ cicPort chainIndexConfig
+  return $ chainIndexConfig ^. CIC.port
+  where
+    toMilliseconds = floor . (1e3 *) . nominalDiffTimeToSeconds
 
 handleLogs :: HasCallStack => FilePath -> PlutipConfig -> IO ()
 handleLogs clusterDir conf =

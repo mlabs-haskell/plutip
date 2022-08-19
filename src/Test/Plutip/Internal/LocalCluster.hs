@@ -73,14 +73,17 @@ import UnliftIO.Concurrent (forkFinally, myThreadId, throwTo)
 import UnliftIO.Exception (bracket, catchIO, finally)
 import UnliftIO.STM (TVar, atomically, newTVarIO, readTVar, retrySTM, writeTVar)
 
+import Cardano.Wallet.Primitive.Types (
+  NetworkParameters (NetworkParameters),
+  SlotLength (SlotLength),
+  SlottingParameters (SlottingParameters),
+ )
 import Data.Default (Default (def))
 import Data.Function ((&))
+import Data.Time (nominalDiffTimeToSeconds)
 import Ledger.TimeSlot (SlotConfig (scSlotLength))
 import Plutus.ChainIndex.Config qualified as CIC
 import PlutusPrelude ((.~), (^.))
-import Cardano.Wallet.Primitive.Types (NetworkParameters(NetworkParameters), 
-  SlottingParameters (SlottingParameters), SlotLength (SlotLength))
-import Data.Time (nominalDiffTimeToSeconds)
 
 -- | Starting a cluster with a setup action
 -- We're heavily depending on cardano-wallet local cluster tooling, however they don't allow the
@@ -255,7 +258,7 @@ waitForRelayNode trCluster rn =
 launchChainIndex :: PlutipConfig -> RunningNode -> FilePath -> IO Int
 launchChainIndex conf (RunningNode sp _block0 (netParams, _vData) _) dir = do
   let (NetworkParameters _ (SlottingParameters (SlotLength slotLen) _ _ _) _) = netParams
-  
+
   config <- defaultConfig
   CM.setMinSeverity config Severity.Notice
   let dbPath = dir </> "chain-index.db"

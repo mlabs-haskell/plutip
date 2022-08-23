@@ -71,17 +71,17 @@
         "typed-protocols": "typed-protocols"
       },
       "locked": {
-        "lastModified": 1660902233,
-        "narHash": "sha256-UiK7pLhxObj/EMi4VNrbile27Nr7rFo38so7IrQ9ZSk=",
+        "lastModified": 1661249085,
+        "narHash": "sha256-Szvhwtbatl9nAy2kNBuCC+WjvodsMKNuzV7u/9q9Igg=",
         "owner": "mlabs-haskell",
         "repo": "bot-plutus-interface",
-        "rev": "db579c66b49904f6795f59869080b499ce454a0c",
+        "rev": "7eb004eabd9f8b6c5254d2eb5eb88e7f471b4681",
         "type": "github"
       },
       "original": {
         "owner": "mlabs-haskell",
         "repo": "bot-plutus-interface",
-        "rev": "db579c66b49904f6795f59869080b499ce454a0c",
+        "rev": "7eb004eabd9f8b6c5254d2eb5eb88e7f471b4681",
         "type": "github"
       }
     },
@@ -233,7 +233,7 @@
       },
       "original": {
         "owner": "input-output-hk",
-        "ref": "1.35.3-rc1",
+        "ref": "1.35.3",
         "repo": "cardano-node",
         "type": "github"
       }
@@ -834,17 +834,17 @@
     "plutus-apps": {
       "flake": false,
       "locked": {
-        "lastModified": 1660652339,
-        "narHash": "sha256-0lCjJWMHYCFW62B5QAmkPakqNWdj2hJBqQP4AWHjBFE=",
-        "owner": "mikekeke",
+        "lastModified": 1661246964,
+        "narHash": "sha256-NuSwD6mjUEgBay2sIKRo6DUBualMQUDKfHQlsbYzKuk=",
+        "owner": "mlabs-haskell",
         "repo": "plutus-apps",
-        "rev": "efdb04b602ade22245769f7e52d07475b3e8c339",
+        "rev": "31bfd4c7fff5158c9f2618b76b68dbbae410221d",
         "type": "github"
       },
       "original": {
-        "owner": "mikekeke",
+        "owner": "mlabs-haskell",
         "repo": "plutus-apps",
-        "rev": "efdb04b602ade22245769f7e52d07475b3e8c339",
+        "rev": "31bfd4c7fff5158c9f2618b76b68dbbae410221d",
         "type": "github"
       }
     },

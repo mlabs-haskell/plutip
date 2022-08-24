@@ -185,6 +185,7 @@ test-suite plutip-tests
   other-modules:
     Spec.Integration
     Spec.Test.Plutip.BotPlutusInterface
+    Spec.TestContract.AdjustTx
     Spec.TestContract.AlwaysFail
     Spec.TestContract.LockSpendMint
     Spec.TestContract.SimpleContracts

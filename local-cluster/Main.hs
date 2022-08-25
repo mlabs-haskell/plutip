@@ -37,6 +37,7 @@ main = do
           workingDir = maybe Temporary (`Fixed` False) workDir
           plutipConfig = def {clusterWorkingDir = workingDir}
 
+      putStrLn "Starting cluster..."
       (st, _) <- startCluster plutipConfig $ do
         ws <- initWallets numWallets numUtxos amt dirWallets
         waitSeconds 2 -- let wallet Tx finish, it can take more time with bigger slot length

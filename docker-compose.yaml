@@ -6,12 +6,13 @@ services:
     volumes:
       - ${WORKING_DIR:-./temp}:/plutip
     environment:
-      - CARDANO_SOCKET_PATH=/plutip/node/node.socket # used by cardano-node
-      - CARDANO_NODE_SOCKET_PATH=/plutip/node/node.socket # used by cardano-cli
+      - CARDANO_SOCKET_PATH=/plutip/old-node/node.socket # used by cardano-node
+      - CARDANO_NODE_SOCKET_PATH=/plutip/old-node/node.socket # used by cardano-cli
     command:
       [ "run"
       , "--config", "/plutip/old-node/node.config"
       , "--topology", "/plutip/old-node/node.topology"
       , "--database-path", "/plutip/old-node/db"
-      , "--socket-path", "/plutip/old-node/db/node.socket"
+      , "--socket-path", "/plutip/old-node/node.socket"
       ]
+    network_mode: "host"

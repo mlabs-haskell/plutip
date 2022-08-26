@@ -1,4 +1,4 @@
-# Switching Node Versions
+# Transition Node Versions
 
 Plutip has executable 'local-cluster' starting a cluster of 3 pools and a relay node. This cluster communicates on a local private network. Additional `cardano-node`s can connect to this network and participate in the private blockchain.
 

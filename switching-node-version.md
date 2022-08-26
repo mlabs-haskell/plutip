@@ -39,10 +39,14 @@ By default, the `cardano-node` version in the docker container is `1.34.1`. This
 To test the docker container has properly started and connected, we can run two commands.
 
 To see the version of `cardano-cli` that docker is using:
-```docker-compose exec cardano-node cardano-cli --version```
+```
+docker-compose exec cardano-node cardano-cli --version
+```
 
 To see that the `cardano-node` inside the docker container is connected to Plutip's network:
-```docker-compose exec cardano-node cardano-cli query tip --mainnet && cardano-cli query tip --mainnet```
+```
+docker-compose exec cardano-node cardano-cli query tip --mainnet && cardano-cli query tip --mainnet
+```
 
 This command will first print the tip of the blockchain that the `cardano-node` inside of docker sees. Then it will print the tip of the blockchain from the `cardano-node` that Plutip uses. The values of the responses should be identical (might not be in the same order).
 

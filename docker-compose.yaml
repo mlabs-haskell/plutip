@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  cardano-node:
+    image: inputoutput/cardano-node:${CARDANO_NODE_VERSION:-1.34.1}
+    volumes:
+      - ${WORKING_DIR:-./temp}:/plutip
+    environment:
+      - CARDANO_SOCKET_PATH=/plutip/node/node.socket # used by cardano-node
+      - CARDANO_NODE_SOCKET_PATH=/plutip/node/node.socket # used by cardano-cli
+    command:
+      [ "run"
+      , "--config", "/plutip/old-node/node.config"
+      , "--topology", "/plutip/old-node/node.topology"
+      , "--database-path", "/plutip/old-node/db"
+      , "--socket-path", "/plutip/old-node/db/node.socket"
+      ]

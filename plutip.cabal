@@ -75,6 +75,7 @@ common common-imports
     , tasty-hunit
     , text
     , text-class
+    , time
     , transformers-except
     , typed-process
     , unliftio

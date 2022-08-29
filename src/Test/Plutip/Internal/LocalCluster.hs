@@ -250,8 +250,10 @@ waitForRelayNode trCluster rn =
     getTip = trace >> Tools.queryTip rn
     trace = traceWith trCluster WaitingRelayNode
     wait _ = do
-      -- give some time for setup
-      (ChainTip (SlotNo ((> 5) -> True)) _ _) <- getTip
+      tip <- getTip
+      case tip of
+        (ChainTip (SlotNo _) _ _) -> pure ()
+        a -> throwString $ "Timeout waiting for node to start. Last 'tip' response:\n" <> show a
       pure ()
 
 -- | Launch the chain index in a separate thread.
@@ -274,6 +276,22 @@ launchChainIndex conf (RunningNode sp _block0 (netParams, _vData) _) dir = do
   return $ chainIndexConfig ^. CIC.port
   where
     toMilliseconds = floor . (1e3 *) . nominalDiffTimeToSeconds
+
+    waitForChainIndex port = do
+      let policy = constantDelay 500000 <> limitRetries 50
+      let policy = constantDelay 1_000_000 <> limitRetries 60
+      recoverAll policy $ \_ -> do
+        tip <- queryTipWithChIndex port
+        case tip of
+          Right (Tip (Slot _) _ _) -> pure ()
+          a ->
+            throwString $
+              "Timeout waiting for chain-index to start indexing. Last response:\n"
+                <> show a
+
+    queryTipWithChIndex port = do
+      manager' <- newManager defaultManagerSettings
+      runClientM ChainIndexClient.getTip $ mkClientEnv manager' (BaseUrl Http "localhost" port "")
 
 handleLogs :: HasCallStack => FilePath -> PlutipConfig -> IO ()
 handleLogs clusterDir conf =

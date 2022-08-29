@@ -92,9 +92,7 @@ withConfiguredCluster conf name testCases =
         traverse
           (traverse addSomeWallet . fmap twInitDistribuition . unTestWallets . fst)
           testCases
-      -- had to bump waiting period here coz of chain-index slowdown,
-      -- see https://github.com/mlabs-haskell/plutip/issues/120
-      waitSeconds 5 -- wait for transactions to submit
+      waitSeconds 2 -- wait for transactions to submit
       pure (env, wallets)
 
 imap :: (Int -> a -> b) -> [a] -> [b]

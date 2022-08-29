@@ -39,7 +39,7 @@ import Paths_plutip (getDataFileName)
 import Plutus.ChainIndex.App qualified as ChainIndex
 import Plutus.ChainIndex.Config qualified as ChainIndex
 import Plutus.ChainIndex.Logging (defaultConfig)
-import Servant.Client (BaseUrl (BaseUrl), Scheme (Http), mkClientEnv, runClientM)
+import Servant.Client (BaseUrl (BaseUrl), Scheme (Http))
 import System.Directory (canonicalizePath, copyFile, createDirectoryIfMissing, doesPathExist, findExecutable, removeDirectoryRecursive)
 import System.Environment (setEnv)
 import System.Exit (die)
@@ -70,7 +70,7 @@ import Test.Plutip.Internal.Types (
 import Test.Plutip.Tools.CardanoApi qualified as Tools
 import Text.Printf (printf)
 import UnliftIO.Concurrent (forkFinally, myThreadId, throwTo)
-import UnliftIO.Exception (bracket, catchIO, finally, throwString)
+import UnliftIO.Exception (bracket, catchIO, finally)
 import UnliftIO.STM (TVar, atomically, newTVarIO, readTVar, retrySTM, writeTVar)
 
 import Cardano.Wallet.Primitive.Types (
@@ -81,11 +81,7 @@ import Cardano.Wallet.Primitive.Types (
 import Data.Default (Default (def))
 import Data.Function ((&))
 import Data.Time (nominalDiffTimeToSeconds)
-import Ledger (Slot (Slot))
 import Ledger.TimeSlot (SlotConfig (scSlotLength))
-import Network.HTTP.Client (defaultManagerSettings, newManager)
-import Plutus.ChainIndex (Tip (Tip))
-import Plutus.ChainIndex.Client qualified as ChainIndexClient
 import Plutus.ChainIndex.Config qualified as CIC
 import PlutusPrelude ((.~), (^.))
 
@@ -149,7 +145,7 @@ withPlutusInterface conf action = do
     runActionWthSetup rn dir trCluster userActon = do
       let tracer' = trMessageText trCluster
       waitForRelayNode tracer' rn
-      -- launch chain index in separate thread
+      -- launch chain index in seperate thread, logs to stdout
       ciPort <- launchChainIndex conf rn dir
       traceWith tracer' (ChaiIndexStartedAt ciPort)
       let cEnv =
@@ -254,10 +250,8 @@ waitForRelayNode trCluster rn =
     getTip = trace >> Tools.queryTip rn
     trace = traceWith trCluster WaitingRelayNode
     wait _ = do
-      tip <- getTip
-      case tip of
-        (ChainTip (SlotNo _) _ _) -> pure ()
-        _ -> throwString "Timeout waiting for node to start"
+      -- give some time for setup
+      (ChainTip (SlotNo ((> 5) -> True)) _ _) <- getTip
       pure ()
 
 -- | Launch the chain index in a separate thread.
@@ -268,32 +262,18 @@ launchChainIndex conf (RunningNode sp _block0 (netParams, _vData) _) dir = do
   config <- defaultConfig
   CM.setMinSeverity config Severity.Notice
   let dbPath = dir </> "chain-index.db"
-      port = maybe (CIC.cicPort ChainIndex.defaultConfig) fromEnum (chainIndexPort conf)
       chainIndexConfig =
         CIC.defaultConfig
-          & CIC.socketPath .~ (nodeSocketFile sp ++ "lol")
+          & CIC.socketPath .~ nodeSocketFile sp
           & CIC.dbPath .~ dbPath
           & CIC.networkId .~ CAPI.Mainnet
           & CIC.port .~ maybe (CIC.cicPort ChainIndex.defaultConfig) fromEnum (chainIndexPort conf)
           & CIC.slotConfig .~ (def {scSlotLength = toMilliseconds slotLen})
 
   void . async $ void $ ChainIndex.runMainWithLog (const $ return ()) config chainIndexConfig
-  waitForChainIndex port
   return $ chainIndexConfig ^. CIC.port
   where
     toMilliseconds = floor . (1e3 *) . nominalDiffTimeToSeconds
-
-    waitForChainIndex port = do
-      let policy = constantDelay 500000 <> limitRetries 50
-      recoverAll policy $ \_ -> do
-        tip <- queryTipWithChIndex port
-        case tip of
-          Right (Tip (Slot _) _ _) -> pure ()
-          _ -> throwString "Timeout waiting for chain-index to start"
-
-    queryTipWithChIndex port = do
-      manager' <- newManager defaultManagerSettings
-      runClientM ChainIndexClient.getTip $ mkClientEnv manager' (BaseUrl Http "localhost" port "")
 
 handleLogs :: HasCallStack => FilePath -> PlutipConfig -> IO ()
 handleLogs clusterDir conf =

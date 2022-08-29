@@ -257,7 +257,7 @@ waitForRelayNode trCluster rn =
       tip <- getTip
       case tip of
         (ChainTip (SlotNo _) _ _) -> pure ()
-        _ -> throwString "Timeout waiting for node to start"
+        a -> throwString $ "Timeout waiting for node to start. Last 'tip' response:\n" <> show a
       pure ()
 
 -- | Launch the chain index in a separate thread.
@@ -285,11 +285,15 @@ launchChainIndex conf (RunningNode sp _block0 (netParams, _vData) _) dir = do
 
     waitForChainIndex port = do
       let policy = constantDelay 500000 <> limitRetries 50
+      let policy = constantDelay 1_000_000 <> limitRetries 60
       recoverAll policy $ \_ -> do
         tip <- queryTipWithChIndex port
         case tip of
           Right (Tip (Slot _) _ _) -> pure ()
-          _ -> throwString "Timeout waiting for chain-index to start"
+          a ->
+            throwString $
+              "Timeout waiting for chain-index to start indexing. Last response:\n"
+                <> show a
 
     queryTipWithChIndex port = do
       manager' <- newManager defaultManagerSettings

@@ -2,10 +2,9 @@ module Spec.TestContract.AdjustTx (
   runAdjustTest,
 ) where
 
-import BotPlutusInterface.Contract (runContract)
 import Control.Lens.Operators ((^.))
+import Data.List.NonEmpty qualified as NonEmpty
 import Data.Text (Text)
-import Data.Text qualified as Text
 import Data.Void (Void)
 import Ledger (
   PaymentPubKeyHash,
@@ -14,44 +13,36 @@ import Ledger (
   getCardanoTxId,
  )
 import Ledger qualified
-import Ledger.Ada (adaValueOf)
 import Ledger.Ada qualified as Ada
-
--- import Ledger.Constraints (mkTx)
 import Ledger.Constraints qualified as Constraints
 import Ledger.Constraints.OffChain qualified as OffChain
-import Ledger.Scripts qualified as Scripts
-import Ledger.Typed.Scripts (TypedValidator, Validator, ValidatorTypes, mkUntypedMintingPolicy)
-import Ledger.Typed.Scripts qualified as TypedScripts
-import Ledger.Value (Value, flattenValue, tokenName)
-import Ledger.Value qualified
+import Ledger.Value (Value)
 import Plutus.Contract (
   Contract,
-  ContractError (ConstraintResolutionContractError),
   adjustUnbalancedTx,
   awaitTxConfirmed,
   mkTxConstraints,
-  submitTx,
-  submitTxConstraintsWith,
-  submitUnbalancedTx,
-  utxosAt,
  )
 import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
-import Plutus.Script.Utils.V1.Scripts qualified as ScriptUtils
-import Plutus.V1.Ledger.Value qualified as Value
-import PlutusTx qualified
-import PlutusTx.Prelude qualified as PP
-import Test.Plutip.Contract
+import Test.Plutip.Contract (
+  TestWallets,
+  assertExecution,
+  initAda,
+  withContract,
+ )
+import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet)
+import Test.Plutip.Internal.Types (ClusterEnv)
 import Test.Plutip.Predicate (
   shouldSucceed,
   yieldSatisfies,
  )
+import Test.Tasty (TestTree)
 import Prelude
 
 adjustTx :: PaymentPubKeyHash -> Contract () EmptySchema Text [Value]
 adjustTx toPkh = do
-  ownPkh <- Contract.ownPaymentPubKeyHash
+  ownPkh <- Contract.ownFirstPaymentPubKeyHash
   let ownAddr = Ledger.pubKeyHashAddress ownPkh Nothing
   utxos <- Contract.utxosAt ownAddr
   let consts =
@@ -64,19 +55,23 @@ adjustTx toPkh = do
   adjustedTx <- adjustUnbalancedTx unbalancedTx
   let rawTx = adjustedTx ^. OffChain.tx
       vals = map txOutValue $ txOutputs rawTx
-  -- crdTx <- submitUnbalancedTx adjustedTx
   balTx <- Contract.balanceTx adjustedTx
   crdTx <- Contract.submitBalancedTx balTx
-  _ <- Contract.awaitTxConfirmed (getCardanoTxId crdTx)
+  _ <- awaitTxConfirmed (getCardanoTxId crdTx)
   pure vals
 
 adjustTx' :: [PaymentPubKeyHash] -> Contract () EmptySchema Text [Value]
 adjustTx' [] = do
-  pkh <- Contract.ownPaymentPubKeyHash
+  pkh <- Contract.ownFirstPaymentPubKeyHash
   adjustTx pkh
 adjustTx' (pkh : _) = adjustTx pkh
 
--- The actual test
+-- | A type for the output of `assertExecution`.
+type PlutipTest = (TestWallets, IO (ClusterEnv, NonEmpty.NonEmpty BpiWallet) -> TestTree)
+
+-- | Tests whether `adjustUnbalancedTx` actually tops up the
+-- UTxO to get to the minimum required ADA.
+runAdjustTest :: PlutipTest
 runAdjustTest =
   assertExecution
     "Adjust Unbalanced Tx Contract"

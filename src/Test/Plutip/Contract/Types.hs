@@ -6,7 +6,7 @@
 module Test.Plutip.Contract.Types (
   TestContractConstraints,
   TestContract (..),
-  TestWallet (twExpected, twInitDistribuition),
+  TestWallet (twInitDistribuition),
   compareValuesWith,
   ValueOrdering (..),
   Wallets(Nil),
@@ -124,12 +124,11 @@ class IsWallet (w :: Type) where
   ws +> w  = UnsafeCons ws w
   infixl 5 +>
 
-initTestWallet :: [Positive] -> Maybe (ValueOrdering, Value) -> TestWallet
+initTestWallet :: [Positive] -> TestWallet
 initTestWallet = TestWallet
 
-data TestWallet = TestWallet
+newtype TestWallet = TestWallet
   { twInitDistribuition :: [Positive]
-  , twExpected :: Maybe (ValueOrdering, Value)
   } deriving stock (Show) -- TODO: for debugging purposes
 
 instance IsWallet TestWallet

@@ -13,32 +13,30 @@ import Test.Plutip.Predicate (
   shouldSucceed,
   shouldHave
  )
-import Ledger.Ada (lovelaceValueOf)
+import Ledger.Ada qualified as Ada
 import Test.Tasty (TestTree)
-import Test.Plutip.Contract.Init (withCollateral, initLovelace)
+import Test.Plutip.Contract.Init (initLovelace)
 import Control.Monad (void)
 import Plutus.Contract (waitNSlots)
 
 test :: TestTree
 test =
-    let wallet0 = 100_000_000
+    let lovelaceValueOf = Ada.lovelaceValueOf . toInteger
+        wallet0 = 100_000_000
         wallet1 = 200_000_000
         wallet2 = 300_000_000
-
-        defCollateralSize = 10_000_000
 
         payFee = 146200
         payTo0Amt = 11_000_000
         payTo1Amt = 22_000_000
         payTo2Amt = 33_000_000
 
-        wallet0After = wallet0 + payTo0Amt + defCollateralSize
+        wallet0After = wallet0 + payTo0Amt
         wallet2After =
           wallet2
             + payTo2Amt
             - payTo1Amt
             - payFee
-            + defCollateralSize
 
         wallet1After =
           wallet1
@@ -47,19 +45,17 @@ test =
             - payFee
             - payTo2Amt
             - payFee
-            + defCollateralSize
 
         wallets = Nil
                 +> initLovelace [wallet0]
                 +> initLovelace [wallet1]
                 +> initLovelace [wallet2]
-     in singleTestCluster "aa" $
+     in singleTestCluster "Testing contract" wallets $
          assertExecution
           "Values asserted in correct order with withContractAs"
-          (withCollateral wallets)
           ( do
-              void $
-                withContractAs @1 $ do
+              void $ withContractAs @1 $
+                do
                   _ <- payTo @0 (toInteger payTo0Amt)
                   _ <- lift $ waitNSlots 2
                   payTo @2 (toInteger payTo2Amt)
@@ -68,9 +64,9 @@ test =
                 payTo @1 (toInteger payTo1Amt)
           )
           [ shouldSucceed
-          , shouldHave @0 (lovelaceValueOf $ toInteger wallet0After)
-          , shouldHave @1 (lovelaceValueOf $ toInteger wallet1After)
-          , shouldHave @2 (lovelaceValueOf $ toInteger wallet2After)
+          , shouldHave @0 $ lovelaceValueOf wallet0After
+          , shouldHave @1 $ lovelaceValueOf wallet1After
+          , shouldHave @2 $ lovelaceValueOf wallet2After
           ]
 
   -- singleTestCluster

@@ -39,12 +39,13 @@ waitSeconds n = liftIO $ threadDelay (fromEnum n * 1_000_000)
 
 singleTestCluster ::
   String ->
-  (Wallets idxs TestWallet, IO (ClusterEnv, Wallets idxs BpiWallet) -> TestTree) ->
+  Wallets idxs TestWallet ->
+  (IO (ClusterEnv, Wallets idxs BpiWallet) -> TestTree) ->
   TestTree
-singleTestCluster name test =
+singleTestCluster name twallets test =
   withResource (startCluster def setup) (stopCluster . fst) $
     \getResource ->
-      testGroup name [snd test $ snd <$> getResource]
+      testGroup name [test $ snd <$> getResource]
 
   where
     
@@ -52,8 +53,8 @@ singleTestCluster name test =
       env <- ask
 
       wallets <-
-          (traverse addSomeWallet . fmap twInitDistribuition . fst)
-          test
+          (traverse addSomeWallet . fmap twInitDistribuition)
+          twallets
 
       waitSeconds 2 -- wait for transactions to submit
       pure (env, wallets)

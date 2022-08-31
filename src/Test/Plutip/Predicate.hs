@@ -27,7 +27,10 @@ module Test.Plutip.Predicate (
 ) where
 
 import BotPlutusInterface.Types (TxBudget (TxBudget), mintBudgets, spendBudgets)
+import Test.Plutip.Internal.BotPlutusInterface.Run (defCollateralSize)
+import GHC.TypeLits (natVal, KnownNat)
 import Data.Map (Map)
+import Data.Proxy (Proxy(Proxy))
 import Data.Map qualified as Map
 import Ledger (ExBudget (ExBudget), ExCPU (ExCPU), ExMemory (ExMemory), TxId, Value)
 import PlutusCore.Evaluation.Machine.ExMemory (CostingInteger)
@@ -41,14 +44,15 @@ import Test.Plutip.Internal.Types (
  )
 import Test.Plutip.Contract.Types (Predicate(..), NthWallet(..), Wallets)
 import Test.Plutip.Tools.Format (fmtExBudget, fmtTxBudgets)
+import Ledger.Ada qualified as Ada
 import Text.Show.Pretty (ppShow)
 
-shouldHave :: forall idx w e a idxs. (NthWallet idx idxs, Show w, Show e, Show a)
+shouldHave :: forall idx w e a idxs. (NthWallet idx idxs, Show w, Show e, Show a, KnownNat idx)
            => Value
            -> Predicate w e a idxs
 shouldHave value =
   Predicate
-    ("should have value " ++ show value)
+    ("wallet " ++ show (natVal @idx Proxy) ++ " : should have " ++ show value)
     ("Error: Expected value " ++ show value)
     (mappend "But it didn't.\nResult: " . renderString . layoutPretty defaultLayoutOptions . prettyExecutionResult)
     (either (const False) (haveVal @idx value . snd) . outcome)
@@ -58,9 +62,7 @@ haveVal :: forall idx idxs. (NthWallet idx idxs)
            => Value
            -> Wallets idxs Value
            -> Bool
-haveVal value ws = value == nthWallet @idx ws
-
-
+haveVal value ws = (value <> Ada.lovelaceValueOf defCollateralSize) == nthWallet @idx ws
 
 -- | `positive` description of `Predicate` that will be used as test case tag.
 --

@@ -108,18 +108,18 @@ module Test.Plutip.Contract (
   withContract,
   withContractAs,
   -- Wallet initialisation
-  TestWallet (twInitDistribuition, twExpected),
-  initAda,
-  withCollateral,
-  initAndAssertAda,
-  initAndAssertAdaWith,
-  initAdaAssertValue,
-  initAdaAssertValueWith,
+  TestWallet (twInitDistribuition),
+  -- initAda,
+  -- withCollateral,
+  -- initAndAssertAda,
+  -- initAndAssertAdaWith,
+  -- initAdaAssertValue,
+  -- initAdaAssertValueWith,
   initLovelace,
-  initAndAssertLovelace,
-  initAndAssertLovelaceWith,
-  initLovelaceAssertValue,
-  initLovelaceAssertValueWith,
+  -- initAndAssertLovelace,
+  -- initAndAssertLovelaceWith,
+  -- initLovelaceAssertValue,
+  -- initLovelaceAssertValueWith,
   -- Helpers
   ledgerPaymentPkh,
   ValueOrdering (VEq, VGt, VLt, VGEq, VLEq),
@@ -139,14 +139,11 @@ import BotPlutusInterface.Types (
   sufficientLogLevel,
  )
 
-import Control.Arrow (left)
 import Control.Monad.Reader (MonadIO (liftIO), MonadReader (ask), ReaderT, runReaderT, void)
 import Data.Bool (bool)
 import Data.Kind (Type)
-import Data.Maybe (isJust)
 import Data.Row (Row)
 import Data.Tagged (Tagged (Tagged))
-import Data.Text qualified as Text
 import GHC.TypeLits (Nat)
 import Ledger.Address (pubKeyHashAddress)
 import Ledger.Value (Value)
@@ -154,22 +151,22 @@ import Plutus.Contract (Contract, waitNSlots)
 import PlutusPrelude (render)
 import Prettyprinter (Doc, Pretty (pretty), vcat, (<+>))
 import Test.Plutip.Contract.Init (
-  initAda,
-  initAdaAssertValue,
-  initAdaAssertValueWith,
-  initAndAssertAda,
-  initAndAssertAdaWith,
-  initAndAssertLovelace,
-  initAndAssertLovelaceWith,
+  -- initAda,
+  -- initAdaAssertValue,
+  -- initAdaAssertValueWith,
+  -- initAndAssertAda,
+  -- initAndAssertAdaWith,
+  -- initAndAssertLovelace,
+  -- initAndAssertLovelaceWith,
   initLovelace,
-  initLovelaceAssertValue,
-  initLovelaceAssertValueWith,
-  withCollateral,
+  -- initLovelaceAssertValue,
+  -- initLovelaceAssertValueWith,
+  -- withCollateral,
  )
 import Test.Plutip.Contract.Types (
   TestContract (TestContract),
   TestContractConstraints,
-  TestWallet (twExpected, twInitDistribuition),
+  TestWallet (twInitDistribuition),
   Wallets,
   ValueOrdering (VEq, VGEq, VGt, VLEq, VLt),
   NthWallet(nthWallet)
@@ -187,7 +184,6 @@ import Test.Plutip.Predicate (Predicate, noBudgetsMessage, pTag)
 import Test.Plutip.Tools (ada)
 import Test.Plutip.Tools.Format (fmtTxBudgets)
 import Test.Tasty (testGroup, withResource)
-import Test.Tasty.HUnit (assertFailure, testCase)
 import Test.Tasty.Providers (IsTest (run, testOptions), TestTree, singleTest, testPassed)
 
 type TestRunner (w :: Type) (e :: Type) (a :: Type) (idxs :: [Nat]) =
@@ -215,10 +211,9 @@ assertExecution ::
   forall (w :: Type) (e :: Type) (a :: Type) (idxs :: [Nat]).
   TestContractConstraints w e a idxs =>
   String ->
-  Wallets idxs TestWallet ->
   TestRunner w e a idxs ->
   [Predicate w e a idxs] ->
-  (Wallets idxs TestWallet, IO (ClusterEnv, Wallets idxs BpiWallet) -> TestTree)
+  IO (ClusterEnv, Wallets idxs BpiWallet) -> TestTree
 assertExecution = assertExecutionWith mempty
 
 -- | Version of assertExecution parametrised with a list of extra TraceOption's.
@@ -231,22 +226,16 @@ assertExecutionWith ::
   TestContractConstraints w e a idxs =>
   [TraceOption] ->
   String ->
-  Wallets idxs TestWallet ->
   TestRunner w e a idxs ->
   [Predicate w e a idxs] ->
-  (Wallets idxs TestWallet, IO (ClusterEnv, Wallets idxs BpiWallet) -> TestTree)
-assertExecutionWith options tag testWallets testRunner predicates =
-  (testWallets, toTestGroup)
+  IO (ClusterEnv, Wallets idxs BpiWallet) -> TestTree
+assertExecutionWith options tag testRunner predicates =
+  toTestGroup
   where
     toTestGroup :: IO (ClusterEnv, Wallets idxs BpiWallet) -> TestTree
     toTestGroup ioEnv =
       withResource (runReaderT testRunner =<< ioEnv) (const $ pure ()) $
-        \ioRes ->
-          testGroup tag $
-            maybeAddValuesCheck
-              ioRes
-              testWallets
-              ((toCase ioRes <$> predicates) <> ((`optionToTestTree` ioRes) <$> options))
+        \ioRes -> testGroup tag ((toCase ioRes <$> predicates) <> ((`optionToTestTree` ioRes) <$> options))
 
     -- wraps IO with result of contract execution into single test
     toCase :: IO (ExecutionResult w e (a, Wallets idxs Value)) -> Predicate w e a idxs -> TestTree
@@ -266,30 +255,6 @@ assertExecutionWith options tag testWallets testRunner predicates =
 --  by `initAndAssert...` functions during wallets setup
 --
 -- @since 0.2
-maybeAddValuesCheck ::
-  Show e =>
-  IO (ExecutionResult w e (a, Wallets idxs Value)) ->
-  Wallets idxs TestWallet ->
-  [TestTree] ->
-  [TestTree]
-maybeAddValuesCheck ioRes tws =
-  -- bool id (valuesCheckCase :) (any isJust expected)
-  if any isJust expected then (valuesCheckCase :) else id
-  where
-    expected = twExpected <$> tws
-
-    valuesCheckCase :: TestTree
-    valuesCheckCase =
-      testCase "Values check" $
-        ioRes
-          >>= either (assertFailure . Text.unpack) (const $ pure ())
-            . checkValues
-            . outcome
-
-    -- checkValues :: _
-    checkValues o =
-      left (Text.pack . show) o
-        >>= \(_, vs) -> assertValues expected vs
 
 -- | Run a contract using the first wallet as own wallet, and return `ExecutionResult`.
 -- This could be used by itself, or combined with multiple other contracts.

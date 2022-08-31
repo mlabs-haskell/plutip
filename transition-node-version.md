@@ -1,10 +1,22 @@
 # Transition Node Versions
 
+This setup provides instructions on how to start a disposable local network which works with different node versions and is capable to execute Vasil hard fork. The goal is to provide an environment where dApp developers can test how dApp behaves with older and newer node versions and check stability during hard fork. This setup when fully started will give access to 2 node sockets: one socket of an older node version that can talk to a stake pool run by newer node version, and second socket - socket of one of the aforementioned stake pool nodes. So dApp developers will be able to switch node versions by changing sockets to interact with.
+ 
+Stake pool is handled by Plutip tool. Older node version can be started with prepared Docker setup or manually, although Docker setup will be easier to start with as it takes care of requred environment (see details below).
+
+
 Plutip has executable 'local-cluster' starting a cluster of 3 pools and a relay node. This cluster communicates on a local private network. Additional `cardano-node`s can connect to this network and participate in the private blockchain.
+
+To start working with setup clone Plutip repo and check out to correct branch:
+```bash
+    git clone https://github.com/mlabs-haskell/plutip.git
+    cd plutip
+    git checkout vasil-local-cluster-network
+```
 
 ## Environment prerequisites
 
-The same requirements from the `vasil-hardfork.md` file needs to be meet. Additionally, the machine needs to have `Docker` and `Docker Compose` installed, with the `Docker Daemon` running.
+To start Plutip's local cluster same requirements from the [vasil-hardfork.md](./vasil-hardfork.md) file needs to be meet. Additionally, for setup with Docker the machine needs to have `Docker` and `Docker Compose` installed, with the `Docker Daemon` running.
 
 Plutip will require that version `1.35.x` of `cardano-node` and `cardano-cli` need to be in the `PATH`. Docker will download an older version of those executables, separate from the executables that are available on the `PATH`.
 
@@ -17,7 +29,7 @@ cabal run local-cluster -- ./temp
 
 The `local-cluster` executable expects a sinlge argument for Plutip's working directory. In order to match the default settings that Docker will be using, `./temp` should be used as the working directory. An alternative directory can be used, you will just need to one of two options when starting docker.
 
-Wait until the setup for the `local-cluster` has finished, before continuing.
+Wait until the setup for the `local-cluster` has finished, before continuing. Path to node socket will be printed to terminal.
 
 ## Connecting Separate Cardano Node
 ### With Docker
@@ -49,6 +61,8 @@ docker-compose exec cardano-node cardano-cli query tip --mainnet && cardano-cli 
 ```
 
 This command will first print the tip of the blockchain that the `cardano-node` inside of docker sees. Then it will print the tip of the blockchain from the `cardano-node` that Plutip uses. The values of the responses should be identical (might not be in the same order).
+
+Socket of the old node will have path `./temp/old-node/node.socket` (or dir that was passed as an argument to `./start-old-node` instead of `./temp`).
 
 ### Manual
 Starting a different version of `cardano-node` can be done without the assistance of Docker, however, you do need to keep track of your shell's environment variables.

@@ -11,7 +11,13 @@ import Network.HTTP.Client (
  )
 import Network.HTTP.Types.Status (status200)
 import System.Directory (doesDirectoryExist, doesFileExist)
-import Test.Plutip.Internal.BotPlutusInterface.Setup (keysDir, metadataDir, pParamsFile, scriptsDir, txsDir)
+import Test.Plutip.Internal.BotPlutusInterface.Setup (
+  keysDir,
+  metadataDir,
+  pParamsFile,
+  scriptsDir,
+  txsDir,
+ )
 import Test.Plutip.Internal.LocalCluster (withPlutusInterface)
 import Test.Tasty (TestTree)
 import Test.Tasty.HUnit (assertBool, testCase)

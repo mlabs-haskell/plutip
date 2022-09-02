@@ -15,6 +15,7 @@ import Plutus.Contract (
   waitNSlots,
  )
 import Plutus.Contract qualified as Contract
+import Spec.TestContract.AdjustTx (runAdjustTest)
 import Spec.TestContract.AlwaysFail (lockThenFailToSpend)
 import Spec.TestContract.LockSpendMint (lockThenSpend)
 import Spec.TestContract.SimpleContracts (
@@ -206,6 +207,8 @@ test =
               [ shouldFail
               , errorSatisfies "Fail validation with 'I always fail'" errCheck
               ]
+      , -- Test `adjustUnbalancedTx`
+        runAdjustTest
       ]
       ++ testValueAssertionsOrderCorrectness
 

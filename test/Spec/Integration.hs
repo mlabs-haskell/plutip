@@ -43,7 +43,7 @@ import Test.Plutip.Contract (
  )
 import Test.Plutip.Internal.Types (
   ClusterEnv,
-  FailureReason (CaughtException),
+  FailureReason (CaughtException, ContractExecutionError),
   isException,
  )
 import Test.Plutip.LocalCluster (BpiWallet, withConfiguredCluster)
@@ -188,11 +188,16 @@ test =
           , overallBudgetFits 1106851699 2694968
           ]
       , -- regression tests for time <-> slot conversions
-        assertExecution
-          "Fails because outside validity interval"
-          (initAda [100])
-          (withContract $ const failingTimeContract)
-          [shouldFail]
+        let isValidityError = \case
+              ContractExecutionError e -> "OutsideValidityIntervalUTxO" `isInfixOf` e
+              _ -> False
+         in assertExecution
+              "Fails because outside validity interval"
+              (initAda [100])
+              (withContract $ const failingTimeContract)
+              [ shouldFail
+              , failReasonSatisfies "Execution error is OutsideValidityIntervalUTxO" isValidityError
+              ]
       , assertExecution
           "Passes validation with exact time range checks"
           (initAda [100])

@@ -8,13 +8,14 @@ import Data.List.NonEmpty (NonEmpty)
 import Data.Map qualified as Map
 import Data.Maybe (isJust)
 import Data.Text (Text, isInfixOf, pack)
+import Ledger.Ada (lovelaceValueOf)
 import Ledger.Constraints (MkTxError (OwnPubKeyMissing))
 import Plutus.Contract (
   ContractError (ConstraintResolutionContractError),
   waitNSlots,
  )
 import Plutus.Contract qualified as Contract
-import Plutus.V1.Ledger.Ada (lovelaceValueOf)
+import Spec.TestContract.AdjustTx (runAdjustTest)
 import Spec.TestContract.AlwaysFail (lockThenFailToSpend)
 import Spec.TestContract.LockSpendMint (lockThenSpend)
 import Spec.TestContract.SimpleContracts (
@@ -178,13 +179,13 @@ test =
           (withContract $ const lockThenSpend)
           [ shouldSucceed
           , budgetsFitUnder
-              (scriptLimit 426019962 1082502)
-              (policyLimit 428879716 1098524)
+              (scriptLimit 406250690 1016102)
+              (policyLimit 405210181 1019024)
           , assertOverallBudget
-              "Assert CPU == 1156006922 and MEM == 2860068"
-              (== 1156006922)
-              (== 2860068)
-          , overallBudgetFits 1156006922 2860068
+              "Assert CPU == 1106851699 and MEM == 2694968"
+              (== 1106851699)
+              (== 2694968)
+          , overallBudgetFits 1106851699 2694968
           ]
       , -- regression tests for time <-> slot conversions
         let isValidityError = \case
@@ -211,6 +212,8 @@ test =
               [ shouldFail
               , errorSatisfies "Fail validation with 'I always fail'" errCheck
               ]
+      , -- Test `adjustUnbalancedTx`
+        runAdjustTest
       ]
       ++ testValueAssertionsOrderCorrectness
 
@@ -223,7 +226,7 @@ testValueAssertionsOrderCorrectness =
         wallet1 = 200_000_000
         wallet2 = 300_000_000
 
-        payFee = 146200
+        payFee = 146400
         payTo1Amt = 22_000_000
         payTo2Amt = 33_000_000
         wallet1After = wallet1 + payTo1Amt
@@ -253,7 +256,7 @@ testValueAssertionsOrderCorrectness =
         wallet1 = 200_000_000
         wallet2 = 300_000_000
 
-        payFee = 146200
+        payFee = 146400
         payTo0Amt = 11_000_000
         payTo1Amt = 22_000_000
         payTo2Amt = 33_000_000

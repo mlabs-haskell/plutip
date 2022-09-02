@@ -37,9 +37,9 @@ data ClusterEnv = ClusterEnv
 
 -- | Helper function to get socket path from
 nodeSocket :: ClusterEnv -> CardanoNodeConn
-nodeSocket (ClusterEnv (RunningNode sp _ _) _ _ _ _ _) = sp
+nodeSocket (ClusterEnv (RunningNode sp _ _ _) _ _ _ _ _) = sp
 
--- | Result of `Contract` execution. Returns contract observable state
+-- | Result of `Contract` execution. Return contract observable state
 --    and either `Contract` return value, or error of type `FailureReason`.
 --    In case of failure observable state will hold changes up to the failure point.
 data ExecutionResult w e a = ExecutionResult

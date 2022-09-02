@@ -1,6 +1,7 @@
 module Spec.TestContract.LockSpendMint (lockThenSpend) where
 
 import Control.Monad (void)
+import Data.List.NonEmpty qualified as NonEmpty
 import Data.Map qualified as Map
 import Data.Text (Text)
 import Ledger (
@@ -8,31 +9,24 @@ import Ledger (
   CardanoTx,
   ChainIndexTxOut,
   CurrencySymbol,
-  MintingPolicy,
   PaymentPubKeyHash (PaymentPubKeyHash),
   ScriptContext (scriptContextTxInfo),
   TxId,
   TxInfo (txInfoMint),
   TxOutRef,
-  Validator,
   getCardanoTxId,
-  mkMintingPolicyScript,
-  pubKeyHashAddress,
-  scriptAddress,
-  scriptCurrencySymbol,
-  unitDatum,
-  unitRedeemer,
-  validatorHash,
+  scriptHashAddress,
  )
+import Ledger.Ada (adaValueOf)
 import Ledger.Constraints qualified as Constraints
-import Ledger.Typed.Scripts (wrapMintingPolicy)
-import Ledger.Typed.Scripts.Validators qualified as Validators
+import Ledger.Scripts qualified as Scripts
+import Ledger.Typed.Scripts (TypedValidator, Validator, ValidatorTypes, mkUntypedMintingPolicy)
+import Ledger.Typed.Scripts qualified as TypedScripts
 import Ledger.Value (flattenValue, tokenName)
 import Plutus.Contract (Contract, awaitTxConfirmed, submitTx, submitTxConstraintsWith)
 import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
-import Plutus.V1.Ledger.Ada (adaValueOf)
-import Plutus.V1.Ledger.Ada qualified as Value
+import Plutus.Script.Utils.V1.Scripts qualified as ScriptUtils
 import Plutus.V1.Ledger.Value qualified as Value
 import PlutusTx qualified
 import PlutusTx.Prelude qualified as PP
@@ -44,8 +38,8 @@ lockThenSpend = do
   wait 1
   _ <- spendFromScript
   wait 1
-  pkh <- Contract.ownPaymentPubKeyHash
-  Map.toList <$> Contract.utxosAt (pubKeyHashAddress pkh Nothing)
+  addr <- NonEmpty.head <$> Contract.ownAddresses
+  Map.toList <$> Contract.utxosAt addr
   where
     wait = void . Contract.waitNSlots
 
@@ -53,14 +47,14 @@ lockAtScript :: Contract () EmptySchema Text (TxId, CardanoTx)
 lockAtScript = do
   let constr =
         Constraints.mustPayToOtherScript
-          (validatorHash validator)
-          unitDatum
-          (Value.adaValueOf 10)
+          (ScriptUtils.validatorHash validator)
+          Scripts.unitDatum
+          (adaValueOf 10)
   let constr2 =
         Constraints.mustPayToOtherScript
-          (validatorHash $ validator2 2)
-          unitDatum
-          (Value.adaValueOf 10)
+          (ScriptUtils.validatorHash $ validator2 2)
+          Scripts.unitDatum
+          (adaValueOf 10)
   tx <- submitTx (constr <> constr2)
   awaitTxConfirmed $ getCardanoTxId tx
   pure (getCardanoTxId tx, tx)
@@ -77,21 +71,21 @@ spendFromScript = do
     spendUtxo oref1 utxos1 oref2 utxos2 = do
       let token = Value.singleton currencySymbol (tokenName "ff") 1
           txc1 =
-            Constraints.mustSpendScriptOutput oref1 unitRedeemer
-              <> Constraints.mustMintValueWithRedeemer unitRedeemer token
+            Constraints.mustSpendScriptOutput oref1 Scripts.unitRedeemer
+              <> Constraints.mustMintValueWithRedeemer Scripts.unitRedeemer token
           lookups1 =
             Constraints.unspentOutputs (Map.fromList utxos1)
-              <> Constraints.otherScript validator
-              <> Constraints.mintingPolicy mintingPolicy
+              <> Constraints.plutusV1OtherScript validator
+              <> Constraints.plutusV1MintingPolicy mintingPolicy
 
       let txc2 =
-            Constraints.mustSpendScriptOutput oref2 unitRedeemer
+            Constraints.mustSpendScriptOutput oref2 Scripts.unitRedeemer
               <> Constraints.mustPayToPubKey
                 (PaymentPubKeyHash "72cae61f85ed97fb0e7703d9fec382e4973bf47ea2ac9335cab1e3fe")
                 (adaValueOf 200)
           lookups2 =
             Constraints.unspentOutputs (Map.fromList utxos2)
-              <> Constraints.otherScript (validator2 2)
+              <> Constraints.plutusV1OtherScript (validator2 2)
 
       tx <-
         submitTxConstraintsWith @TestLockSpend
@@ -108,23 +102,23 @@ mkValidator _ _ _ = PP.traceIfFalse "validator 1 error" True
 
 data TestLockSpend
 
-instance Validators.ValidatorTypes TestLockSpend where
+instance ValidatorTypes TestLockSpend where
   type DatumType TestLockSpend = ()
   type RedeemerType TestLockSpend = ()
 
-typedValidator :: Validators.TypedValidator TestLockSpend
+typedValidator :: TypedValidator TestLockSpend
 typedValidator =
-  Validators.mkTypedValidator @TestLockSpend
+  TypedScripts.mkTypedValidator @TestLockSpend
     $$(PlutusTx.compile [||mkValidator||])
     $$(PlutusTx.compile [||wrap||])
   where
-    wrap = Validators.wrapValidator @() @()
+    wrap = TypedScripts.mkUntypedValidator @() @()
 
 validator :: Validator
-validator = Validators.validatorScript typedValidator
+validator = TypedScripts.validatorScript typedValidator
 
 validatorAddr :: Address
-validatorAddr = scriptAddress validator
+validatorAddr = scriptHashAddress $ ScriptUtils.validatorHash validator
 
 {-# INLINEABLE mkValidator2 #-}
 mkValidator2 :: Integer -> () -> () -> ScriptContext -> Bool
@@ -138,23 +132,23 @@ mkValidator2 i _ _ _ =
 
 data TestLockSpend2
 
-instance Validators.ValidatorTypes TestLockSpend2 where
+instance ValidatorTypes TestLockSpend2 where
   type DatumType TestLockSpend2 = ()
   type RedeemerType TestLockSpend2 = ()
 
-typedValidator2 :: Integer -> Validators.TypedValidator TestLockSpend
+typedValidator2 :: Integer -> TypedValidator TestLockSpend
 typedValidator2 uid =
-  Validators.mkTypedValidator @TestLockSpend
+  TypedScripts.mkTypedValidator @TestLockSpend
     ($$(PlutusTx.compile [||mkValidator2||]) `PlutusTx.applyCode` PlutusTx.liftCode uid)
     $$(PlutusTx.compile [||wrap||])
   where
-    wrap = Validators.wrapValidator @() @()
+    wrap = TypedScripts.mkUntypedValidator @() @()
 
 validator2 :: Integer -> Validator
-validator2 = Validators.validatorScript . typedValidator2
+validator2 = TypedScripts.validatorScript . typedValidator2
 
 validatorAddr2 :: Integer -> Address
-validatorAddr2 = scriptAddress . validator2
+validatorAddr2 = scriptHashAddress . ScriptUtils.validatorHash . validator2
 
 -- minting policy
 {-# INLINEABLE mkPolicy #-}
@@ -169,10 +163,10 @@ mkPolicy _ ctx =
 
     someWork = PP.sort [9, 8, 7, 6, 5, 4, 3, 2, 1, 0] :: [Integer]
 
-mintingPolicy :: MintingPolicy
+mintingPolicy :: TypedScripts.MintingPolicy
 mintingPolicy =
-  mkMintingPolicyScript
-    $$(PlutusTx.compile [||wrapMintingPolicy mkPolicy||])
+  Scripts.mkMintingPolicyScript
+    $$(PlutusTx.compile [||mkUntypedMintingPolicy mkPolicy||])
 
 currencySymbol :: CurrencySymbol
-currencySymbol = scriptCurrencySymbol mintingPolicy
+currencySymbol = ScriptUtils.scriptCurrencySymbol mintingPolicy

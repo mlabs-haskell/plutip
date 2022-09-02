@@ -7,7 +7,7 @@ module Test.Plutip.Tools.CardanoApi (
 ) where
 
 import Cardano.Api qualified as C
-import Cardano.Api.ProtocolParameters (ProtocolParameters)
+import Cardano.Api.Shelley (ProtocolParameters)
 import Cardano.Launcher.Node (nodeSocketFile)
 import Cardano.Slotting.Slot (WithOrigin)
 import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (RunningNode))
@@ -31,13 +31,13 @@ currentBlock (runningNode -> rn) = do
       info = connectionInfo rn
   C.queryNodeLocalState info Nothing query
 
-utxosAtAddress :: ClusterEnv -> C.AddressAny -> IO (Either CardanoApiError (C.UTxO C.AlonzoEra))
+utxosAtAddress :: ClusterEnv -> C.AddressAny -> IO (Either CardanoApiError (C.UTxO C.BabbageEra))
 utxosAtAddress (runningNode -> rn) addr = do
   flattenQueryResult <$> C.queryNodeLocalState info Nothing query
   where
     info = connectionInfo rn
     query =
-      shellyBasedAlonzoQuery
+      shellyBasedBabbageQuery
         (C.QueryUTxO $ C.QueryUTxOByAddress (Set.singleton addr))
 
 queryProtocolParams :: ClusterEnv -> IO (Either CardanoApiError ProtocolParameters)
@@ -45,10 +45,10 @@ queryProtocolParams (runningNode -> rn) =
   flattenQueryResult <$> C.queryNodeLocalState info Nothing query
   where
     info = connectionInfo rn
-    query = shellyBasedAlonzoQuery C.QueryProtocolParameters
+    query = shellyBasedBabbageQuery C.QueryProtocolParameters
 
 connectionInfo :: RunningNode -> C.LocalNodeConnectInfo C.CardanoMode
-connectionInfo (RunningNode socket _ _) =
+connectionInfo (RunningNode socket _ _ _) =
   C.LocalNodeConnectInfo
     (C.CardanoModeParams (C.EpochSlots 21600))
     C.Mainnet
@@ -57,12 +57,12 @@ connectionInfo (RunningNode socket _ _) =
 queryTip :: RunningNode -> IO C.ChainTip
 queryTip = C.getLocalChainTip . connectionInfo
 
-shellyBasedAlonzoQuery ::
-  C.QueryInShelleyBasedEra C.AlonzoEra result ->
+shellyBasedBabbageQuery ::
+  C.QueryInShelleyBasedEra C.BabbageEra result ->
   C.QueryInMode C.CardanoMode (Either EraMismatch result)
-shellyBasedAlonzoQuery =
-  C.QueryInEra C.AlonzoEraInCardanoMode
-    . C.QueryInShelleyBasedEra C.ShelleyBasedEraAlonzo
+shellyBasedBabbageQuery =
+  C.QueryInEra C.BabbageEraInCardanoMode
+    . C.QueryInShelleyBasedEra C.ShelleyBasedEraBabbage
 
 flattenQueryResult ::
   (Show e1, Show e2, Show b) =>

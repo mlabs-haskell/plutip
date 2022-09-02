@@ -39,8 +39,8 @@ valueAt addr = do
   pure . mconcat . map utxoValue . Map.elems $ utxos
   where
     utxoValue :: ChainIndexTxOut -> Value
-    utxoValue (PublicKeyChainIndexTxOut _ v) = v
-    utxoValue (ScriptChainIndexTxOut _ _ _ v) = v
+    utxoValue (PublicKeyChainIndexTxOut _ v _ _) = v
+    utxoValue (ScriptChainIndexTxOut _ v _ _ _) = v
 
 assertValues :: NonEmpty (Maybe (ValueOrdering, Value)) -> NonEmpty Value -> Either Text ()
 assertValues expected values =

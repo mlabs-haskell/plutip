@@ -9,17 +9,18 @@ import Ledger (
   ScriptContext,
   Validator,
   getCardanoTxId,
-  scriptAddress,
   unitDatum,
   unitRedeemer,
   validatorHash,
  )
+import Ledger.Ada qualified as Ada
 import Ledger.Constraints qualified as Constraints
-import Ledger.Typed.Scripts.Validators qualified as Validators
+import Ledger.Typed.Scripts (TypedValidator, ValidatorTypes (DatumType, RedeemerType))
+import Ledger.Typed.Scripts qualified as Scripts
 import Plutus.Contract (Contract, awaitTxConfirmed, submitTx, submitTxConstraintsWith)
 import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
-import Plutus.V1.Ledger.Ada qualified as Value
+import Plutus.Script.Utils.V1.Address (mkValidatorAddress)
 import PlutusTx qualified
 import PlutusTx.Prelude
 import Prelude qualified as Hask
@@ -38,7 +39,7 @@ lockAtScript = do
         Constraints.mustPayToOtherScript
           (validatorHash validator)
           unitDatum
-          (Value.adaValueOf 10)
+          (Ada.adaValueOf 10)
   tx <- submitTx constr
   awaitTxConfirmed $ getCardanoTxId tx
 
@@ -51,7 +52,7 @@ spendFromScript = do
 
           lkps =
             Hask.mconcat
-              [ Constraints.otherScript validator
+              [ Constraints.plutusV1OtherScript validator
               , Constraints.unspentOutputs (Map.fromList utxos)
               ]
       tx <- submitTxConstraintsWith @AlwaysFail lkps txc
@@ -64,20 +65,20 @@ mkValidator _ _ _ = traceError "I always fail"
 
 data AlwaysFail
 
-instance Validators.ValidatorTypes AlwaysFail where
+instance ValidatorTypes AlwaysFail where
   type DatumType AlwaysFail = ()
   type RedeemerType AlwaysFail = ()
 
-typedValidator :: Validators.TypedValidator AlwaysFail
+typedValidator :: TypedValidator AlwaysFail
 typedValidator =
-  Validators.mkTypedValidator @AlwaysFail
+  Scripts.mkTypedValidator @AlwaysFail
     $$(PlutusTx.compile [||mkValidator||])
     $$(PlutusTx.compile [||wrap||])
   where
-    wrap = Validators.wrapValidator @() @()
+    wrap = Scripts.mkUntypedValidator @() @()
 
 validator :: Validator
-validator = Validators.validatorScript typedValidator
+validator = Scripts.validatorScript typedValidator
 
 validatorAddr :: Address
-validatorAddr = scriptAddress validator
+validatorAddr = mkValidatorAddress validator

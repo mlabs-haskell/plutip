@@ -10,7 +10,8 @@ import Data.Bool (bool)
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Text qualified as Text
-import Ledger (ExBudget (ExBudget), ExCPU (ExCPU), ExMemory (ExMemory), MintingPolicyHash, TxId, TxOutRef)
+import Ledger (ExBudget (ExBudget), ExCPU (ExCPU), ExMemory (ExMemory), TxId, TxOutRef)
+import Plutus.V1.Ledger.Api (MintingPolicyHash)
 import PlutusPrelude (pretty)
 
 fmtTxBudgets :: Map TxId TxBudget -> String

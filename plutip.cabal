@@ -30,6 +30,7 @@ common common-imports
     , cardano-api
     , cardano-crypto
     , cardano-crypto-wrapper
+    , cardano-ledger-core
     , cardano-slotting
     , cardano-wallet
     , cardano-wallet-cli
@@ -59,6 +60,7 @@ common common-imports
     , plutus-ledger-api
     , plutus-ledger-constraints
     , plutus-pab
+    , plutus-script-utils
     , plutus-tx
     , plutus-tx-plugin
     , positive
@@ -73,6 +75,7 @@ common common-imports
     , tasty-hunit
     , text
     , text-class
+    , time
     , transformers-except
     , typed-process
     , unliftio
@@ -182,6 +185,7 @@ test-suite plutip-tests
   other-modules:
     Spec.Integration
     Spec.Test.Plutip.BotPlutusInterface
+    Spec.TestContract.AdjustTx
     Spec.TestContract.AlwaysFail
     Spec.TestContract.LockSpendMint
     Spec.TestContract.SimpleContracts

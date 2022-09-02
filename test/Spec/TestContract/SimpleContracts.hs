@@ -22,7 +22,7 @@ import Ledger (
   TxOutRef,
   Value,
   ciTxOutValue,
-  pubKeyHashAddress,
+  getCardanoTxId,
  )
 
 import Data.Map (Map)
@@ -30,6 +30,7 @@ import Ledger.Ada qualified as Ada
 
 import Control.Lens ((^.))
 import Control.Monad (void)
+import Data.List.NonEmpty qualified as NonEmpty
 import Data.Text (Text)
 import Ledger.Constraints (MkTxError (OwnPubKeyMissing))
 import Ledger.Constraints qualified as Constraints
@@ -37,8 +38,8 @@ import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
 
 getUtxos :: Contract [Value] EmptySchema Text (Map TxOutRef ChainIndexTxOut)
 getUtxos = do
-  pkh <- Contract.ownPaymentPubKeyHash
-  utxosAt $ pubKeyHashAddress pkh Nothing
+  addr <- NonEmpty.head <$> Contract.ownAddresses
+  utxosAt addr
 
 getUtxosThrowsErr :: Contract () EmptySchema ContractError (Map TxOutRef ChainIndexTxOut)
 getUtxosThrowsErr =
@@ -48,8 +49,10 @@ getUtxosThrowsEx :: Contract () EmptySchema Text (Map TxOutRef ChainIndexTxOut)
 getUtxosThrowsEx = error "This Exception was thrown intentionally in Contract.\n"
 
 payTo :: PaymentPubKeyHash -> Integer -> Contract () EmptySchema Text CardanoTx
-payTo toPkh amt =
-  submitTx (Constraints.mustPayToPubKey toPkh (Ada.lovelaceValueOf amt))
+payTo toPkh amt = do
+  tx <- submitTx (Constraints.mustPayToPubKey toPkh (Ada.lovelaceValueOf amt))
+  _ <- Contract.awaitTxConfirmed (getCardanoTxId tx)
+  pure tx
 
 ownValue :: Contract [Value] EmptySchema Text Value
 ownValue = foldMap (^. ciTxOutValue) <$> getUtxos

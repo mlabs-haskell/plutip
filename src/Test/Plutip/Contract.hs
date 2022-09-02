@@ -276,9 +276,12 @@ maybeAddValuesCheck ioRes tws =
     valuesCheckCase =
       testCase "Values check" $
         ioRes
-          >>= either (assertFailure . Text.unpack) (const $ pure ())
-            . checkValues
-            . outcome
+          >>= \res -> do
+            ( either (assertFailure . Text.unpack) (const $ pure ())
+                . checkValues
+                . outcome
+              )
+              res
 
     checkValues o =
       left (Text.pack . show) o
@@ -329,7 +332,7 @@ withContractAs walletIdx toContract = do
       valuesAtWallet :: Contract w s e (NonEmpty Value)
       valuesAtWallet =
         void (waitNSlots 1)
-          >> traverse (valueAt . (`pubKeyHashAddress` Nothing)) collectValuesPkhs
+          >> traverse (valueAt . (`pubKeyHashAddress` Nothing)) collectValuesPkhs -- debug: waiting exact time instead
 
   -- run the test contract
   execRes <- liftIO $ runContract cEnv ownWallet (toContract otherWalletsPkhs)
@@ -338,7 +341,7 @@ withContractAs walletIdx toContract = do
   execValues <- liftIO $ runContract cEnv ownWallet valuesAtWallet
 
   case outcome execValues of
-    Left _ -> fail "Failed to get values"
+    Left e -> fail $ "Failed to get values. Error: " ++ show e
     Right values -> return $ execRes {outcome = (,values) <$> outcome execRes}
   where
     separateWallets :: forall b. Int -> NonEmpty b -> (b, [b])

@@ -108,7 +108,6 @@ test =
         assertExecution
           "Pay from wallet to wallet"
           (initAda [100] <> initAndAssertAda [100, 13] 123)
-          -- (initAda [100] <> initAda [100, 13])
           (withContract $ \[pkh1] -> payTo pkh1 10_000_000)
           [shouldSucceed]
       , assertExecution
@@ -192,8 +191,7 @@ test =
           "Fails because outside validity interval"
           (initAda [100])
           (withContract $ const failingTimeContract)
-          [shouldFail] -- FIXME: add check that "OutsideValidityIntervalUTxO" is in error message
-          -- [shouldSucceed]
+          [shouldFail]
       , assertExecution
           "Passes validation with exact time range checks"
           (initAda [100])
@@ -220,7 +218,7 @@ testValueAssertionsOrderCorrectness =
         wallet1 = 200_000_000
         wallet2 = 300_000_000
 
-        payFee = 146000
+        payFee = 146400
         payTo1Amt = 22_000_000
         payTo2Amt = 33_000_000
         wallet1After = wallet1 + payTo1Amt
@@ -250,7 +248,7 @@ testValueAssertionsOrderCorrectness =
         wallet1 = 200_000_000
         wallet2 = 300_000_000
 
-        payFee = 146000
+        payFee = 146400
         payTo0Amt = 11_000_000
         payTo1Amt = 22_000_000
         payTo2Amt = 33_000_000

@@ -256,7 +256,7 @@ waitForRelayNode trCluster rn =
     wait _ = do
       tip <- getTip
       case tip of
-        (ChainTip (SlotNo _) _ _) -> pure ()
+        ChainTip (SlotNo _) _ _ -> pure ()
         a -> throwString $ "Timeout waiting for node to start. Last 'tip' response:\n" <> show a
       pure ()
 
@@ -277,7 +277,7 @@ launchChainIndex conf (RunningNode sp _block0 (netParams, _vData) _) dir = do
           & CIC.port .~ maybe (CIC.cicPort ChainIndex.defaultConfig) fromEnum (chainIndexPort conf)
           & CIC.slotConfig .~ (def {scSlotLength = toMilliseconds slotLen})
 
-  void . async $ void $ ChainIndex.runMainWithLog (const $ return ()) config chainIndexConfig
+  void $ async $ void $ ChainIndex.runMainWithLog (const $ return ()) config chainIndexConfig
   waitForChainIndex port
   return $ chainIndexConfig ^. CIC.port
   where
@@ -292,7 +292,7 @@ launchChainIndex conf (RunningNode sp _block0 (netParams, _vData) _) dir = do
           a ->
             throwString $
               "Timeout waiting for chain-index to start indexing. Last response:\n"
-                <> show a
+                <> either show show a
 
     queryTipWithChIndex port = do
       manager' <- newManager defaultManagerSettings

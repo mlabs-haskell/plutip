@@ -31,7 +31,7 @@ import Ledger (
 import Ledger.Ada qualified as Ada
 import Ledger.Constraints qualified as Constraints
 import Ledger.Typed.Scripts (mkUntypedValidator)
-import Plutus.Contract (Contract, awaitTxConfirmed, submitTx, submitTxConstraintsWith)
+import Plutus.Contract (Contract)
 import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
 import Plutus.Script.Utils.V1.Address (mkValidatorAddress)
@@ -122,6 +122,9 @@ validatorAddr = mkValidatorAddress validator
 failingTimeContract :: Contract () EmptySchema Text Hask.String
 failingTimeContract = do
   startTime <- Contract.currentTime
+  -- amount of seconds was picked empirically
+  -- it is relatively small, but big enough so Tx won't be silently dropped
+  -- from the node mempool coz it stayed there longer than validation range
   let timeDiff = POSIXTime 5_000
       endTime = startTime + timeDiff
 
@@ -132,8 +135,8 @@ failingTimeContract = do
           <> Constraints.mustValidateIn validInterval
 
   void $ Contract.awaitTime (endTime - POSIXTime 1_000)
-  tx <- submitTx constr
-  awaitTxConfirmed $ getCardanoTxId tx
+  tx <- Contract.submitTx constr
+  Contract.awaitTxConfirmed $ getCardanoTxId tx
   pure "Light debug done"
 
 successTimeContract :: Contract () EmptySchema Text ()
@@ -146,7 +149,7 @@ lockAtScript = do
           (validatorHash validator)
           unitDatum
           (Ada.adaValueOf 10)
-  tx <- submitTx constr
+  tx <- Contract.submitTx constr
   Contract.awaitTxConfirmed $ getCardanoTxId tx
 
 unlockWithTimeCheck :: Contract () EmptySchema Text ()
@@ -173,6 +176,6 @@ unlockWithTimeCheck = do
               [ Constraints.plutusV1OtherScript validator
               , Constraints.unspentOutputs (Map.fromList utxos)
               ]
-      tx <- submitTxConstraintsWith @TestTime lkps txc
+      tx <- Contract.submitTxConstraintsWith @TestTime lkps txc
       Contract.awaitTxConfirmed (getCardanoTxId tx)
     rest -> Contract.throwError $ "Unlocking error: Unwanted set of utxos: " Hask.<> Text.pack (Hask.show rest)

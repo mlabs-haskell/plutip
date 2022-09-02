@@ -13,7 +13,7 @@ import Cardano.Api qualified as CAPI
 import Cardano.Launcher.Node (nodeSocketFile)
 import Data.Aeson (encodeFile)
 import Data.Foldable (traverse_)
-import Plutus.V2.Ledger.Api (PubKeyHash (PubKeyHash))
+import Plutus.V1.Ledger.Api (PubKeyHash (PubKeyHash))
 import PlutusTx.Builtins qualified as PlutusTx
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist)
 import System.Environment (setEnv)

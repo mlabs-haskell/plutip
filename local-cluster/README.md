@@ -6,7 +6,7 @@ As long as the cluster is not stopped, the relay node can be used for arbitrary 
 
 The node socket path can be obtained from console output.
 
-NOTE: This branch currently starts local network in Alonzo era. Stable branch that not yet merged to master, but can start local network in Babbage era, can be found [here](https://github.com/mlabs-haskell/plutip/tree/gergely/vasil/local-cluster).
+NOTE: This branch launches local network in Vasil. Please use appropriate node version if running w/o Nix. It was tested with node `1.35.3`.
 
 The `Main.hs` module can also serve as an example of how to make your own executable for starting local cluster with funded wallets. Note that when wallet is added with `addSomeWallet` it is recommended to wait some time (1 or 2 seconds) with `waitSeconds` while funding transaction is sent and confirmed.
 

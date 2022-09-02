@@ -332,7 +332,7 @@ withContractAs walletIdx toContract = do
       valuesAtWallet :: Contract w s e (NonEmpty Value)
       valuesAtWallet =
         void (waitNSlots 1)
-          >> traverse (valueAt . (`pubKeyHashAddress` Nothing)) collectValuesPkhs -- debug: waiting exact time instead
+          >> traverse (valueAt . (`pubKeyHashAddress` Nothing)) collectValuesPkhs
 
   -- run the test contract
   execRes <- liftIO $ runContract cEnv ownWallet (toContract otherWalletsPkhs)

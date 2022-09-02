@@ -29,7 +29,16 @@ import Data.Map (Map)
 import Data.Map qualified as Map
 import Ledger (ExBudget (ExBudget), ExCPU (ExCPU), ExMemory (ExMemory), TxId, Value)
 import PlutusCore.Evaluation.Machine.ExMemory (CostingInteger)
-import Prettyprinter (Doc, align, defaultLayoutOptions, indent, layoutPretty, viaShow, vsep, (<+>))
+import Prettyprinter (
+  Doc,
+  align,
+  defaultLayoutOptions,
+  indent,
+  layoutPretty,
+  viaShow,
+  vsep,
+  (<+>),
+ )
 import Prettyprinter.Render.String (renderString)
 import Test.Plutip.Internal.Types (
   ExecutionResult (ExecutionResult, contractState, outcome),

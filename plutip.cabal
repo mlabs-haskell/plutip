@@ -29,6 +29,7 @@ common common-imports
     , cardano-addresses
     , cardano-api
     , cardano-crypto
+    , cardano-crypto-class
     , cardano-crypto-wrapper
     , cardano-ledger-core
     , cardano-slotting

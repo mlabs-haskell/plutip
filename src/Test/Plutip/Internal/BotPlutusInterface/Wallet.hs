@@ -9,7 +9,7 @@ module Test.Plutip.Internal.BotPlutusInterface.Wallet (
   ledgerPaymentPkh,
 ) where
 
-import Cardano.Api (AddressAny, PaymentKey, SigningKey, VerificationKey)
+import Cardano.Api (AddressAny, FileError, PaymentKey, SigningKey, StakeKey, VerificationKey)
 import Cardano.Api qualified as CAPI
 import Cardano.BM.Data.Tracer (nullTracer)
 import Cardano.Wallet.Primitive.Types.Coin (Coin (Coin))
@@ -29,6 +29,7 @@ import Plutus.V1.Ledger.Api qualified as LAPI
 import PlutusTx.Builtins (fromBuiltin, toBuiltin)
 import System.Directory (createDirectoryIfMissing)
 import System.FilePath ((<.>), (</>))
+import Test.Plutip.Internal.BotPlutusInterface.Keys (KeyPair (sKey, vKey), StakeKeyPair (sSKey, sVKey), genWalletKeys)
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as Setup
 import Test.Plutip.Internal.BotPlutusInterface.Types (BpiError (BotInterfaceDirMissing, SignKeySaveError))
 import Test.Plutip.Internal.Types (ClusterEnv, nodeSocket, supportDir)
@@ -39,7 +40,8 @@ data BpiWallet = BpiWallet
   { walletPkh :: !PubKeyHash
   , vrfKey :: VerificationKey PaymentKey
   , signKey :: SigningKey PaymentKey
-  -- todo: do we need something else?
+  , stakeVrfKey :: Maybe (VerificationKey StakeKey)
+  , stakeSignKey :: Maybe (SigningKey StakeKey)
   }
   deriving stock (Show)
 
@@ -88,9 +90,8 @@ addSomeWalletDir funds wallDir =
 
 createWallet :: MonadIO m => m BpiWallet
 createWallet = do
-  sKey <- liftIO $ CAPI.generateSigningKey CAPI.AsPaymentKey
-  let vKey = CAPI.getVerificationKey sKey
-  return $ BpiWallet (toPkh vKey) vKey sKey
+  (kp, skp) <- liftIO genWalletKeys
+  return $ BpiWallet (toPkh $ vKey kp) (vKey kp) (sKey kp) (Just $ sVKey skp) (Just $ sSKey skp)
   where
     toPkh =
       PubKeyHash
@@ -114,21 +115,38 @@ saveWallets bpiw fp = do
 
 -- | Save the wallet to a specific directory.
 saveWalletDir :: MonadIO m => BpiWallet -> FilePath -> m (Either BpiError ())
-saveWalletDir (BpiWallet pkh _ sk) wallDir = do
+saveWalletDir (BpiWallet pkh _ sk _ ssk) wallDir = do
   liftIO $ createDirectoryIfMissing True wallDir
   let pkhStr = Text.unpack (encodeByteString (fromBuiltin (LAPI.getPubKeyHash pkh)))
       path = wallDir </> "signing-key-" ++ pkhStr <.> "skey"
-  res <- liftIO $ CAPI.writeFileTextEnvelope path (Just "Payment Signing Key") sk
-  return $ left (SignKeySaveError . show) res --todo: better error handling
+      skhStr = Text.unpack (encodeByteString (fromBuiltin (LAPI.getPubKeyHash pkh)))
+      stakePath = wallDir </> "signing-key-" ++ skhStr <.> "skey"
+
+      foo :: Maybe (SigningKey StakeKey) -> IO (Either (FileError ()) ())
+      foo Nothing = pure $ Right ()
+      foo (Just stakeSK) = CAPI.writeFileTextEnvelope stakePath (Just "Delegation Signing Key") stakeSK
+
+  res1 <- liftIO $ CAPI.writeFileTextEnvelope path (Just "Payment Signing Key") sk
+  res2 <- liftIO $ foo ssk
+
+  case res1 of
+    Left _ -> return $ left (SignKeySaveError . show) res1 --todo: better error handling
+    Right _ -> return $ left (SignKeySaveError . show) res2
 
 -- | Make `AnyAddress` for mainnet
 cardanoMainnetAddress :: BpiWallet -> AddressAny
-cardanoMainnetAddress (BpiWallet _ vk _) =
+cardanoMainnetAddress (BpiWallet _ vk _ Nothing _) =
   CAPI.toAddressAny $
     CAPI.makeShelleyAddress
       CAPI.Mainnet
       (CAPI.PaymentCredentialByKey (CAPI.verificationKeyHash vk))
       CAPI.NoStakeAddress
+cardanoMainnetAddress (BpiWallet _ vk _ (Just stakeVK) _) =
+  CAPI.toAddressAny $
+    CAPI.makeShelleyAddress
+      CAPI.Mainnet
+      (CAPI.PaymentCredentialByKey (CAPI.verificationKeyHash vk))
+      (CAPI.StakeAddressByValue (CAPI.StakeCredentialByKey $ CAPI.verificationKeyHash stakeVK)) -- FIXME: Cardano.Api (in cardano-api-1.35.3) does not re-export the constructors for StakeCredential
 
 -- | Get `String` representation of address on mainnet
 mkMainnetAddress :: BpiWallet -> String

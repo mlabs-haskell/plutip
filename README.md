@@ -35,7 +35,7 @@ NOTE: This branch launches local network in `Vasil`. It was tested with node `1.
 ## Tutorials
 
 * [Running disposable local network](./local-cluster/README.md)
-* [Tasty integration](./do)
+* [Tasty integration](./docs/tasty-integration.md)
 
 
 ----- TO DO Line -----

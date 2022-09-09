@@ -30,9 +30,8 @@ When you see in terminal message like "`Cluster is running. Press Enter to stop.
 
 ### Available arguments
 
-
-Full | Short | Description 
---- | ---  | --- 
+Full | Short | Description
+--- | ---  | ---
 --wallets NUM | -n NUM | Creates `NUM` wallets and saves info about them into a default directory and also to a user-specified directory if the `--wallet-dir` argument is used. Defaults to 1 if not specified, and can be set to 0 if you do not wish to create any wallets.
 --wallet-dir /path/ | -d /path/ | If specified, saves the wallet information to an extra directory specified by the user. This is useful if you wish to have wallet information easily accessible by other code or tools.
 --ada AMOUNT | -a AMOUNT | Puts `AMOUNT` Ada into each UTxO in every wallet created. This defaults to 10,000 ADA. If you wish to specify an additional amount in Lovelace, you can use the `--lovelace` argument below. Note that if you want to specify the amount to create entirely in Lovelace, you'll have to use `-a0 --lovelace AMOUNT`.

@@ -35,9 +35,11 @@ NOTE: This branch launches local network in `Vasil`. It was tested with node `1.
 ## Tutorials
 
 * [Running disposable local network](./local-cluster/README.md)
+* [Tasty integration](./do)
 
 
 ----- TO DO Line -----
+
 Plutip provides a tasty interface for executing Plutus contracts on a local cluster.
 depend on each other.
 

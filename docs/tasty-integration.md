@@ -109,7 +109,9 @@ Actually, `withContract` is just shortcut for `withContractAs 0`.
 
 ## Assertions
 
-To assert the result of contract execution user specifies list of checks or `predicates` as 4th argument of `assertExecution`. There are several `predicates` provided by the library that could be found in `Test.Plutip.Contract` module. Existing `predicates` allows to make assertions on Contracts state (`w`), error (`e`) and result (`a`) (consider type `Contract w s e a`).
+To assert the result of contract execution user specifies list of checks or `predicates` as 4th argument of `assertExecution`. There are several `predicates` provided by the library that could be found in `Test.Plutip.Contract` module. Existing `predicates` allows to make assertions on Contracts state (`w`), error (`e`) and result (`a`) (consider type `Contract w s e a`). 
+
+There are also predicates for making assertions on scripts execution budgets (e.g. `budgetsFitUnder` or `assertOverallBudget`). But be aware, that budget of script submitted to private network can differ from testnet or mainnet, at least because different amount of input UTxOs could be added during balancing, so this assertions are mostly useful for rough estimation and regression testing.
 
 Users can also define their own predicates by making instances of `Predicate` type from `Test.Plutip.Contract` module.
 
@@ -134,6 +136,62 @@ To assert the final `Value` which `wallet` will have after contract execution sp
 
 `withCollateral` will initiate `wallet`'s with collateral UTxO and make sure that `Value` assertions will work in expected way.
 
+## Tracing
+
+Plutip test runner has ability to trace contract execution and provide collected information in test logs.
+
+To enable tracing test scenario should start with `assertExecutionWith` instead of `assertExecution`. As 1st argument `assertExecutionWith` accepts list of trace options of type `TraceOption`.
+
+E.g., scenario like this
+
+```haskell
+        assertExecutionWith
+          [ShowBudgets]
+          "Lock then spend contract"
+          (initAda (replicate 3 300))
+          (withContract $ const lockThenSpend)
+          [ shouldSucceed
+          ]
+```
+
+will log out something like
+
+```bash
+    Lock then spend contract
+      Contract should succeed: OK
+      Budget stats:            OK
+        Budget for TxId 8b0182f0d178d1ce2e50d50eeb060e54025d41d52cf879a7b378434a3cedfdd5
+         Empty
+        Budget for TxId 965a9e2a713c1d9665be1a9e196e8e158a46ce6b3a440d093d762df74f6d0982
+         TxOutRef dc551ff9b26c4dd5e30e9b608801caa9b6d660d90daac1271aedd9ed754e4374!0
+          (cpu 406250690 | mem 1016102)
+         TxOutRef dc551ff9b26c4dd5e30e9b608801caa9b6d660d90daac1271aedd9ed754e4374!1
+          (cpu 295390828 | mem 659842)
+         PolicyHash a28a933e16146b7f9acc863e557dc05c9d72e515459a18d7da9a1810
+          (cpu 405210181 | mem 1019024)
+        
+        Budget for TxId e949c1965a7d55156b713e1ee5ef55a9d708eaa2d1dfa1abf8b3331b815f334c
+         Empty
+```
+
+`TraceOption` has 3 options now:
+
+* collect and show execution budgets
+* show all possible logs (including `Contract` logs, contract interpretation debug logs, balancing logs, coin selection logs and many more)
+* configurable option, where log level and type of desired logs can be specified (for more details see `LogContext` and `LogLevel` from `BotPlutusInterface.Types` module)
+
+## Caveats
+
+`withConfiguredCluster` launches single instance of private network which keeps producing blocks till all tests done. There is no isolation between `assertExecution` calls, all contracts run on same network, using same chain of blocks. If several `assertExecution` will use exact same script under single `withConfiguredCluster`, address of that script won't be "cleared" from UTxOs between `assertExecution` calls, no blocks will be "rolled back".
+
+## Configuring network runner
+
+`withConfiguredCluster` accepts `PlutipConfig` as first argument. While some of the options made for Plutip debugging, there are couple of them that can be useful during testing:
+
+* `relayNodeLogs :: Maybe FilePath` - if set to `Just path` will save node logs to specified directory after test run finishes
+* `chainIndexPort :: Maybe Natural` - run `chain-index` on custom port, default is `9083`
+* `clusterWorkingDir` - by default all network related files (node logs, sockets, databases, genesis files and etc.) are stored in temporary directory which will be wiped out after private network stops. With this option it is possible to set custom directory that won't be cleared after private networks stops (but it still will be cleared on the next launch before network starts).
+
 ## More examples
 
-Plutip uses tasty integration for own testing as well, so more examples can be found in [Plutip's integration spec](../test/Spec/Integration.hs).
+Plutip uses tasty integration for it's own testing as well, so more examples can be found in [Plutip's integration spec](../test/Spec/Integration.hs).

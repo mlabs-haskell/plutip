@@ -107,6 +107,33 @@ Under the hood, test runner builds list of wallets like this `[walletA, walletB,
 
 Actually, `withContract` is just shortcut for `withContractAs 0`.
 
-## Asserting results
+## Assertions
 
-To assert the result of contract execution user specifies list of checks or `predicates` as 4th argument of `assertExecution`.
+To assert the result of contract execution user specifies list of checks or `predicates` as 4th argument of `assertExecution`. There are several `predicates` provided by the library that could be found in `Test.Plutip.Contract` module. Existing `predicates` allows to make assertions on Contracts state (`w`), error (`e`) and result (`a`) (consider type `Contract w s e a`).
+
+Users can also define their own predicates by making instances of `Predicate` type from `Test.Plutip.Contract` module.
+
+Each `predicate` will be rendered as separate test case in output log.
+
+### Asserting `wallet` final `Value`
+
+To assert the final `Value` which `wallet` will have after contract execution special syntax for `wallet` initialization is required. Currently it is done by group of "init-and-assert" functions from `Test.Plutip.Contract` module. E.g.:
+
+* `initAdaAssertValue [100] 133` - initialize `wallet` with single UTxO with 100 Ada and check that after contract execution final `Value` of all `wallet`'s UTxOs is equal to 133 Ada.
+* `initAndAssertLovelaceWith [1_000_000] VGt 2_000_000` - initialize `wallet` with single UTxO with 1000000 Lovelace and check that after contract execution final `Value` of all `wallet`'s UTxOs is *greater than* 2000000 Lovelace.
+
+***One important note*** is that Plutip handles creation of collateral UTxO under the hood. So when using assertions for `Value` it is advised to wrap `wallet`'s initialization with `withCollateral` function. E.g.:
+
+```haskell
+( withCollateral $
+    initAndAssertLovelace [111] 555
+    <> initAndAssertLovelace [222] 666
+    <> initAndAssertLovelace [333] 777
+)
+```
+
+`withCollateral` will initiate `wallet`'s with collateral UTxO and make sure that `Value` assertions will work in expected way.
+
+## More examples
+
+Plutip uses tasty integration for own testing as well, so more examples can be found in [Plutip's integration spec](../test/Spec/Integration.hs).

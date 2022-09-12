@@ -11,11 +11,14 @@ module Test.Plutip.Internal.BotPlutusInterface.Wallet (
 
 import Cardano.Api (AddressAny)
 import Cardano.Api qualified as CAPI
+import Cardano.Api.Shelley qualified as CAPI
 import Cardano.BM.Data.Tracer (nullTracer)
 import Cardano.Wallet.Primitive.Types.Coin (Coin (Coin))
 import Cardano.Wallet.Shelley.Launch.Cluster (
   sendFaucetFundsTo,
  )
+import Cardano.Ledger.BaseTypes as Shelley ( Network(Mainnet) )
+import Cardano.Ledger.Credential qualified as Shelley
 import Control.Arrow (ArrowChoice (left))
 import Control.Monad (void)
 import Control.Monad.IO.Class (MonadIO, liftIO)
@@ -28,7 +31,7 @@ import Ledger (PaymentPubKeyHash (PaymentPubKeyHash), PubKeyHash (PubKeyHash))
 import Numeric.Positive (Positive)
 import PlutusTx.Builtins (toBuiltin)
 import System.Directory (createDirectoryIfMissing)
-import Test.Plutip.Internal.BotPlutusInterface.Keys (KeyPair (vKey), StakeKeyPair, genKeyPair, genStakeKeyPair, writeKeyPair, writeStakeKeyPairs)
+import Test.Plutip.Internal.BotPlutusInterface.Keys (KeyPair (vKey), StakeKeyPair (sVKey), genKeyPair, genStakeKeyPair, writeKeyPair, writeStakeKeyPairs)
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as Setup
 import Test.Plutip.Internal.BotPlutusInterface.Types (BpiError (BotInterfaceDirMissing, SignKeySaveError))
 import Test.Plutip.Internal.Types (ClusterEnv, nodeSocket, supportDir)
@@ -126,14 +129,14 @@ saveWalletDir (BpiWallet _ pay stake) wallDir = do
 cardanoMainnetAddress :: BpiWallet -> AddressAny
 cardanoMainnetAddress (BpiWallet _ pay stake) =
   CAPI.toAddressAny $
-    CAPI.makeShelleyAddress
-      CAPI.Mainnet
-      (CAPI.PaymentCredentialByKey (CAPI.verificationKeyHash $ vKey pay))
-      maybe
-        CAPI.NoStakeAddress
-        (CAPI.StakeAddressByValue . CAPI.StakeCredentialByKey . CAPI.verificationKeyHash . sVKey) -- FIXME: Cardano.Api (in cardano-api-1.35.3) does not re-export the constructors for StakeCredential
-        stake
-
+    CAPI.ShelleyAddress
+      Shelley.Mainnet
+      ((\case (CAPI.PaymentKeyHash kh) -> Shelley.KeyHashObj kh) . CAPI.verificationKeyHash $ vKey pay)
+      (maybe
+        Shelley.StakeRefNull
+          ((\case (CAPI.StakeKeyHash kh) -> Shelley.StakeRefBase $ Shelley.KeyHashObj kh) . CAPI.verificationKeyHash . sVKey)
+        stake)
+ 
 -- | Get `String` representation of address on mainnet
 mkMainnetAddress :: BpiWallet -> String
 mkMainnetAddress bw =

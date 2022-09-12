@@ -62,7 +62,7 @@ writeStakeKeyPairs outDir stakeKeyPair = do
   let hash = rmQuotes . show $ CAPI.verificationKeyHash $ sVKey stakeKeyPair
 
       skeyPath = rmQuotes $ outDir </> "delegation-signing-key-" ++ hash <.> "skey"
-      vkeyPath = rmQuotes $ outDir </> "delegation-verifiaction-key-" ++ hash <.> "vkey"
+      vkeyPath = rmQuotes $ outDir </> "delegation-verification-key-" ++ hash <.> "vkey"
 
   sequence
     [ writeFileTextEnvelope skeyPath (Just sSKeyDesc) (sSKey stakeKeyPair)

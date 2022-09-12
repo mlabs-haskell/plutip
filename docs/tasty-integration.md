@@ -11,7 +11,7 @@ test =
     "Basic integration: launch, add wallet, tx from wallet to wallet" -- 2
     $ [ assertExecution "Contract 1" -- 3
           (initAda [100,200] <> initLovelace 10_000_000) -- 3.1
-          (withContract $ \[_wallet2pkh] -> someContract) -- 3.2
+          (withContract $ \[wallet2pkh] -> someContract) -- 3.2
           [ shouldSucceed -- 3.3
           ]
       ]
@@ -19,8 +19,94 @@ test =
 
 1. Will start local network with default config (more on configuring below)
 2. Description of test group that will be run on current instance of network
-3. Single "unit of work" performed on local network with it's description, which includes:
-   1. Initialization of `wallets`. Two addresses will be funded: first will have 2 UTxOs with 100 and 200 Ada, second - single UTxO with 10 Ada.
-   2. Execution of "`someContract :: Contract w s e a`". `PaymentPubKeyHash` will be accessible in `someContract` as "own PaymentPubKeyHash". e.g with `ownFirstPaymentPubKeyHash`. `PaymentPubKeyHash` of second initiated wallet is brought to scope by `_wallet2pkh`.
-   3. Check (or predicate) that will be run for result returned by execution `someContract`
-  
+3. Test scenario that will be performed on local network with it's description. Scenario includes:
+   1. (3.1.) Initialization of `wallets`. Two addresses will be funded: first will have 2 UTxOs with 100 and 200 Ada, second - single UTxO with 10 Ada.
+   2. (3.2) Execution of "`someContract :: Contract w s e a`". `PaymentPubKeyHash` of *first wallet* will be accessible in `someContract` as "own PaymentPubKeyHash". e.g with `ownFirstPaymentPubKeyHash`. `PaymentPubKeyHash` of *second* initiated wallet is brought to scope by `wallet2pkh` during pattern match on list (more on that below).
+   3. (3.3) Check (or predicate) that will be run for result returned by execution `someContract`.
+
+## Initializing wallets
+
+It is possible to initialize arbitrary number of `wallets` in second argument of `assertExecution`. `PaymentPubKeyHash` of 1st wallet will always be used as "own" `PaymentPubKeyHash` for contract being executed inside `withContract`. `PaymentPubKeyHash`'es of rest `wallets` could be accessed via 1st argument of lambda inside `withContract`.
+
+E.g. if `wallets` initialized like
+
+```haskell
+(initAda [100] <> initAda [200] <> initAda [300])
+```
+
+we will get 3 funded addresses represented by 3 corresponding `wallets`: 
+
+* `PaymentPubKeyHash` of wallet `initAda [100]` will be "own" `PaymentPubKeyHash` for contract executed it test case.
+* `PaymentPubKeyHash` of `wallets` `initAda [200]` and `initAda [300]` will be available via lambda argument. I.e.:
+
+
+```haskell
+withContract $ \[pkh1, pkh2] -> someContract
+```
+
+where
+
+* `pkh1` is `PaymentPubKeyHash` of `wallet` `initAda [200]`
+* `pkh2` is `PaymentPubKeyHash` of `wallet` `initAda [300]`
+
+`PaymentPubKeyHash` of `wallet` `initAda [100]` is meant to be `pkh0` and not presented in the list.
+
+## Executing contracts
+
+It is possible to run arbitrary number of contracts in 3d argument of `assertExecution` using it monadic nature. E.g.:
+
+```haskell
+  assertExecution "Some description"
+          ( initAda [100])
+          ( do
+              void $
+                withContract $
+                  \pkhs -> contract1
+              withContractAs 1 $
+                \pkhs -> contract2
+          )
+          [shouldSucceed]
+```
+
+Be aware though, that only result of last contract will be asserted in `shouldSucceed` (note usage of `void` for `contract1`). This pattern where `contract1` is executed before `contract2` can be useful if `contract2` requires some on-chain initialization before execution.
+
+### Changing own `PaymentPubKeyHash`
+
+There is no way to rearrange `wallets` after initialization, but test scenario (e.g.) can require running some setup contracts with different wallets. To make it possible `withContractAs` can be used instead of `withContract`. As first argument `withContractAs` accepts index of `wallet` in initial setup, `PaymentPubKeyHash` of this wallet will be used as "own" `PaymentPubKeyHash` inside the contract.
+
+For example, tets describe following scenario:
+
+* initiate 3 `wallets`: `walletA`, `walletB`, `walletC`
+* run some setup contract with `walletB`
+* run another setup contract with `walletC`
+* run final contract with `walletA` and assert it's result
+
+```haskell
+  assertExecution "Some description"
+          ( initAda [100] -- walletA
+            <> initAda [200] -- walletB
+            <> initAda [300] -- walletC
+          )
+          ( do
+              void $
+                withContractAs 1 $ -- running contract with walletB
+                  \[walletA_PKH, walletC_PKH] -> setupContract1
+              void $
+                withContractAs 2 $  -- running contract with walletC
+                  \[walletA_PKH, walletB_PKH] -> setupContract2
+              withContract $
+                \pkhs -> theContract
+          )
+          [shouldSucceed]
+```
+
+Under the hood, test runner builds list of wallets like this `[walletA, walletB, walletC]` and by calling `withContractAs` we can refer to an index (0 based) of specific wallet in this list. In that case, `PaymentPubKeyHash` of referenced `wallet` becomes "own" `PaymentPubKeyHash` of the contract, and `PaymentPubKeyHash`'s in argument of lambda  will be rearranged. E.g. i case of  `withContractAs 1`:
+
+* `PaymentPubKeyHash` of `walletB` will become own `PaymentPubKeyHash`
+* argument of lambada will contain `PaymentPubKeyHash`'es of `walletA` and `walletC`.
+
+Actually, `withContract` is just shortcut for `withContractAs 0`.
+
+## Asserting results
+
+To assert the result of contract execution user specifies list of checks or `predicates` as 4th argument of `assertExecution`.

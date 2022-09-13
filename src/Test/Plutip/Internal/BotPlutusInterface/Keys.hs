@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Test.Plutip.Internal.BotPlutusInterface.Keys (
   KeyPair (sKey, vKey),
   StakeKeyPair (sSKey, sVKey),
@@ -5,11 +7,16 @@ module Test.Plutip.Internal.BotPlutusInterface.Keys (
   writeKeyPair,
   genStakeKeyPair,
   writeStakeKeyPairs,
+  signingKeyFilePathInDir,
+  verificationKeyFilePathInDir,
+  stakingSigningKeyFilePathInDir,
+  stakingVerificationKeyFilePathInDir,
 ) where
 
 import Cardano.Api (writeFileTextEnvelope)
 import Cardano.Api qualified as CAPI
 import System.FilePath ((<.>), (</>))
+import qualified Data.Text as Text
 
 data KeyPair = KeyPair
   { sKey :: CAPI.SigningKey CAPI.PaymentKey
@@ -22,9 +29,6 @@ data StakeKeyPair = StakeKeyPair
   , sVKey :: CAPI.VerificationKey CAPI.StakeKey
   }
   deriving stock (Show)
-
-rmQuotes :: String -> String
-rmQuotes = filter (/= '"')
 
 pSKeyDesc, pVKeyDesc, sSKeyDesc, sVKeyDesc :: CAPI.TextEnvelopeDescr
 pSKeyDesc = "Payment Signing Key"
@@ -42,10 +46,10 @@ genKeyPair = do
 
 writeKeyPair :: FilePath -> KeyPair -> IO [Either (CAPI.FileError ()) ()]
 writeKeyPair outDir keyPair = do
-  let hash = rmQuotes . show $ CAPI.verificationKeyHash $ vKey keyPair
+  let hash = CAPI.verificationKeyHash $ vKey keyPair
 
-      skeyPath = rmQuotes $ outDir </> "payment-signing-key-" ++ hash <.> "skey"
-      vkeyPath = rmQuotes $ outDir </> "payment-verification-key-" ++ hash <.> "vkey"
+      skeyPath = signingKeyFilePathInDir outDir hash
+      vkeyPath = verificationKeyFilePathInDir outDir hash
 
   sequence
     [ writeFileTextEnvelope skeyPath (Just pSKeyDesc) (sKey keyPair)
@@ -58,13 +62,28 @@ genStakeKeyPair = do
   return $ StakeKeyPair sKey (CAPI.getVerificationKey sKey)
 
 writeStakeKeyPairs :: FilePath -> StakeKeyPair -> IO [Either (CAPI.FileError ()) ()]
-writeStakeKeyPairs outDir stakeKeyPair = do
-  let hash = rmQuotes . show $ CAPI.verificationKeyHash $ sVKey stakeKeyPair
+writeStakeKeyPairs dir stakeKeyPair = do
+  let hash = CAPI.verificationKeyHash $ sVKey stakeKeyPair
 
-      skeyPath = rmQuotes $ outDir </> "delegation-signing-key-" ++ hash <.> "skey"
-      vkeyPath = rmQuotes $ outDir </> "delegation-verification-key-" ++ hash <.> "vkey"
+      skeyPath = stakingSigningKeyFilePathInDir dir hash
+      vkeyPath = stakingVerificationKeyFilePathInDir dir hash
 
   sequence
     [ writeFileTextEnvelope skeyPath (Just sSKeyDesc) (sSKey stakeKeyPair)
     , writeFileTextEnvelope vkeyPath (Just sVKeyDesc) (sVKey stakeKeyPair)
     ]
+
+signingKeyFilePathInDir :: FilePath -> CAPI.Hash CAPI.PaymentKey -> FilePath
+signingKeyFilePathInDir dir vkh = keyFilePathInDir dir "signing-key" vkh "skey"
+
+verificationKeyFilePathInDir :: FilePath -> CAPI.Hash CAPI.PaymentKey -> FilePath
+verificationKeyFilePathInDir dir vkh = keyFilePathInDir dir "verification-key" vkh "vkey"
+
+stakingSigningKeyFilePathInDir :: FilePath -> CAPI.Hash CAPI.StakeKey -> FilePath
+stakingSigningKeyFilePathInDir dir vkh = keyFilePathInDir dir "staking-signing-key" vkh "skey"
+
+stakingVerificationKeyFilePathInDir :: FilePath -> CAPI.Hash CAPI.StakeKey -> FilePath
+stakingVerificationKeyFilePathInDir dir vkh = keyFilePathInDir dir "staking-verification-key" vkh "vkey"
+
+keyFilePathInDir :: forall a . CAPI.SerialiseAsRawBytes (CAPI.Hash a) => FilePath -> String -> CAPI.Hash a -> String -> FilePath
+keyFilePathInDir dir pref h ext = dir </> pref <> "-" <> Text.unpack (CAPI.serialiseToRawBytesHexText h) <.> ext

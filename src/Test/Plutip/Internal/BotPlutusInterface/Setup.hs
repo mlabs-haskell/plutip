@@ -13,14 +13,13 @@ import Cardano.Api qualified as CAPI
 import Cardano.Launcher.Node (nodeSocketFile)
 import Data.Aeson (encodeFile)
 import Data.Foldable (traverse_)
-import Plutus.V1.Ledger.Api (PubKeyHash (PubKeyHash))
-import PlutusTx.Builtins qualified as PlutusTx
 import System.Directory (createDirectoryIfMissing, doesDirectoryExist)
 import System.Environment (setEnv)
 import System.FilePath ((</>))
 import Test.Plutip.Config (PlutipConfig (extraSigners))
 import Test.Plutip.Internal.Types (ClusterEnv (plutipConf, supportDir), nodeSocket)
 import Test.Plutip.Tools.CardanoApi (queryProtocolParams)
+import Test.Plutip.Internal.BotPlutusInterface.Keys (signingKeyFilePathInDir)
 
 workDir' :: FilePath
 workDir' = "bot-plutus-interface"
@@ -70,12 +69,10 @@ runSetup cEnv = do
           Left fileError -> error $ displayError fileError
           Right sKey -> addExtraSigner $ Right sKey
       (Right sKey) -> do
-        let vKey = CAPI.getVerificationKey sKey
-            pkh = PubKeyHash . PlutusTx.toBuiltin . CAPI.serialiseToRawBytes $ CAPI.verificationKeyHash vKey
-            keyFilename = "signing-key-" <> show pkh <> ".skey"
+        let vKeyHash = CAPI.verificationKeyHash $ CAPI.getVerificationKey sKey
         g <-
           CAPI.writeFileTextEnvelope
-            (keysDir cEnv </> keyFilename)
+            (signingKeyFilePathInDir (keysDir cEnv) vKeyHash)
             Nothing
             sKey
         case g of

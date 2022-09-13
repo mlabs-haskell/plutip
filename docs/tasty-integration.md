@@ -1,6 +1,6 @@
 # Tasty integration
 
-Plutip `tasty` integration provides eDSL for building test suites that are capable to start local private network, run contracts on that network and then make assertions about contract execution results.
+Plutip `tasty` integration provides eDSL for building test suites that are capable to start local private network, run contracts on that network and then make assertions about contract execution result.
 
 Simple test case which starts private network, funds some addresses (or `wallets` in eDSL terminology) and runs `Contract`'s can be described like this:
 
@@ -17,12 +17,14 @@ test =
       ]
 ```
 
-1. Will start local network with default config (more on configuring below)
-2. Description of test group that will be run on current instance of network
-3. Test scenario that will be performed on local network with it's description. Scenario includes:
-   1. (3.1.) Initialization of `wallets`. Two addresses will be funded: first will have 2 UTxOs with 100 and 200 Ada, second - single UTxO with 10 Ada.
-   2. (3.2) Execution of "`someContract :: Contract w s e a`". `PaymentPubKeyHash` of *first wallet* will be accessible in `someContract` as "own PaymentPubKeyHash". e.g with `ownFirstPaymentPubKeyHash`. `PaymentPubKeyHash` of *second* initiated wallet is brought to scope by `wallet2pkh` during pattern match on list (more on that below).
-   3. (3.3) Check (or predicate) that will be run for result returned by execution `someContract`.
+1. Will start the local network with default config (more on configuring below)
+2. Description of test group that will be run on current instance of the network
+3. Test scenario that will be performed on the local network with it's description. Scenario includes:
+   1. (3.1.) Initialization of `wallets`. In this case two addresses will be funded: first will have 2 UTxOs with 100 and 200 Ada, second - single UTxO with 10 Ada.
+   2. (3.2) Execution of "`someContract :: Contract w s e a`". `PaymentPubKeyHash` of *first wallet* will be accessible in `someContract` as "own PaymentPubKeyHash". e.g with `ownFirstPaymentPubKeyHash`. `PaymentPubKeyHash` of *second* initiated wallet is brought into scope by `wallet2pkh` during pattern match on list (more on that below).
+   3. (3.3) List of checks or `predicates` which will be performed for the result of `someContract` execution.
+
+It is possible to run several scenarios on single network instance - note that `withConfiguredCluster` accepts list of `assertExecution`'s.
 
 ## Initializing wallets
 
@@ -53,7 +55,7 @@ where
 
 ## Executing contracts
 
-It is possible to run arbitrary number of contracts in 3d argument of `assertExecution` using it monadic nature. E.g.:
+It is possible to run arbitrary number of contracts in 3d argument of `assertExecution` using its monadic nature. E.g.:
 
 ```haskell
   assertExecution "Some description"
@@ -68,13 +70,13 @@ It is possible to run arbitrary number of contracts in 3d argument of `assertExe
           [shouldSucceed]
 ```
 
-Be aware though, that only result of last contract will be asserted in `shouldSucceed` (note usage of `void` for `contract1`). This pattern where `contract1` is executed before `contract2` can be useful if `contract2` requires some on-chain initialization before execution.
+Be aware though, that only result of the last contract (`contract2`) will be asserted in `shouldSucceed` (note usage of `void` for `contract1`). This pattern where `contract1` is executed before `contract2` can be useful if `contract2` requires some on-chain initialization before execution.
 
 ### Changing own `PaymentPubKeyHash`
 
-There is no way to rearrange `wallets` after initialization, but test scenario (e.g.) can require running some setup contracts with different wallets. To make it possible `withContractAs` can be used instead of `withContract`. As first argument `withContractAs` accepts index of `wallet` in initial setup, `PaymentPubKeyHash` of this wallet will be used as "own" `PaymentPubKeyHash` inside the contract.
+There is no way to rearrange `wallets` after initialization, but test scenario (e.g.) can require running some setup contracts with different wallets. To make it possible `withContractAs` can be used instead of `withContract`. As first argument `withContractAs` accepts index of the `wallet` in initial setup, `PaymentPubKeyHash` of this wallet will be used as "own" `PaymentPubKeyHash` inside the contract.
 
-For example, tets describe following scenario:
+For example, consider the following scenario:
 
 * initiate 3 `wallets`: `walletA`, `walletB`, `walletC`
 * run some setup contract with `walletB`
@@ -100,7 +102,7 @@ For example, tets describe following scenario:
           [shouldSucceed]
 ```
 
-Under the hood, test runner builds list of wallets like this `[walletA, walletB, walletC]` and by calling `withContractAs` we can refer to an index (0 based) of specific wallet in this list. In that case, `PaymentPubKeyHash` of referenced `wallet` becomes "own" `PaymentPubKeyHash` of the contract, and `PaymentPubKeyHash`'s in argument of lambda  will be rearranged. E.g. i case of  `withContractAs 1`:
+Under the hood, test runner builds list of wallets like this `[walletA, walletB, walletC]` and by calling `withContractAs` we can refer to an index (0 based) of specific wallet in this list. In that case, `PaymentPubKeyHash` of referenced `wallet` becomes "own" `PaymentPubKeyHash` of the contract, and `PaymentPubKeyHash`'es in argument of lambda  will be rearranged. E.g. in case of  `withContractAs 1`:
 
 * `PaymentPubKeyHash` of `walletB` will become own `PaymentPubKeyHash`
 * argument of lambada will contain `PaymentPubKeyHash`'es of `walletA` and `walletC`.
@@ -124,7 +126,7 @@ To assert the final `Value` which `wallet` will have after contract execution sp
 * `initAdaAssertValue [100] 133` - initialize `wallet` with single UTxO with 100 Ada and check that after contract execution final `Value` of all `wallet`'s UTxOs is equal to 133 Ada.
 * `initAndAssertLovelaceWith [1_000_000] VGt 2_000_000` - initialize `wallet` with single UTxO with 1000000 Lovelace and check that after contract execution final `Value` of all `wallet`'s UTxOs is *greater than* 2000000 Lovelace.
 
-***One important note*** is that Plutip handles creation of collateral UTxO under the hood. So when using assertions for `Value` it is advised to wrap `wallet`'s initialization with `withCollateral` function. E.g.:
+***One important note*** is that Plutip handles creation of collateral UTxO under the hood. So when using assertions for `Value` it is advised to wrap `wallet`'s initialization with `withCollateral` function, like this:
 
 ```haskell
 ( withCollateral $
@@ -134,7 +136,7 @@ To assert the final `Value` which `wallet` will have after contract execution sp
 )
 ```
 
-`withCollateral` will initiate `wallet`'s with collateral UTxO and make sure that `Value` assertions will work in expected way.
+`withCollateral` will initiate `wallets` with collateral UTxO and make sure that `Value` assertions will work in expected way.
 
 ## Tracing
 
@@ -142,7 +144,7 @@ Plutip test runner has ability to trace contract execution and provide collected
 
 To enable tracing test scenario should start with `assertExecutionWith` instead of `assertExecution`. As 1st argument `assertExecutionWith` accepts list of trace options of type `TraceOption`.
 
-E.g., scenario like this
+E.g. scenario like this
 
 ```haskell
         assertExecutionWith
@@ -182,7 +184,7 @@ will log out something like
 
 ## Caveats
 
-`withConfiguredCluster` launches single instance of private network which keeps producing blocks till all tests done. There is no isolation between `assertExecution` calls, all contracts run on same network, using same chain of blocks. If several `assertExecution` will use exact same script under single `withConfiguredCluster`, address of that script won't be "cleared" from UTxOs between `assertExecution` calls, no blocks will be "rolled back".
+`withConfiguredCluster` launches single instance of private network which keeps producing blocks till all tests are done. There is no isolation between `assertExecution` calls, all contracts run on same network, using same chain of blocks. If several `assertExecution` will use exact same script under single `withConfiguredCluster`, address of that script won't be "cleared" from UTxOs between `assertExecution` calls, no blocks will be "rolled back".
 
 ## Configuring network runner
 
@@ -190,7 +192,8 @@ will log out something like
 
 * `relayNodeLogs :: Maybe FilePath` - if set to `Just path` will save node logs to specified directory after test run finishes
 * `chainIndexPort :: Maybe Natural` - run `chain-index` on custom port, default is `9083`
-* `clusterWorkingDir` - by default all network related files (node logs, sockets, databases, genesis files and etc.) are stored in temporary directory which will be wiped out after private network stops. With this option it is possible to set custom directory that won't be cleared after private networks stops (but it still will be cleared on the next launch before network starts).
+* `clusterWorkingDir` - by default all network related files (node logs, sockets, databases, genesis files and etc.) are stored in temporary directory which will be wiped out after private network stops. With this option it is possible to set custom directory that won't be cleared after private networks stops (but it still will be cleared on the next launch before network starts)
+* `clusterDataDir` - see [Tweaking private network](tweaking-network.md) section
 
 ## More examples
 

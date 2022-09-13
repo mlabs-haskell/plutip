@@ -127,6 +127,9 @@ module Test.Plutip.Contract (
   assertExecution,
   assertExecutionWith,
   ada,
+  -- Contract runners
+  runContract,
+  runContractWithLogLvl,
 ) where
 
 import BotPlutusInterface.Types (
@@ -174,7 +177,7 @@ import Test.Plutip.Contract.Types (
   ValueOrdering (VEq, VGEq, VGt, VLEq, VLt),
  )
 import Test.Plutip.Contract.Values (assertValues, valueAt)
-import Test.Plutip.Internal.BotPlutusInterface.Run (runContract)
+import Test.Plutip.Internal.BotPlutusInterface.Run (runContract, runContractWithLogLvl)
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet, ledgerPaymentPkh)
 import Test.Plutip.Internal.Types (
   ClusterEnv,

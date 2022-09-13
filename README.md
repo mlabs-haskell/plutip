@@ -1,5 +1,10 @@
 # Plutip
 
+[![Hercules-ci][herc badge]][herc link]
+
+[herc badge]: https://img.shields.io/badge/ci--by--hercules-green.svg
+[herc link]: https://hercules-ci.com/github/mlabs-haskell/plutip
+
 Plutip is Cardano tool that aims to help dApp developers with integration testing and contracts debugging.
 
 Plutip can serve several purposes:

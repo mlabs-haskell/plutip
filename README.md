@@ -44,4 +44,8 @@ NOTE: This branch launches local network in `Vasil`. It was tested with node `1.
 * [Tasty integration](./docs/tasty-integration.md)
 * [Running Contracts is REPL](./docs/interactive-plutip.md)
 * [Providing constant keys](./docs/constant-keys.md)
+
+## Advanced network setup
+
 * [Tweaking local network](./docs/tweaking-network.md)
+* [Regenerating network configs](./docs/regenerate-network-configs.md)

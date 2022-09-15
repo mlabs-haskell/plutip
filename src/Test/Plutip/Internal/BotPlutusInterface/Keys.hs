@@ -33,8 +33,8 @@ data StakeKeyPair = StakeKeyPair
 pSKeyDesc, pVKeyDesc, sSKeyDesc, sVKeyDesc :: CAPI.TextEnvelopeDescr
 pSKeyDesc = "Payment Signing Key"
 pVKeyDesc = "Payment Verification Key"
-sSKeyDesc = "Delegation Signing Key"
-sVKeyDesc = "Delegation Verification Key"
+sSKeyDesc = "Stake Signing Key"
+sVKeyDesc = "Stake Verification Key"
 
 -- | Helper to generate key pairs.
 -- Can be further developed to generate test keys for test wallets

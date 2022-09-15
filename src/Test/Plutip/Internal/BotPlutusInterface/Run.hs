@@ -61,13 +61,17 @@ import Plutus.Contract (Contract)
 import Plutus.PAB.Core.ContractInstance.STM (Activity (Active))
 import Test.Plutip.Config (PlutipConfig (budgetMultiplier))
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BIS
-import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet (walletPkh))
+import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet (walletPkh, stakeKeys))
 import Test.Plutip.Internal.Types (
   ClusterEnv (chainIndexUrl, networkId, plutipConf),
   ExecutionResult (ExecutionResult),
   FailureReason (CaughtException, ContractExecutionError),
  )
 import Wallet.Types (ContractInstanceId (ContractInstanceId))
+import Test.Plutip.Internal.BotPlutusInterface.Keys (StakeKeyPair(sVKey))
+import qualified Cardano.Api as CAPI
+import qualified PlutusTx.Builtins.Class as PlutusTx
+import Ledger (StakePubKeyHash(StakePubKeyHash), PubKeyHash (PubKeyHash))
 
 -- | default collateral size that's to be used as collateral.
 defCollateralSize :: Integer
@@ -134,7 +138,7 @@ runContractWithLogLvl logLvl cEnv bpiWallet contract = do
         , pcProtocolParamsFile = Text.pack $ BIS.pParamsFile cEnv
         , pcLogLevel = logLvl
         , pcOwnPubKeyHash = walletPkh bpiWallet
-        , pcOwnStakePubKeyHash = Nothing
+        , pcOwnStakePubKeyHash = StakePubKeyHash . PubKeyHash . PlutusTx.toBuiltin . CAPI.serialiseToRawBytes . CAPI.verificationKeyHash . sVKey <$> stakeKeys bpiWallet
         , pcTipPollingInterval = 1_000_000
         , pcPort = 9080
         , pcEnableTxEndpoint = False

@@ -77,3 +77,5 @@ isException :: FailureReason e -> Bool
 isException = \case
   CaughtException _ -> True
   _ -> False
+
+data WalletAddress = 

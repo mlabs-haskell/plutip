@@ -1,5 +1,6 @@
 -- | Wallets initiation
 module Test.Plutip.Contract.Init (
+  withStakeKeys,
   initLovelace,
   initLovelaceAssertValueWith,
   initLovelaceAssertValue,
@@ -25,7 +26,7 @@ import Ledger.Value qualified as Value
 import Numeric.Positive (Positive)
 
 import Test.Plutip.Contract.Types (
-  TestWallet (TestWallet, twExpected, twInitDistribuition),
+  TestWallet (TestWallet, twExpected, twInitDistribuition, hasStakeKeys),
   TestWallets (TestWallets, unTestWallets),
   ValueOrdering (VEq),
  )
@@ -37,14 +38,14 @@ import Test.Plutip.Tools (ada)
 --
 -- @since 0.2
 initLovelace :: [Positive] -> TestWallets
-initLovelace initial = TestWallets $ TestWallet initial Nothing :| []
+initLovelace initial = TestWallets $ TestWallet initial Nothing False :| []
 
 -- | Create a wallet with the given amounts of lovelace, and after contract execution
 -- compare the values at the wallet address with the given ordering and value.
 --
 -- @since 0.2
 initLovelaceAssertValueWith :: [Positive] -> ValueOrdering -> Value -> TestWallets
-initLovelaceAssertValueWith initial ord expect = TestWallets $ TestWallet initial (Just (ord, expect)) :| []
+initLovelaceAssertValueWith initial ord expect = TestWallets $ TestWallet initial (Just (ord, expect)) False :| []
 
 -- | Create a wallet with the given amounts of lovelace, and after contract execution
 -- check if values at the wallet address are equal to a given value.
@@ -105,14 +106,18 @@ initAndAssertAda :: [Positive] -> Positive -> TestWallets
 initAndAssertAda initial expect =
   initAndAssertLovelace (map ada initial) (ada expect)
 
+-- | Initialize all the `TestWallets` with staking keys.
+withStakeKeys :: TestWallets -> TestWallets
+withStakeKeys = TestWallets . fmap (\wall -> wall {hasStakeKeys = True}) . unTestWallets
+
 -- | Initialize all the 'TestWallets' with the collateral utxo and
 --   adjust the 'twExpected' value accordingly.
 withCollateral :: TestWallets -> TestWallets
 withCollateral TestWallets {..} = TestWallets $ NonEmpty.map go unTestWallets
   where
     go :: TestWallet -> TestWallet
-    go TestWallet {..} =
-      TestWallet
+    go wall@TestWallet {..} =
+      wall
         { twInitDistribuition = fromInteger defCollateralSize : twInitDistribuition
         , twExpected =
             second (Value.unionWith (+) $ Ada.lovelaceValueOf defCollateralSize) <$> twExpected

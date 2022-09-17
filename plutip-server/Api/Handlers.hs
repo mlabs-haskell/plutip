@@ -21,7 +21,8 @@ import System.Directory (doesFileExist)
 import System.FilePath (replaceFileName)
 import Test.Plutip.Config (chainIndexPort, relayNodeLogs)
 import Test.Plutip.Internal.BotPlutusInterface.Setup (keysDir)
-import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet (signKey), addSomeWallet)
+import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet (payKeys), addSomeWallet)
+import Test.Plutip.Internal.BotPlutusInterface.Keys (KeyPair (sKey))
 import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)
 import Test.Plutip.Internal.Types (ClusterEnv (runningNode))
 import Test.Plutip.LocalCluster (waitSeconds)
@@ -92,7 +93,7 @@ startClusterHandler
         -- assumption is that node.config lies in the same directory as node.socket
         flip replaceFileName "node.config" . getNodeSocketFile
       getWalletPrivateKey :: BpiWallet -> PrivateKey
-      getWalletPrivateKey = Text.decodeUtf8 . Base16.encode . serialiseToCBOR . signKey
+      getWalletPrivateKey = Text.decodeUtf8 . Base16.encode . serialiseToCBOR . sKey . payKeys
       interpret = fmap (either ClusterStartupFailure id) . runExceptT
 
 stopClusterHandler :: StopClusterRequest -> AppM StopClusterResponse

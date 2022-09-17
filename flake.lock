@@ -71,17 +71,17 @@
         "typed-protocols": "typed-protocols"
       },
       "locked": {
-        "lastModified": 1663247724,
-        "narHash": "sha256-6r6yaZY41PyRMO8eyG5Ij6zWKajAD74Ph+/hFmyfp2A=",
+        "lastModified": 1663263872,
+        "narHash": "sha256-sJx7vpgHDDl/bG6Z2D3aW2McrRK8+7LZkNorMnrtIuo=",
         "owner": "zmrocze",
         "repo": "bot-plutus-interface",
-        "rev": "1d5fc0362aa03af547edc2c8831d3d7bdfb428c2",
+        "rev": "d36af0a3ac15c6c6ec611d2eea03f82d6471894a",
         "type": "github"
       },
       "original": {
         "owner": "zmrocze",
         "repo": "bot-plutus-interface",
-        "rev": "1d5fc0362aa03af547edc2c8831d3d7bdfb428c2",
+        "rev": "d36af0a3ac15c6c6ec611d2eea03f82d6471894a",
         "type": "github"
       }
     },

@@ -148,7 +148,7 @@ import Data.Row (Row)
 import Data.Tagged (Tagged (Tagged))
 import Data.Text qualified as Text
 import Ledger (PaymentPubKeyHash)
-import Ledger.Address (pubKeyHashAddress)
+import Ledger.Address (pubKeyHashAddress, Address)
 import Ledger.Value (Value)
 import Plutus.Contract (Contract, waitNSlots)
 import PlutusPrelude (render)
@@ -294,7 +294,7 @@ maybeAddValuesCheck ioRes tws =
 withContract ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
   TestContractConstraints w e a =>
-  ([PaymentPubKeyHash] -> Contract w s e a) ->
+  ([WalletKeys] -> Contract w s e a) ->
   TestRunner w e a
 withContract = withContractAs 0
 
@@ -306,7 +306,7 @@ withContractAs ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
   TestContractConstraints w e a =>
   Int ->
-  ([PaymentPubKeyHash] -> Contract w s e a) ->
+  ([Address] -> Contract w s e a) ->
   TestRunner w e a
 withContractAs walletIdx toContract = do
   (cEnv, wallets') <- ask

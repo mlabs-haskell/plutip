@@ -71,6 +71,7 @@ newtype TestWallets = TestWallets {unTestWallets :: NonEmpty TestWallet}
 data TestWallet = TestWallet
   { twInitDistribuition :: [Positive]
   , twExpected :: Maybe (ValueOrdering, Value)
+  , hasStakeKeys :: Bool
   }
 
 data ValueOrdering = VEq | VGt | VLt | VGEq | VLEq

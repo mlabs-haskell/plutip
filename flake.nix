@@ -11,7 +11,7 @@
       flake = false;
     };
     bot-plutus-interface.url =
-      "github:zmrocze/bot-plutus-interface/1d5fc0362aa03af547edc2c8831d3d7bdfb428c2";
+      "github:zmrocze/bot-plutus-interface/d36af0a3ac15c6c6ec611d2eea03f82d6471894a";
   };
 
   outputs =

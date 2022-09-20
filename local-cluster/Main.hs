@@ -23,9 +23,11 @@ import Test.Plutip.LocalCluster
   ( mkMainnetAddress,
     startCluster,
     stopCluster,
-    waitSeconds, walletPaymentPkh
+    waitSeconds,
+    walletPaymentPkh
   )
 import GHC.Natural (Natural)
+import Test.Plutip.Internal.BotPlutusInterface.Types (TestWallet(TestWallet))
 
 main :: IO ()
 main = do
@@ -66,7 +68,7 @@ main = do
 
     initWallets numWallets numUtxos amt dirWallets = do
       replicateM (max 0 numWallets) $
-        addSomeWalletDir (replicate numUtxos amt) dirWallets
+        addSomeWalletDir (TestWallet (replicate numUtxos amt) Nothing False) dirWallets
 
     printWallet (w, n) = do
       putStrLn $ "Wallet " ++ show n ++ " PKH: " ++ show (walletPaymentPkh w)

@@ -107,8 +107,6 @@ module Test.Plutip.Contract (
   withContract,
   withContractAs,
   -- Wallet initialisation
-  TestWallets (TestWallets, unTestWallets),
-  TestWallet (twInitDistribiution, twExpected),
   initAda,
   withCollateral,
   initAndAssertAda,
@@ -122,12 +120,13 @@ module Test.Plutip.Contract (
   initLovelaceAssertValueWith,
   -- Helpers
   walletPaymentPkh,
-  ValueOrdering (VEq, VGt, VLt, VGEq, VLEq),
   assertValues,
   assertExecution,
   assertExecutionWith,
   ada,
   onEnterpriseWallets,
+  TestWallets,
+  ValueOrdering (VEq, VGt, VLt, VGEq, VLEq),
 ) where
 
 import BotPlutusInterface.Types (
@@ -170,14 +169,16 @@ import Test.Plutip.Contract.Init (
 import Test.Plutip.Contract.Types (
   TestContract (TestContract),
   TestContractConstraints,
-  TestWallet (twExpected, twInitDistribiution),
-  TestWallets (TestWallets, unTestWallets),
-  ValueOrdering (VEq, VGEq, VGt, VLEq, VLt),
   WalletInfo (WalletInfo, ownAddress),
   makeWalletInfo,
  )
 import Test.Plutip.Contract.Values (assertValues, valueAt)
 import Test.Plutip.Internal.BotPlutusInterface.Run (runContract)
+import Test.Plutip.Internal.BotPlutusInterface.Types (
+  TestWallet (twExpected),
+  TestWallets (unTestWallets),
+  ValueOrdering (VEq, VGEq, VGt, VLEq, VLt),
+ )
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet, walletPaymentPkh)
 import Test.Plutip.Internal.Types (
   ClusterEnv,

@@ -22,6 +22,7 @@ import System.FilePath (replaceFileName)
 import Test.Plutip.Config (chainIndexPort, relayNodeLogs)
 import Test.Plutip.Internal.BotPlutusInterface.Keys (KeyPair (sKey))
 import Test.Plutip.Internal.BotPlutusInterface.Setup (keysDir)
+import Test.Plutip.Internal.BotPlutusInterface.Types (TestWallet (TestWallet))
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet (payKeys), addSomeWallet)
 import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)
 import Test.Plutip.Internal.Types (ClusterEnv (runningNode))
@@ -85,7 +86,7 @@ startClusterHandler
         env <- ask
         wallets <- do
           for keysToGenerate $ \lovelaceAmounts -> do
-            addSomeWallet (fromInteger . unLovelace <$> lovelaceAmounts)
+            addSomeWallet (TestWallet (fromInteger . unLovelace <$> lovelaceAmounts) Nothing False)
         waitSeconds 2 -- wait for transactions to submit
         pure (env, wallets)
       getNodeSocketFile (runningNode -> RunningNode conn _ _ _) = nodeSocketFile conn

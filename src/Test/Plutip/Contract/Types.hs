@@ -3,10 +3,6 @@
 module Test.Plutip.Contract.Types (
   TestContractConstraints,
   TestContract (..),
-  TestWallets (TestWallets, unTestWallets),
-  TestWallet (..),
-  compareValuesWith,
-  ValueOrdering (..),
   WalletInfo (..),
   makeWalletInfo,
 ) where
@@ -19,8 +15,6 @@ import Data.List.NonEmpty (NonEmpty)
 import Data.Tagged (Tagged (Tagged))
 import Ledger (Address, PaymentPubKeyHash, StakePubKeyHash, pubKeyHashAddress)
 import Ledger.Value (Value)
-import Ledger.Value qualified as Value
-import Numeric.Positive (Positive)
 import Plutus.Contract (AsContractError)
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   BpiWallet,
@@ -72,25 +66,6 @@ instance
         (pCheck predicate result)
 
   testOptions = Tagged []
-
-newtype TestWallets = TestWallets {unTestWallets :: NonEmpty TestWallet}
-  deriving newtype (Semigroup)
-
-data TestWallet = TestWallet
-  { twInitDistribiution :: [Positive]
-  , twExpected :: Maybe (ValueOrdering, Value)
-  , hasStakeKeys :: Bool
-  }
-
-data ValueOrdering = VEq | VGt | VLt | VGEq | VLEq
-
--- | Value doesn't have an Ord instance, so we cannot use `compare`
-compareValuesWith :: ValueOrdering -> Value -> Value -> Bool
-compareValuesWith VEq = (==)
-compareValuesWith VGt = Value.gt
-compareValuesWith VLt = Value.lt
-compareValuesWith VGEq = Value.geq
-compareValuesWith VLEq = Value.leq
 
 data WalletInfo = WalletInfo
   { ownAddress :: Address

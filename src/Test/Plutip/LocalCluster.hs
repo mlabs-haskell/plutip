@@ -20,7 +20,8 @@ import Data.Default (def)
 import Data.List.NonEmpty (NonEmpty)
 import Numeric.Natural (Natural)
 import Test.Plutip.Config (PlutipConfig)
-import Test.Plutip.Contract (TestWallet (twInitDistribiution), TestWallets (unTestWallets), ada)
+import Test.Plutip.Contract (ada)
+import Test.Plutip.Internal.BotPlutusInterface.Types (TestWallets (unTestWallets))
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   BpiWallet,
   addSomeWallet,
@@ -90,7 +91,7 @@ withConfiguredCluster conf name testCases =
 
       wallets <-
         traverse
-          (traverse addSomeWallet . fmap twInitDistribiution . unTestWallets . fst)
+          (traverse addSomeWallet . unTestWallets . fst)
           testCases
       -- had to bump waiting period here coz of chain-index slowdown,
       -- see https://github.com/mlabs-haskell/plutip/issues/120

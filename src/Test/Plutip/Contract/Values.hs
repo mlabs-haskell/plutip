@@ -24,7 +24,7 @@ import Ledger.Value qualified as Value
 import Plutus.Contract (AsContractError, Contract, utxosAt)
 import PlutusTx.Builtins (fromBuiltin)
 
-import Test.Plutip.Contract.Types (
+import Test.Plutip.Internal.BotPlutusInterface.Types (
   ValueOrdering (VEq, VGEq, VGt, VLEq, VLt),
   compareValuesWith,
  )

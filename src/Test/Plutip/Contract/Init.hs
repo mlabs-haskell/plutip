@@ -25,12 +25,12 @@ import Ledger.Value qualified as Value
 
 import Numeric.Positive (Positive)
 
-import Test.Plutip.Contract.Types (
+import Test.Plutip.Internal.BotPlutusInterface.Run (defCollateralSize)
+import Test.Plutip.Internal.BotPlutusInterface.Types (
   TestWallet (TestWallet, hasStakeKeys, twExpected, twInitDistribiution),
   TestWallets (TestWallets, unTestWallets),
   ValueOrdering (VEq),
  )
-import Test.Plutip.Internal.BotPlutusInterface.Run (defCollateralSize)
 import Test.Plutip.Tools (ada)
 
 -- | Create a wallet with the given amounts of lovelace.

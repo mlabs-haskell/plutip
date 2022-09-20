@@ -15,8 +15,8 @@ module Test.Plutip.Internal.BotPlutusInterface.Keys (
 
 import Cardano.Api (writeFileTextEnvelope)
 import Cardano.Api qualified as CAPI
+import Data.Text qualified as Text
 import System.FilePath ((<.>), (</>))
-import qualified Data.Text as Text
 
 data KeyPair = KeyPair
   { sKey :: CAPI.SigningKey CAPI.PaymentKey
@@ -85,5 +85,5 @@ stakingSigningKeyFilePathInDir dir vkh = keyFilePathInDir dir "staking-signing-k
 stakingVerificationKeyFilePathInDir :: FilePath -> CAPI.Hash CAPI.StakeKey -> FilePath
 stakingVerificationKeyFilePathInDir dir vkh = keyFilePathInDir dir "staking-verification-key" vkh "vkey"
 
-keyFilePathInDir :: forall a . CAPI.SerialiseAsRawBytes (CAPI.Hash a) => FilePath -> String -> CAPI.Hash a -> String -> FilePath
+keyFilePathInDir :: forall a. CAPI.SerialiseAsRawBytes (CAPI.Hash a) => FilePath -> String -> CAPI.Hash a -> String -> FilePath
 keyFilePathInDir dir pref h ext = dir </> pref <> "-" <> Text.unpack (CAPI.serialiseToRawBytesHexText h) <.> ext

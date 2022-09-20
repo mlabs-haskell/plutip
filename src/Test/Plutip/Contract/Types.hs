@@ -7,6 +7,8 @@ module Test.Plutip.Contract.Types (
   TestWallet (..),
   compareValuesWith,
   ValueOrdering (..),
+  WalletInfo (..),
+  makeWalletInfo,
 ) where
 
 import Data.Aeson (ToJSON)
@@ -15,10 +17,16 @@ import Data.Dynamic (Typeable)
 import Data.Kind (Type)
 import Data.List.NonEmpty (NonEmpty)
 import Data.Tagged (Tagged (Tagged))
+import Ledger (Address, PaymentPubKeyHash, StakePubKeyHash, pubKeyHashAddress)
 import Ledger.Value (Value)
 import Ledger.Value qualified as Value
 import Numeric.Positive (Positive)
 import Plutus.Contract (AsContractError)
+import Test.Plutip.Internal.BotPlutusInterface.Wallet (
+  BpiWallet,
+  walletPaymentPkh,
+  walletStakePkh,
+ )
 import Test.Plutip.Internal.Types (
   ExecutionResult,
  )
@@ -69,7 +77,7 @@ newtype TestWallets = TestWallets {unTestWallets :: NonEmpty TestWallet}
   deriving newtype (Semigroup)
 
 data TestWallet = TestWallet
-  { twInitDistribuition :: [Positive]
+  { twInitDistribiution :: [Positive]
   , twExpected :: Maybe (ValueOrdering, Value)
   , hasStakeKeys :: Bool
   }
@@ -83,3 +91,16 @@ compareValuesWith VGt = Value.gt
 compareValuesWith VLt = Value.lt
 compareValuesWith VGEq = Value.geq
 compareValuesWith VLEq = Value.leq
+
+data WalletInfo = WalletInfo
+  { ownAddress :: Address
+  , ownPaymentPubKeyHash :: PaymentPubKeyHash
+  , ownStakePubKeyHash :: Maybe StakePubKeyHash
+  }
+
+makeWalletInfo :: BpiWallet -> WalletInfo
+makeWalletInfo wall = WalletInfo addr pkh spkh
+  where
+    addr = pubKeyHashAddress pkh spkh
+    pkh = walletPaymentPkh wall
+    spkh = walletStakePkh wall

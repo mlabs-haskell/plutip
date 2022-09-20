@@ -5,7 +5,7 @@ module Test.Plutip.LocalCluster (
   waitSeconds,
   mkMainnetAddress,
   cardanoMainnetAddress,
-  ledgerPaymentPkh,
+  walletPaymentPkh,
   withCluster,
   withConfiguredCluster,
   startCluster,
@@ -20,13 +20,13 @@ import Data.Default (def)
 import Data.List.NonEmpty (NonEmpty)
 import Numeric.Natural (Natural)
 import Test.Plutip.Config (PlutipConfig)
-import Test.Plutip.Contract (TestWallet (twInitDistribuition), TestWallets (unTestWallets), ada)
+import Test.Plutip.Contract (TestWallet (twInitDistribiution), TestWallets (unTestWallets), ada)
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   BpiWallet,
   addSomeWallet,
   cardanoMainnetAddress,
-  ledgerPaymentPkh,
   mkMainnetAddress,
+  walletPaymentPkh,
  )
 import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)
 import Test.Plutip.Internal.Types (ClusterEnv)
@@ -90,7 +90,7 @@ withConfiguredCluster conf name testCases =
 
       wallets <-
         traverse
-          (traverse addSomeWallet . fmap twInitDistribuition . unTestWallets . fst)
+          (traverse addSomeWallet . fmap twInitDistribiution . unTestWallets . fst)
           testCases
       -- had to bump waiting period here coz of chain-index slowdown,
       -- see https://github.com/mlabs-haskell/plutip/issues/120

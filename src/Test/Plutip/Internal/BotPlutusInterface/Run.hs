@@ -57,21 +57,18 @@ import Data.Kind (Type)
 import Data.Row (Row)
 import Data.Text qualified as Text
 import Data.UUID.V4 qualified as UUID
+import Ledger (unPaymentPubKeyHash)
 import Plutus.Contract (Contract)
 import Plutus.PAB.Core.ContractInstance.STM (Activity (Active))
 import Test.Plutip.Config (PlutipConfig (budgetMultiplier))
+import Test.Plutip.Contract.Types (WalletInfo (ownPaymentPubKeyHash, ownStakePubKeyHash))
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BIS
-import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet (walletPkh, stakeKeys))
 import Test.Plutip.Internal.Types (
   ClusterEnv (chainIndexUrl, networkId, plutipConf),
   ExecutionResult (ExecutionResult),
   FailureReason (CaughtException, ContractExecutionError),
  )
 import Wallet.Types (ContractInstanceId (ContractInstanceId))
-import Test.Plutip.Internal.BotPlutusInterface.Keys (StakeKeyPair(sVKey))
-import qualified Cardano.Api as CAPI
-import qualified PlutusTx.Builtins.Class as PlutusTx
-import Ledger (StakePubKeyHash(StakePubKeyHash), PubKeyHash (PubKeyHash))
 
 -- | default collateral size that's to be used as collateral.
 defCollateralSize :: Integer
@@ -81,7 +78,7 @@ runContract_ ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (m :: Type -> Type).
   (ToJSON w, Monoid w, MonadIO m) =>
   ClusterEnv ->
-  BpiWallet ->
+  WalletInfo ->
   Contract w s e a ->
   m ()
 runContract_ e w c = void $ runContract e w c
@@ -89,7 +86,7 @@ runContract_ e w c = void $ runContract e w c
 runContract ::
   (ToJSON w, Monoid w, MonadIO m) =>
   ClusterEnv ->
-  BpiWallet ->
+  WalletInfo ->
   Contract w s e a ->
   m (ExecutionResult w e a)
 runContract = runContractWithLogLvl $ Error [AnyLog]
@@ -104,7 +101,7 @@ runContractWithLogLvl ::
   (ToJSON w, Monoid w, MonadIO m) =>
   Bpi.LogLevel ->
   ClusterEnv ->
-  BpiWallet ->
+  WalletInfo ->
   Contract w s e a ->
   m (ExecutionResult w e a)
 runContractWithLogLvl logLvl cEnv bpiWallet contract = do
@@ -137,8 +134,8 @@ runContractWithLogLvl logLvl cEnv bpiWallet contract = do
         , pcDryRun = False
         , pcProtocolParamsFile = Text.pack $ BIS.pParamsFile cEnv
         , pcLogLevel = logLvl
-        , pcOwnPubKeyHash = walletPkh bpiWallet
-        , pcOwnStakePubKeyHash = StakePubKeyHash . PubKeyHash . PlutusTx.toBuiltin . CAPI.serialiseToRawBytes . CAPI.verificationKeyHash . sVKey <$> stakeKeys bpiWallet
+        , pcOwnPubKeyHash = unPaymentPubKeyHash $ ownPaymentPubKeyHash bpiWallet
+        , pcOwnStakePubKeyHash = ownStakePubKeyHash bpiWallet
         , pcTipPollingInterval = 1_000_000
         , pcPort = 9080
         , pcEnableTxEndpoint = False

@@ -17,9 +17,9 @@ import System.Directory (createDirectoryIfMissing, doesDirectoryExist)
 import System.Environment (setEnv)
 import System.FilePath ((</>))
 import Test.Plutip.Config (PlutipConfig (extraSigners))
+import Test.Plutip.Internal.BotPlutusInterface.Keys (signingKeyFilePathInDir)
 import Test.Plutip.Internal.Types (ClusterEnv (plutipConf, supportDir), nodeSocket)
 import Test.Plutip.Tools.CardanoApi (queryProtocolParams)
-import Test.Plutip.Internal.BotPlutusInterface.Keys (signingKeyFilePathInDir)
 
 workDir' :: FilePath
 workDir' = "bot-plutus-interface"

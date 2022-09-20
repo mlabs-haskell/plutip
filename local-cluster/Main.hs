@@ -17,13 +17,13 @@ import Test.Plutip.Config
   ( PlutipConfig (clusterWorkingDir),
     WorkingDirectory (Fixed, Temporary),
   )
-import Test.Plutip.Internal.BotPlutusInterface.Wallet (addSomeWalletDir, walletPkh)
+import Test.Plutip.Internal.BotPlutusInterface.Wallet (addSomeWalletDir)
 import Test.Plutip.Internal.Types (nodeSocket)
 import Test.Plutip.LocalCluster
   ( mkMainnetAddress,
     startCluster,
     stopCluster,
-    waitSeconds,
+    waitSeconds, walletPaymentPkh
   )
 import GHC.Natural (Natural)
 
@@ -69,7 +69,7 @@ main = do
         addSomeWalletDir (replicate numUtxos amt) dirWallets
 
     printWallet (w, n) = do
-      putStrLn $ "Wallet " ++ show n ++ " PKH: " ++ show (walletPkh w)
+      putStrLn $ "Wallet " ++ show n ++ " PKH: " ++ show (walletPaymentPkh w)
       putStrLn $ "Wallet " ++ show n ++ " mainnet address: " ++ show (mkMainnetAddress w)
 
     toAda = (* 1_000_000)

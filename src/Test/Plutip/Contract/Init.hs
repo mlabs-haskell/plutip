@@ -26,7 +26,7 @@ import Ledger.Value qualified as Value
 import Numeric.Positive (Positive)
 
 import Test.Plutip.Contract.Types (
-  TestWallet (TestWallet, twExpected, twInitDistribuition, hasStakeKeys),
+  TestWallet (TestWallet, hasStakeKeys, twExpected, twInitDistribiution),
   TestWallets (TestWallets, unTestWallets),
   ValueOrdering (VEq),
  )
@@ -118,7 +118,7 @@ withCollateral TestWallets {..} = TestWallets $ NonEmpty.map go unTestWallets
     go :: TestWallet -> TestWallet
     go wall@TestWallet {..} =
       wall
-        { twInitDistribuition = fromInteger defCollateralSize : twInitDistribuition
+        { twInitDistribiution = fromInteger defCollateralSize : twInitDistribiution
         , twExpected =
             second (Value.unionWith (+) $ Ada.lovelaceValueOf defCollateralSize) <$> twExpected
         }

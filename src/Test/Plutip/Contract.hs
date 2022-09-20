@@ -121,7 +121,7 @@ module Test.Plutip.Contract (
   initLovelaceAssertValue,
   initLovelaceAssertValueWith,
   -- Helpers
-  ledgerPaymentPkh,
+  walletPaymentPkh,
   ValueOrdering (VEq, VGt, VLt, VGEq, VLEq),
   assertValues,
   assertExecution,
@@ -147,8 +147,7 @@ import Data.Maybe (isJust)
 import Data.Row (Row)
 import Data.Tagged (Tagged (Tagged))
 import Data.Text qualified as Text
-import Ledger (PaymentPubKeyHash)
-import Ledger.Address (pubKeyHashAddress, Address)
+import Ledger (Address)
 import Ledger.Value (Value)
 import Plutus.Contract (Contract, waitNSlots)
 import PlutusPrelude (render)
@@ -169,13 +168,15 @@ import Test.Plutip.Contract.Init (
 import Test.Plutip.Contract.Types (
   TestContract (TestContract),
   TestContractConstraints,
-  TestWallet (twExpected, twInitDistribuition),
+  TestWallet (twExpected, twInitDistribiution),
   TestWallets (TestWallets, unTestWallets),
   ValueOrdering (VEq, VGEq, VGt, VLEq, VLt),
+  WalletInfo (ownAddress),
+  makeWalletInfo,
  )
 import Test.Plutip.Contract.Values (assertValues, valueAt)
 import Test.Plutip.Internal.BotPlutusInterface.Run (runContract)
-import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet, ledgerPaymentPkh)
+import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet, walletPaymentPkh)
 import Test.Plutip.Internal.Types (
   ClusterEnv,
   ExecutionResult (contractLogs, outcome),
@@ -294,7 +295,7 @@ maybeAddValuesCheck ioRes tws =
 withContract ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
   TestContractConstraints w e a =>
-  ([WalletKeys] -> Contract w s e a) ->
+  ([WalletInfo] -> Contract w s e a) ->
   TestRunner w e a
 withContract = withContractAs 0
 
@@ -306,13 +307,14 @@ withContractAs ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
   TestContractConstraints w e a =>
   Int ->
-  ([Address] -> Contract w s e a) ->
+  ([WalletInfo] -> Contract w s e a) ->
   TestRunner w e a
 withContractAs walletIdx toContract = do
   (cEnv, wallets') <- ask
-  let -- pick wallet for Contract's "own PKH", other wallets PKHs will be provided
+  let walletInfs = fmap makeWalletInfo wallets'
+      -- pick wallet for Contract's "own PKH", other wallets PKHs will be provided
       -- to the user in `withContractAs`
-      (ownWallet, otherWallets) = separateWallets walletIdx wallets'
+      (ownWallet, otherWallets) = separateWallets walletIdx walletInfs
 
       {- these are `PaymentPubKeyHash`es of all wallets used in test case
       they stay in list is same order as `TestWallets` defined in test case
@@ -320,22 +322,17 @@ withContractAs walletIdx toContract = do
       it is important to preserve this order for Values check with `assertValues`
       as there is no other mechanism atm to match `TestWallet` with collected `Value`
       -}
-      collectValuesPkhs :: NonEmpty PaymentPubKeyHash
-      collectValuesPkhs = fmap ledgerPaymentPkh wallets'
-
-      -- wallet `PaymentPubKeyHash`es that will be available in
-      -- `withContract` and `withContractAs`
-      otherWalletsPkhs :: [PaymentPubKeyHash]
-      otherWalletsPkhs = fmap ledgerPaymentPkh otherWallets
+      collectValuesAddr :: NonEmpty Address
+      collectValuesAddr = fmap ownAddress walletInfs
 
       -- contract that gets all the values present at the test wallets.
       valuesAtWallet :: Contract w s e (NonEmpty Value)
       valuesAtWallet =
         void (waitNSlots 1)
-          >> traverse (valueAt . (`pubKeyHashAddress` Nothing)) collectValuesPkhs
+          >> traverse valueAt collectValuesAddr
 
   -- run the test contract
-  execRes <- liftIO $ runContract cEnv ownWallet (toContract otherWalletsPkhs)
+  execRes <- liftIO $ runContract cEnv ownWallet (toContract otherWallets)
 
   -- get all the values present at the test wallets after the user given contracts has been executed.
   execValues <- liftIO $ runContract cEnv ownWallet valuesAtWallet

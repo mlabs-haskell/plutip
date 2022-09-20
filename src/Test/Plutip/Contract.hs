@@ -108,7 +108,7 @@ module Test.Plutip.Contract (
   withContractAs,
   -- Wallet initialisation
   TestWallets (TestWallets, unTestWallets),
-  TestWallet (twInitDistribuition, twExpected),
+  TestWallet (twInitDistribiution, twExpected),
   initAda,
   withCollateral,
   initAndAssertAda,
@@ -127,6 +127,7 @@ module Test.Plutip.Contract (
   assertExecution,
   assertExecutionWith,
   ada,
+  onEnterpriseWallets,
 ) where
 
 import BotPlutusInterface.Types (
@@ -138,6 +139,7 @@ import BotPlutusInterface.Types (
  )
 
 import Control.Arrow (left)
+import Control.Lens.Prism (_Right)
 import Control.Monad.Reader (MonadIO (liftIO), MonadReader (ask), ReaderT, runReaderT, void)
 import Data.Bool (bool)
 import Data.Kind (Type)
@@ -147,9 +149,9 @@ import Data.Maybe (isJust)
 import Data.Row (Row)
 import Data.Tagged (Tagged (Tagged))
 import Data.Text qualified as Text
-import Ledger (Address)
+import Ledger (Address, PaymentPubKeyHash)
 import Ledger.Value (Value)
-import Plutus.Contract (Contract, waitNSlots)
+import Plutus.Contract (AsContractError (_ContractError), Contract, mapError, throwError, waitNSlots)
 import PlutusPrelude (render)
 import Prettyprinter (Doc, Pretty (pretty), vcat, (<+>))
 import Test.Plutip.Contract.Init (
@@ -171,7 +173,7 @@ import Test.Plutip.Contract.Types (
   TestWallet (twExpected, twInitDistribiution),
   TestWallets (TestWallets, unTestWallets),
   ValueOrdering (VEq, VGEq, VGt, VLEq, VLt),
-  WalletInfo (ownAddress),
+  WalletInfo (WalletInfo, ownAddress),
   makeWalletInfo,
  )
 import Test.Plutip.Contract.Values (assertValues, valueAt)
@@ -345,6 +347,28 @@ withContractAs walletIdx toContract = do
     separateWallets i xss
       | (xs, y : ys) <- NonEmpty.splitAt i xss = (y, xs <> ys)
       | otherwise = error $ "Should fail: bad wallet index for own wallet: " <> show i
+
+data WalletTypeError
+  = -- | Expected base address wallet, got one with staking keys.
+    ExpectedPubKeyHashOnlyWallet
+
+instance AsContractError e => AsContractError (Either WalletTypeError e) where
+  _ContractError = _Right . _ContractError
+
+instance Show WalletTypeError where
+  show ExpectedPubKeyHashOnlyWallet = "Expected base address wallet, got one with staking keys."
+
+onEnterpriseWallets ::
+  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
+  ([PaymentPubKeyHash] -> Contract w s e a) ->
+  ([WalletInfo] -> Contract w s (Either WalletTypeError e) a)
+onEnterpriseWallets f wallets =
+  maybe (throwError (Left ExpectedPubKeyHashOnlyWallet)) (mapError Right) $
+    f <$> traverse extractPkh wallets
+  where
+    extractPkh = \case
+      (WalletInfo _ pkh Nothing) -> Just pkh
+      _ -> Nothing
 
 newtype StatsReport w e a = StatsReport (IO (ExecutionResult w e (a, NonEmpty Value)))
 

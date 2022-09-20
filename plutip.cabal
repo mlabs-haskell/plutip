@@ -48,6 +48,7 @@ common common-imports
     , http-client
     , http-types
     , iohk-monitoring
+    , lens
     , memory
     , mtl
     , openapi3
@@ -175,7 +176,6 @@ test-suite plutip-tests
   ghc-options:        -Wall -threaded -rtsopts
   build-depends:
     , base
-    , lens
     , plutip
     , tasty
     , tasty-expected-failure

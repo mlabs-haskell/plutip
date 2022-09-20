@@ -37,6 +37,7 @@ import Test.Plutip.Contract (
   initAndAssertAdaWith,
   initAndAssertLovelace,
   initLovelace,
+  onEnterpriseWallets,
   withCollateral,
   withContract,
   withContractAs,
@@ -103,13 +104,13 @@ test =
       , assertExecution
           "Pay negative amount"
           (initAda [100])
-          (withContract $ \[pkh1] -> payTo pkh1 (-10_000_000))
+          (withContract . onEnterpriseWallets $ \[pkh1] -> payTo pkh1 (-10_000_000))
           [shouldFail]
       , -- Tests with wallet's Value assertions
         assertExecution
           "Pay from wallet to wallet"
           (initAda [100] <> initAndAssertAda [100, 13] 123)
-          (withContract $ \[pkh1] -> payTo pkh1 10_000_000)
+          (withContract . onEnterpriseWallets $ \[pkh1] -> payTo pkh1 10_000_000)
           [shouldSucceed]
       , assertExecution
           "Two contracts one after another"
@@ -118,9 +119,9 @@ test =
           )
           ( do
               void $ -- run something prior to the contract which result will be checked
-                withContract $
+                withContract . onEnterpriseWallets $
                   \[pkh1] -> payTo pkh1 10_000_000
-              withContractAs 1 $ -- run contract which result will be checked
+              withContractAs 1 . onEnterpriseWallets $ -- run contract which result will be checked
                 \[pkh1] -> payTo pkh1 10_000_000
           )
           [shouldSucceed]
@@ -245,7 +246,7 @@ testValueAssertionsOrderCorrectness =
                 <> initAndAssertLovelace [wallet2] wallet2After
           )
           ( do
-              withContract $ \[w1pkh, w2pkh] -> do
+              withContract . onEnterpriseWallets $ \[w1pkh, w2pkh] -> do
                 _ <- payTo w1pkh (toInteger payTo1Amt)
                 _ <- waitNSlots 2
                 payTo w2pkh (toInteger payTo2Amt)
@@ -284,12 +285,12 @@ testValueAssertionsOrderCorrectness =
           )
           ( do
               void $
-                withContractAs 1 $ \[w0pkh, w2pkh] -> do
+                withContractAs 1 . onEnterpriseWallets $ \[w0pkh, w2pkh] -> do
                   _ <- payTo w0pkh (toInteger payTo0Amt)
                   _ <- waitNSlots 2
                   payTo w2pkh (toInteger payTo2Amt)
 
-              withContractAs 2 $ \[_, w1pkh] -> do
+              withContractAs 2 . onEnterpriseWallets $ \[_, w1pkh] -> do
                 payTo w1pkh (toInteger payTo1Amt)
           )
           [shouldSucceed]

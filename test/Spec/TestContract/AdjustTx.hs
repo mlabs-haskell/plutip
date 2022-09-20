@@ -29,6 +29,7 @@ import Test.Plutip.Contract (
   TestWallets,
   assertExecution,
   initAda,
+  onEnterpriseWallets,
   withContract,
  )
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet)
@@ -76,7 +77,7 @@ runAdjustTest =
   assertExecution
     "Adjust Unbalanced Tx Contract"
     (initAda [1000] <> initAda [1000])
-    (withContract adjustTx')
+    (withContract $ onEnterpriseWallets adjustTx')
     [ shouldSucceed
     , yieldSatisfies
         "All UTxOs have minimum(?) ADA."

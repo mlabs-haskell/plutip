@@ -50,4 +50,3 @@ ledgerToCardanoMainnet = Ledger.toCardanoAddressInEra CAPI.Mainnet
 ledgerToCardanoMainnet' :: Address.Address -> Either Ledger.ToCardanoError Text
 ledgerToCardanoMainnet' addr =
   CAPI.serialiseAddress <$> Ledger.toCardanoAddressInEra CAPI.Mainnet addr
-

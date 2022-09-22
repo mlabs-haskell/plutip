@@ -124,10 +124,10 @@ module Test.Plutip.Contract (
   assertExecution,
   assertExecutionWith,
   ada,
-  onEnterpriseWallets,
+  usingEnterpriseWallets,
   TestWallets,
   ValueOrdering (VEq, VGt, VLt, VGEq, VLEq),
-) where
+usingLookups) where
 
 import BotPlutusInterface.Types (
   LogContext,
@@ -148,7 +148,7 @@ import Data.Maybe (isJust)
 import Data.Row (Row)
 import Data.Tagged (Tagged (Tagged))
 import Data.Text qualified as Text
-import Ledger (Address, PaymentPubKeyHash)
+import Ledger (Address, PaymentPubKeyHash, StakePubKeyHash)
 import Ledger.Value (Value)
 import Plutus.Contract (AsContractError (_ContractError), Contract, mapError, throwError, waitNSlots)
 import PlutusPrelude (render)
@@ -192,6 +192,7 @@ import Test.Plutip.Tools.Format (fmtTxBudgets)
 import Test.Tasty (testGroup, withResource)
 import Test.Tasty.HUnit (assertFailure, testCase)
 import Test.Tasty.Providers (IsTest (run, testOptions), TestTree, singleTest, testPassed)
+import qualified Data.Map.Strict as Map
 
 type TestRunner (w :: Type) (e :: Type) (a :: Type) =
   ReaderT (ClusterEnv, NonEmpty BpiWallet) IO (ExecutionResult w e (a, NonEmpty Value))
@@ -350,21 +351,27 @@ withContractAs walletIdx toContract = do
       | otherwise = error $ "Should fail: bad wallet index for own wallet: " <> show i
 
 data WalletTypeError
-  = -- | Expected base address wallet, got one with staking keys.
-    ExpectedPubKeyHashOnlyWallet
+  = -- | Expected enterprise address wallet, got one with staking keys.
+    ExpectedEnterpriseWallet
+    -- | Expected base address wallet, got one without staking keys.
+  | ExpectedWalletWithStakeKeys
+    -- | Index outside of range
+  | BadWalletIndex
 
 instance AsContractError e => AsContractError (Either WalletTypeError e) where
   _ContractError = _Right . _ContractError
 
 instance Show WalletTypeError where
-  show ExpectedPubKeyHashOnlyWallet = "Expected base address wallet, got one with staking keys."
+  show ExpectedEnterpriseWallet = "Expected base address wallet, got one with staking keys."
+  show ExpectedWalletWithStakeKeys = "Expected base address wallet, got one with staking keys."
+  show BadWalletIndex = "Index outside of range."
 
-onEnterpriseWallets ::
+usingEnterpriseWallets ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
   ([PaymentPubKeyHash] -> Contract w s e a) ->
   ([WalletInfo] -> Contract w s (Either WalletTypeError e) a)
-onEnterpriseWallets f wallets =
-  maybe (throwError (Left ExpectedPubKeyHashOnlyWallet)) (mapError Right) $
+usingEnterpriseWallets f wallets =
+  maybe (throwError (Left ExpectedEnterpriseWallet)) (mapError Right) $
     f <$> traverse extractPkh wallets
   where
     extractPkh = \case

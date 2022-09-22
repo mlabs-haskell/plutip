@@ -378,6 +378,34 @@ usingEnterpriseWallets f wallets =
       (WalletInfo _ pkh Nothing) -> Just pkh
       _ -> Nothing
 
+data WalletLookups e = WalletLookups {
+  lookupEnterpriseWallet :: forall w s . Int -> Contract w s (Either WalletTypeError e) PaymentPubKeyHash,
+  lookupStakeWallet :: forall w s . Int -> Contract w s (Either WalletTypeError e) (PaymentPubKeyHash, StakePubKeyHash),
+  lookupAddress :: forall w s . Int -> Contract w s (Either WalletTypeError e) Address
+}
+
+usingLookups ::
+  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
+  (WalletLookups e -> Contract w s (Either WalletTypeError e) a) ->
+  ([WalletInfo] -> Contract w s (Either WalletTypeError e) a)
+usingLookups f walls = 
+  let m = Map.fromAscList $ zip [0..] walls
+    in f $ WalletLookups {
+      lookupEnterpriseWallet = (\case
+        Nothing -> throwError (Left BadWalletIndex)
+        Just (WalletInfo _ pkh Nothing) -> pure pkh
+        Just (WalletInfo _ _ (Just _)) -> throwError (Left ExpectedEnterpriseWallet))
+        . (`Map.lookup` m),
+      lookupStakeWallet = (\case
+        Nothing -> throwError (Left BadWalletIndex)
+        Just (WalletInfo _ _ Nothing) -> throwError (Left ExpectedWalletWithStakeKeys)
+        Just (WalletInfo _ pkh (Just spkh)) -> pure (pkh, spkh))
+        . (`Map.lookup` m),
+      lookupAddress = 
+        maybe (throwError (Left BadWalletIndex)) (pure . ownAddress) 
+        . (`Map.lookup` m)
+    }
+
 newtype StatsReport w e a = StatsReport (IO (ExecutionResult w e (a, NonEmpty Value)))
 
 instance

@@ -1,11 +1,13 @@
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE GADTs #-}
 
 module Test.Plutip.Contract.Types (
   TestContractConstraints,
   TestContract (..),
   WalletInfo (..),
-  makeWalletInfo,
-) where
+  WalletType(..),
+  WalletTag(..),
+WalletLookups, lookupAddress, lookupWallet, ownPaymentPubKeyHash, ownStakePubKeyHash, ownAddress) where
 
 import Data.Aeson (ToJSON)
 import Data.Bool (bool)
@@ -15,7 +17,7 @@ import Data.List.NonEmpty (NonEmpty)
 import Data.Tagged (Tagged (Tagged))
 import Ledger (Address, PaymentPubKeyHash, StakePubKeyHash, pubKeyHashAddress)
 import Ledger.Value (Value)
-import Plutus.Contract (AsContractError)
+import Plutus.Contract (AsContractError, Contract)
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   BpiWallet,
   walletPaymentPkh,
@@ -26,6 +28,9 @@ import Test.Plutip.Internal.Types (
  )
 import Test.Plutip.Predicate (Predicate, debugInfo, pCheck)
 import Test.Tasty.Providers (IsTest (run, testOptions), testFailed, testPassed)
+import Data.Row (Row)
+import Plutus.Contract.Types (AsContractError(_ContractError))
+import Control.Lens.Prism (_Right)
 
 type TestContractConstraints (w :: Type) (e :: Type) (a :: Type) =
   ( ToJSON w
@@ -67,15 +72,51 @@ instance
 
   testOptions = Tagged []
 
-data WalletInfo = WalletInfo
-  { ownAddress :: Address
-  , ownPaymentPubKeyHash :: PaymentPubKeyHash
-  , ownStakePubKeyHash :: Maybe StakePubKeyHash
-  }
+data WalletTypeError
+  = -- | Expected enterprise address wallet, got one with staking keys.
+    ExpectedEnterpriseWallet
+    -- | Expected base address wallet, got one without staking keys.
+  | ExpectedWalletWithStakeKeys
+    -- | Index outside of range
+  | BadWalletIndex
 
-makeWalletInfo :: BpiWallet -> WalletInfo
-makeWalletInfo wall = WalletInfo addr pkh spkh
-  where
-    addr = pubKeyHashAddress pkh spkh
-    pkh = walletPaymentPkh wall
-    spkh = walletStakePkh wall
+instance AsContractError e => AsContractError (Either WalletTypeError e) where
+  _ContractError = _Right . _ContractError
+
+instance Show WalletTypeError where
+  show ExpectedEnterpriseWallet = "Expected base address wallet, got one with staking keys."
+  show ExpectedWalletWithStakeKeys = "Expected base address wallet, got one with staking keys."
+  show BadWalletIndex = "Index outside of range."
+
+data WalletInfo t where
+  WithStakeKeysInfo :: PaymentPubKeyHash -> StakePubKeyHash -> WalletInfo 'WithStakeKeys
+  EnterpriseInfo :: PaymentPubKeyHash -> WalletInfo 'Enterprise
+
+ownPaymentPubKeyHash :: WalletInfo t -> PaymentPubKeyHash
+ownPaymentPubKeyHash = \case 
+  WithStakeKeysInfo pkh _ -> pkh
+  EnterpriseInfo pkh -> pkh
+
+ownStakePubKeyHash :: WalletInfo t -> Maybe StakePubKeyHash
+ownStakePubKeyHash = \case
+  WithStakeKeysInfo _ spkh -> Just spkh
+  EnterpriseInfo _ -> Nothing
+
+ownAddress :: WalletInfo t -> Address 
+ownAddress w = pubKeyHashAddress (ownPaymentPubKeyHash w) (ownStakePubKeyHash w)
+
+data WalletInfo' = forall t . WalletInfo' { getWalletInfo :: WalletInfo t}
+
+data WalletLookups k = WalletLookups {
+  lookupWallet :: 
+    forall (w :: Type) (s :: Row Type) (e :: Type) (t :: WalletType) .
+    MonadError (Either WalletTypeError e) m =>
+    WalletTag t k
+    -> m (WalletInfo t)
+  , 
+  lookupAddress ::
+    forall (w :: Type) (s :: Row Type) (e :: Type) (t :: Type) . 
+    MonadError (Either WalletTypeError e) m =>
+    k
+    -> m (Either WalletTypeError e) Address
+}

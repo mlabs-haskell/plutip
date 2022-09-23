@@ -1,5 +1,6 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE GADTs #-}
 
 -- |
 --  This module together with `Test.Plutip.Predicate` provides the way
@@ -127,7 +128,8 @@ module Test.Plutip.Contract (
   usingEnterpriseWallets,
   TestWallets,
   ValueOrdering (VEq, VGt, VLt, VGEq, VLEq),
-usingLookups) where
+-- usingLookups
+lookupTaggedWallet) where
 
 import BotPlutusInterface.Types (
   LogContext,
@@ -169,8 +171,10 @@ import Test.Plutip.Contract.Init (
 import Test.Plutip.Contract.Types (
   TestContract (TestContract),
   TestContractConstraints,
-  WalletInfo (WalletInfo, ownAddress),
-  makeWalletInfo,
+  WalletInfo (EnterpriseInfo),
+  ownAddress, WalletTag, WalletLookups
+
+  -- makeWalletInfo,
  )
 import Test.Plutip.Contract.Values (assertValues, valueAt)
 import Test.Plutip.Internal.BotPlutusInterface.Run (runContract)
@@ -195,7 +199,7 @@ import Test.Tasty.Providers (IsTest (run, testOptions), TestTree, singleTest, te
 import qualified Data.Map.Strict as Map
 
 type TestRunner (w :: Type) (e :: Type) (a :: Type) =
-  ReaderT (ClusterEnv, NonEmpty BpiWallet) IO (ExecutionResult w e (a, NonEmpty Value))
+  ReaderT (ClusterEnv, NonEmpty (BpiWallet k)) IO (ExecutionResult w e (a, Map k Value))
 
 -- | When used with `withCluster`, builds `TestTree` from initial wallets distribution,
 --  Contract and list of assertions (predicates). Each assertion will be run as separate test case,
@@ -218,7 +222,7 @@ assertExecution ::
   TestWallets ->
   TestRunner w e a ->
   [Predicate w e a] ->
-  (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
+  (TestWallets, IO (ClusterEnv, NonEmpty (BpiWallet k)) -> TestTree)
 assertExecution = assertExecutionWith mempty
 
 -- | Version of assertExecution parametrised with a list of extra TraceOption's.
@@ -234,11 +238,11 @@ assertExecutionWith ::
   TestWallets ->
   TestRunner w e a ->
   [Predicate w e a] ->
-  (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
+  (TestWallets, IO (ClusterEnv, NonEmpty (BpiWallet k)) -> TestTree)
 assertExecutionWith options tag testWallets testRunner predicates =
   (testWallets, toTestGroup)
   where
-    toTestGroup :: IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree
+    toTestGroup :: IO (ClusterEnv, NonEmpty (BpiWallet k) k) -> TestTree
     toTestGroup ioEnv =
       withResource (runReaderT testRunner =<< ioEnv) (const $ pure ()) $
         \ioRes ->
@@ -249,11 +253,11 @@ assertExecutionWith options tag testWallets testRunner predicates =
               ((toCase ioRes <$> predicates) <> ((`optionToTestTree` ioRes) <$> options))
 
     -- wraps IO with result of contract execution into single test
-    toCase :: IO (ExecutionResult w e (a, NonEmpty Value)) -> Predicate w e a -> TestTree
+    toCase :: IO (ExecutionResult w e (a, Map k Value)) -> Predicate w e a -> TestTree
     toCase ioRes p =
       singleTest (pTag p) (TestContract p ioRes)
 
-    optionToTestTree :: TraceOption -> IO (ExecutionResult w e (a, NonEmpty Value)) -> TestTree
+    optionToTestTree :: TraceOption -> IO (ExecutionResult w e (a, Map k Value)) -> TestTree
     optionToTestTree = \case
       ShowBudgets -> singleTest "Budget stats" . StatsReport
       ShowTrace -> singleTest logsName . LogsReport DisplayAllTrace
@@ -268,7 +272,7 @@ assertExecutionWith options tag testWallets testRunner predicates =
 -- @since 0.2
 maybeAddValuesCheck ::
   Show e =>
-  IO (ExecutionResult w e (a, NonEmpty Value)) ->
+  IO (ExecutionResult w e (a, Map k Value)) ->
   TestWallets ->
   [TestTree] ->
   [TestTree]
@@ -297,9 +301,9 @@ maybeAddValuesCheck ioRes tws =
 --
 -- @since 0.2
 withContract ::
-  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
+  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (k :: Type).
   TestContractConstraints w e a =>
-  ([WalletInfo] -> Contract w s e a) ->
+  (WalletLookups k -> Contract w s e a) ->
   TestRunner w e a
 withContract = withContractAs 0
 
@@ -308,10 +312,10 @@ withContract = withContractAs 0
 --
 -- @since 0.2
 withContractAs ::
-  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
+  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (k :: Type).
   TestContractConstraints w e a =>
-  Int ->
-  ([WalletInfo] -> Contract w s e a) ->
+  WalletTag k ->
+  (WalletLookups k -> Contract w s e a) ->
   TestRunner w e a
 withContractAs walletIdx toContract = do
   (cEnv, wallets') <- ask
@@ -345,66 +349,25 @@ withContractAs walletIdx toContract = do
     Left e -> fail $ "Failed to get values. Error: " ++ show e
     Right values -> return $ execRes {outcome = (,values) <$> outcome execRes}
   where
-    separateWallets :: forall b. Int -> NonEmpty b -> (b, [b])
+    separateWallets :: forall b. WalletTag t k -> NonEmpty b -> (b, [b])
     separateWallets i xss
       | (xs, y : ys) <- NonEmpty.splitAt i xss = (y, xs <> ys)
       | otherwise = error $ "Should fail: bad wallet index for own wallet: " <> show i
 
-data WalletTypeError
-  = -- | Expected enterprise address wallet, got one with staking keys.
-    ExpectedEnterpriseWallet
-    -- | Expected base address wallet, got one without staking keys.
-  | ExpectedWalletWithStakeKeys
-    -- | Index outside of range
-  | BadWalletIndex
-
-instance AsContractError e => AsContractError (Either WalletTypeError e) where
-  _ContractError = _Right . _ContractError
-
-instance Show WalletTypeError where
-  show ExpectedEnterpriseWallet = "Expected base address wallet, got one with staking keys."
-  show ExpectedWalletWithStakeKeys = "Expected base address wallet, got one with staking keys."
-  show BadWalletIndex = "Index outside of range."
-
-usingEnterpriseWallets ::
-  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
-  ([PaymentPubKeyHash] -> Contract w s e a) ->
-  ([WalletInfo] -> Contract w s (Either WalletTypeError e) a)
-usingEnterpriseWallets f wallets =
-  maybe (throwError (Left ExpectedEnterpriseWallet)) (mapError Right) $
-    f <$> traverse extractPkh wallets
-  where
-    extractPkh = \case
-      (WalletInfo _ pkh Nothing) -> Just pkh
-      _ -> Nothing
-
-data WalletLookups e = WalletLookups {
-  lookupEnterpriseWallet :: forall w s . Int -> Contract w s (Either WalletTypeError e) PaymentPubKeyHash,
-  lookupStakeWallet :: forall w s . Int -> Contract w s (Either WalletTypeError e) (PaymentPubKeyHash, StakePubKeyHash),
-  lookupAddress :: forall w s . Int -> Contract w s (Either WalletTypeError e) Address
-}
-
-usingLookups ::
-  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
-  (WalletLookups e -> Contract w s (Either WalletTypeError e) a) ->
-  ([WalletInfo] -> Contract w s (Either WalletTypeError e) a)
-usingLookups f walls = 
-  let m = Map.fromAscList $ zip [0..] walls
-    in f $ WalletLookups {
-      lookupEnterpriseWallet = (\case
-        Nothing -> throwError (Left BadWalletIndex)
-        Just (WalletInfo _ pkh Nothing) -> pure pkh
-        Just (WalletInfo _ _ (Just _)) -> throwError (Left ExpectedEnterpriseWallet))
-        . (`Map.lookup` m),
-      lookupStakeWallet = (\case
-        Nothing -> throwError (Left BadWalletIndex)
-        Just (WalletInfo _ _ Nothing) -> throwError (Left ExpectedWalletWithStakeKeys)
-        Just (WalletInfo _ pkh (Just spkh)) -> pure (pkh, spkh))
-        . (`Map.lookup` m),
-      lookupAddress = 
-        maybe (throwError (Left BadWalletIndex)) (pure . ownAddress) 
-        . (`Map.lookup` m)
-    }
+lookupTaggedWallet :: 
+  forall (w :: Type) (s :: Row Type) (e :: Type) (t :: Type) (k :: Type) .
+  (Ord k, MonadError (Either WalletTypeError e) m) => 
+  WalletTag t k
+  -> WalletLookups k
+   -> m (WalletInfo t)
+lookupTaggedWallet (EnterpriseTag k) wl = case Map.lookup k (getLookups wl) of
+  Nothing -> throwError (Left BadWalletIndex)
+  Just (WalletInfo' res@(EnterpriseInfo _)) -> pure res
+  Just (WalletInfo' (WithStakeKeysInfo _ _)) -> throwError (Left ExpectedEnterpriseWallet)
+lookupTaggedWallet (WithStakeKeysTag k) wl = case Map.lookup k (getLookups wl) of
+  Nothing -> throwError (Left BadWalletIndex)
+  Just (WalletInfo' (EnterpriseInfo _)) -> throwError (Left ExpectedWalletWithStakeKeys)
+  Just (WalletInfo' res@(WithStakeKeysInfo _ _)) -> pure res
 
 newtype StatsReport w e a = StatsReport (IO (ExecutionResult w e (a, NonEmpty Value)))
 

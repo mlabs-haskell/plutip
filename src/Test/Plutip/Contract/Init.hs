@@ -37,78 +37,74 @@ import Test.Plutip.Tools (ada)
 --  Each amount will be sent to address as separate UTXO.
 --
 -- @since 0.2
-initLovelace :: [Positive] -> TestWallets
-initLovelace initial = TestWallets $ TestWallet initial Nothing False :| []
+initLovelace :: WalletTag t k -> [Positive] -> TestWallets
+initLovelace tag initial = TestWallets $ TestWallet' (TestWallet initial Nothing tag) :| []
 
 -- | Create a wallet with the given amounts of lovelace, and after contract execution
 -- compare the values at the wallet address with the given ordering and value.
 --
 -- @since 0.2
-initLovelaceAssertValueWith :: [Positive] -> ValueOrdering -> Value -> TestWallets
-initLovelaceAssertValueWith initial ord expect = TestWallets $ TestWallet initial (Just (ord, expect)) False :| []
+initLovelaceAssertValueWith :: WalletTag t k -> [Positive] -> ValueOrdering -> Value -> TestWallets
+initLovelaceAssertValueWith tag initial ord expect = TestWallets $ TestWallet' (TestWallet initial (Just (ord, expect)) tag) :| []
 
 -- | Create a wallet with the given amounts of lovelace, and after contract execution
 -- check if values at the wallet address are equal to a given value.
 --
 -- @since 0.2
-initLovelaceAssertValue :: [Positive] -> Value -> TestWallets
-initLovelaceAssertValue initial = initLovelaceAssertValueWith initial VEq
+initLovelaceAssertValue :: WalletTag t k -> [Positive] -> Value -> TestWallets
+initLovelaceAssertValue tag initial = initLovelaceAssertValueWith tag initial VEq
 
 -- | Create a wallet with the given amounts of lovelace, and after contract execution
 -- compare the values at the wallet address with the given ordering and lovelace amount.
 --
 -- @since 0.2
-initAndAssertLovelaceWith :: [Positive] -> ValueOrdering -> Positive -> TestWallets
-initAndAssertLovelaceWith initial ord expect =
-  initLovelaceAssertValueWith initial ord (Ada.lovelaceValueOf (fromIntegral expect))
+initAndAssertLovelaceWith :: WalletTag t k -> [Positive] -> ValueOrdering -> Positive -> TestWallets
+initAndAssertLovelaceWith tag initial ord expect =
+  initLovelaceAssertValueWith tag initial ord (Ada.lovelaceValueOf (fromIntegral expect))
 
 -- | Create a wallet with the given amounts of lovelace, and after contract execution
 -- check if values at the wallet address are equal to a given lovelace amount.
 --
 -- @since 0.2
-initAndAssertLovelace :: [Positive] -> Positive -> TestWallets
-initAndAssertLovelace initial expect =
-  initLovelaceAssertValue initial (Ada.lovelaceValueOf (fromIntegral expect))
+initAndAssertLovelace :: WalletTag t k -> [Positive] -> Positive -> TestWallets
+initAndAssertLovelace tag initial expect =
+  initLovelaceAssertValue tag initial (Ada.lovelaceValueOf (fromIntegral expect))
 
 -- | Create a wallet with the given amounts of Ada.
 --
 -- @since 0.2
-initAda :: [Positive] -> TestWallets
-initAda initial = initLovelace (map ada initial)
+initAda :: WalletTag t k -> [Positive] -> TestWallets
+initAda tag initial = initLovelace tag (map ada initial)
 
 -- | Create a wallet with the given amounts of Ada, and after contract execution
 -- compare the values at the wallet address with the given ordering and value.
 --
 -- @since 0.2
-initAdaAssertValueWith :: [Positive] -> ValueOrdering -> Value -> TestWallets
-initAdaAssertValueWith initial = initLovelaceAssertValueWith (map ada initial)
+initAdaAssertValueWith :: WalletTag t k -> [Positive] -> ValueOrdering -> Value -> TestWallets
+initAdaAssertValueWith tag initial = initLovelaceAssertValueWith tag (map ada initial)
 
 -- | Create a wallet with the given amounts of Ada, and after contract execution
 -- check if values at the wallet address are equal to a given value.
 --
 -- @since 0.2
-initAdaAssertValue :: [Positive] -> Value -> TestWallets
-initAdaAssertValue initial = initLovelaceAssertValue (map ada initial)
+initAdaAssertValue :: WalletTag t k -> [Positive] -> Value -> TestWallets
+initAdaAssertValue tag initial = initLovelaceAssertValue tag (map ada initial)
 
 -- | Create a wallet with the given amounts of Ada, and after contract execution
 -- compare the values at the wallet address with the given ordering and ada amount.
 --
 -- @since 0.2
-initAndAssertAdaWith :: [Positive] -> ValueOrdering -> Positive -> TestWallets
-initAndAssertAdaWith initial ord expect =
-  initAndAssertLovelaceWith (map ada initial) ord (ada expect)
+initAndAssertAdaWith :: WalletTag t k -> [Positive] -> ValueOrdering -> Positive -> TestWallets
+initAndAssertAdaWith tag initial ord expect =
+  initAndAssertLovelaceWith tag (map ada initial) ord (ada expect)
 
 -- | Create a wallet with the given amounts of Ada, and after contract execution
 -- check if values at the wallet address are equal to a given ada amount.
 --
 -- @since 0.2
-initAndAssertAda :: [Positive] -> Positive -> TestWallets
-initAndAssertAda initial expect =
-  initAndAssertLovelace (map ada initial) (ada expect)
-
--- | Initialize all the `TestWallets` with staking keys.
-withStakeKeys :: TestWallets -> TestWallets
-withStakeKeys = TestWallets . fmap (\wall -> wall {hasStakeKeys = True}) . unTestWallets
+initAndAssertAda :: WalletTag t k -> [Positive] -> Positive -> TestWallets
+initAndAssertAda tag initial expect =
+  initAndAssertLovelace tag (map ada initial) (ada expect)
 
 -- | Initialize all the 'TestWallets' with the collateral utxo and
 --   adjust the 'twExpected' value accordingly.

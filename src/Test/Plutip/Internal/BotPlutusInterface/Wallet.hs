@@ -33,7 +33,7 @@ import PlutusTx.Builtins (toBuiltin)
 import System.Directory (createDirectoryIfMissing)
 import Test.Plutip.Internal.BotPlutusInterface.Keys (KeyPair (vKey), StakeKeyPair (sVKey), genKeyPair, genStakeKeyPair, writeKeyPair, writeStakeKeyPairs)
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as Setup
-import Test.Plutip.Internal.BotPlutusInterface.Types (BpiError (BotInterfaceDirMissing, SignKeySaveError), BpiWallet (BpiWallet), TestWallet (hasStakeKeys, twInitDistribiution), payKeys, stakeKeys)
+import Test.Plutip.Internal.BotPlutusInterface.Types (BpiError (BotInterfaceDirMissing, SignKeySaveError), BpiWallet (BpiWallet), TestWallet (twInitDistribiution), payKeys, stakeKeys, TestWallet')
 import Test.Plutip.Internal.Types (ClusterEnv, nodeSocket, supportDir)
 
 {-  Add wallet with arbitrary address and specified amount of Ada.
@@ -43,12 +43,12 @@ During wallet addition `.skey` file with required name generated and saved
  to be used by bot interface.
  Directory for files could be obtained with `Test.Plutip.BotPlutusInterface.Setup.keysDir`
 -}
-eitherAddSomeWallet :: MonadIO m => TestWallet -> ReaderT ClusterEnv m (Either BpiError BpiWallet)
+eitherAddSomeWallet :: MonadIO m => TestWallet' k -> ReaderT ClusterEnv m (Either BpiError (BpiWallet k))
 eitherAddSomeWallet funds = eitherAddSomeWalletDir funds Nothing
 
 -- | The same as `eitherAddSomeWallet`, but also
 -- saves the key file to a separate directory.
-eitherAddSomeWalletDir :: MonadIO m => TestWallet -> Maybe FilePath -> ReaderT ClusterEnv m (Either BpiError BpiWallet)
+eitherAddSomeWalletDir :: MonadIO m => TestWallet -> Maybe FilePath -> ReaderT ClusterEnv m (Either BpiError (BpiWallet k))
 eitherAddSomeWalletDir funds wallDir = do
   bpiWallet <- createWallet (hasStakeKeys funds)
   saveWallets bpiWallet wallDir

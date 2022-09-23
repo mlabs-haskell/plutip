@@ -61,7 +61,7 @@ import Ledger (unPaymentPubKeyHash)
 import Plutus.Contract (Contract)
 import Plutus.PAB.Core.ContractInstance.STM (Activity (Active))
 import Test.Plutip.Config (PlutipConfig (budgetMultiplier))
-import Test.Plutip.Contract.Types (WalletInfo (ownPaymentPubKeyHash, ownStakePubKeyHash))
+import Test.Plutip.Contract.Types (ownPaymentPubKeyHash, ownStakePubKeyHash, WalletInfo, WalletType)
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BIS
 import Test.Plutip.Internal.Types (
   ClusterEnv (chainIndexUrl, networkId, plutipConf),
@@ -75,10 +75,10 @@ defCollateralSize :: Integer
 defCollateralSize = 10_000_000
 
 runContract_ ::
-  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (m :: Type -> Type).
+  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (m :: Type -> Type) (t :: WalletType).
   (ToJSON w, Monoid w, MonadIO m) =>
   ClusterEnv ->
-  WalletInfo ->
+  WalletInfo t ->
   Contract w s e a ->
   m ()
 runContract_ e w c = void $ runContract e w c
@@ -86,7 +86,7 @@ runContract_ e w c = void $ runContract e w c
 runContract ::
   (ToJSON w, Monoid w, MonadIO m) =>
   ClusterEnv ->
-  WalletInfo ->
+  WalletInfo t ->
   Contract w s e a ->
   m (ExecutionResult w e a)
 runContract = runContractWithLogLvl $ Error [AnyLog]
@@ -97,11 +97,11 @@ runContract = runContractWithLogLvl $ Error [AnyLog]
 -- observe (or demonstrate) live logs. This function provides possibility to
 -- obtain this functionality and see live logs by setting desired log level.
 runContractWithLogLvl ::
-  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (m :: Type -> Type).
+  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (m :: Type -> Type) (t :: WalletType).
   (ToJSON w, Monoid w, MonadIO m) =>
   Bpi.LogLevel ->
   ClusterEnv ->
-  WalletInfo ->
+  WalletInfo t ->
   Contract w s e a ->
   m (ExecutionResult w e a)
 runContractWithLogLvl logLvl cEnv bpiWallet contract = do

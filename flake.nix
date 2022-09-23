@@ -11,7 +11,7 @@
       flake = false;
     };
     bot-plutus-interface.url =
-      "github:mlabs-haskell/bot-plutus-interface?ref=vasil-compliant-v1.0.0";
+      "github:mlabs-haskell/bot-plutus-interface?ref=857ec745d50f7f0ebd5cd934110403fae301ef6f";
   };
 
   outputs =

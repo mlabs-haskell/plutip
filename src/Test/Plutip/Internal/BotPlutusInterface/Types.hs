@@ -1,25 +1,39 @@
 {-# LANGUAGE GADTs #-}
 module Test.Plutip.Internal.BotPlutusInterface.Types (
   BpiError (..),
-  BpiWallet (BpiWallet, payKeys, stakeKeys),
-  TestWallet (TestWallet, twInitDistribiution, twExpected, testWalletTag),
+  BpiWallet (BpiWallet, payKeys, stakeKeys, bwTag),
+  TestWallet (TestWallet, twInitDistribiution, twExpected, twTag),
   TestWallets (TestWallets, unTestWallets),
   ValueOrdering (VEq, VGt, VLt, VGEq, VLEq),
   compareValuesWith,
   WalletType(..),
   WalletTag(..),
-  TestWallet'(..), 
-) where
+  TestWallet'(..),
+  WalletTypeError(..),
+  WalletInfo(..),
+  ownPaymentPubKeyHash,
+  ownStakePubKeyHash,
+  ownAddress,
+  getTag, 
+  WalletInfo'(..)
+  ) where
 
 import Data.List.NonEmpty (NonEmpty)
-import Ledger (Value)
+import Ledger (Value, PaymentPubKeyHash, StakePubKeyHash, Address, pubKeyHashAddress)
 import Ledger.Value qualified as Value
 import Numeric.Positive (Positive)
 import Test.Plutip.Internal.BotPlutusInterface.Keys (KeyPair, StakeKeyPair)
+import Plutus.Contract.Error (AsContractError (_ContractError))
+import Control.Lens.Prism (_Right)
 
 data WalletTag t k where
   WithStakeKeysTag :: k -> WalletTag 'WithStakeKeys k
   EnterpriseTag :: k -> WalletTag 'Enterprise k
+
+getTag :: WalletTag t k -> k
+getTag = \case 
+  WithStakeKeysTag k -> k 
+  EnterpriseTag k -> k 
 
 deriving stock instance Show k => Show (WalletTag t k)
 deriving stock instance Eq k => Eq (WalletTag t k)
@@ -39,19 +53,19 @@ data BpiError
 data BpiWallet k = BpiWallet
   { payKeys :: KeyPair
   , stakeKeys :: Maybe StakeKeyPair
-  , bpiWalletTag :: k
+  , bwTag :: k
   }
   deriving stock (Show)
 
 newtype TestWallets k = TestWallets {unTestWallets :: NonEmpty (TestWallet' k) }
   deriving newtype (Semigroup)
 
-newtype TestWallet' k = TestWallet' (forall t . TestWallet t k)
+data TestWallet' k = forall t . TestWallet' (TestWallet t k)
 
 data TestWallet t k = TestWallet
   { twInitDistribiution :: [Positive]
   , twExpected :: Maybe (ValueOrdering, Value)
-  , testWalletTag :: WalletTag t k
+  , twTag :: WalletTag t k
   }
 
 data ValueOrdering = VEq | VGt | VLt | VGEq | VLEq
@@ -63,3 +77,39 @@ compareValuesWith VGt = Value.gt
 compareValuesWith VLt = Value.lt
 compareValuesWith VGEq = Value.geq
 compareValuesWith VLEq = Value.leq
+
+data WalletTypeError
+  = -- | Expected enterprise address wallet, got one with staking keys.
+    ExpectedEnterpriseWallet
+    -- | Expected base address wallet, got one without staking keys.
+  | ExpectedWalletWithStakeKeys
+    -- | Index outside of range
+  | BadWalletIndex
+
+instance AsContractError e => AsContractError (Either WalletTypeError e) where
+  _ContractError = _Right . _ContractError
+
+instance Show WalletTypeError where
+  show ExpectedEnterpriseWallet = "Expected base address wallet, got one with staking keys."
+  show ExpectedWalletWithStakeKeys = "Expected base address wallet, got one with staking keys."
+  show BadWalletIndex = "Index outside of range."
+
+data WalletInfo t where
+  WithStakeKeysInfo :: PaymentPubKeyHash -> StakePubKeyHash -> WalletInfo 'WithStakeKeys
+  EnterpriseInfo :: PaymentPubKeyHash -> WalletInfo 'Enterprise
+
+ownPaymentPubKeyHash :: WalletInfo t -> PaymentPubKeyHash
+ownPaymentPubKeyHash = \case 
+  WithStakeKeysInfo pkh _ -> pkh
+  EnterpriseInfo pkh -> pkh
+
+ownStakePubKeyHash :: WalletInfo t -> Maybe StakePubKeyHash
+ownStakePubKeyHash = \case
+  WithStakeKeysInfo _ spkh -> Just spkh
+  EnterpriseInfo _ -> Nothing
+
+ownAddress :: WalletInfo t -> Address 
+ownAddress w = pubKeyHashAddress (ownPaymentPubKeyHash w) (ownStakePubKeyHash w)
+
+data WalletInfo' = forall t . WalletInfo' (WalletInfo t)
+

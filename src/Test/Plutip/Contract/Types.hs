@@ -4,59 +4,56 @@
 module Test.Plutip.Contract.Types (
   TestContractConstraints,
   TestContract (..),
-  WalletInfo (..),
   WalletType(..),
   WalletTag(..),
-WalletLookups, lookupAddress, lookupWallet, ownPaymentPubKeyHash, ownStakePubKeyHash, ownAddress) where
+  -- WalletInfo (..),ownPaymentPubKeyHash, ownStakePubKeyHash, ownAddress,
+  -- WalletTypeError(..),
+  -- WalletLookups, lookupAddress, lookupWallet, WalletInfo'(..)
+  ) where
 
 import Data.Aeson (ToJSON)
 import Data.Bool (bool)
 import Data.Dynamic (Typeable)
 import Data.Kind (Type)
-import Data.List.NonEmpty (NonEmpty)
 import Data.Tagged (Tagged (Tagged))
-import Ledger (Address, PaymentPubKeyHash, StakePubKeyHash, pubKeyHashAddress)
 import Ledger.Value (Value)
-import Plutus.Contract (AsContractError, Contract)
-import Test.Plutip.Internal.BotPlutusInterface.Wallet (
-  BpiWallet,
-  walletPaymentPkh,
-  walletStakePkh,
- )
+import Plutus.Contract (AsContractError)
 import Test.Plutip.Internal.Types (
   ExecutionResult,
  )
 import Test.Plutip.Predicate (Predicate, debugInfo, pCheck)
 import Test.Tasty.Providers (IsTest (run, testOptions), testFailed, testPassed)
-import Data.Row (Row)
-import Plutus.Contract.Types (AsContractError(_ContractError))
-import Control.Lens.Prism (_Right)
+import Test.Plutip.Internal.BotPlutusInterface.Types (WalletType(Enterprise, WithStakeKeys), WalletTag(WithStakeKeysTag, EnterpriseTag))
+import Data.Map (Map)
 
-type TestContractConstraints (w :: Type) (e :: Type) (a :: Type) =
+type TestContractConstraints (w :: Type) (e :: Type) (k :: Type) (a :: Type) =
   ( ToJSON w
   , Monoid w
   , Show w
   , Show e
   , Show a
+  , Show k
   , Typeable w
   , Typeable e
   , Typeable a
+  , Typeable k
+  , Ord k
   , AsContractError e
   )
 
 -- | Test contract
-data TestContract (w :: Type) (e :: Type) (a :: Type)
+data TestContract (w :: Type) (e :: Type) (a :: Type) (k :: Type)
   = TestContract
-      (Predicate w e a)
+      (Predicate w e k a)
       -- ^ Info about check to perform and how to report results
-      (IO (ExecutionResult w e (a, NonEmpty Value)))
+      (IO (ExecutionResult w e (a, Map k Value)))
       -- ^ Result of contract execution
   deriving stock (Typeable)
 
 instance
-  forall (w :: Type) (e :: Type) (a :: Type).
-  TestContractConstraints w e a =>
-  IsTest (TestContract w e a)
+  forall (w :: Type) (e :: Type) (a :: Type) (k :: Type).
+  TestContractConstraints w e a k =>
+  IsTest (TestContract w e k a)
   where
   run _ (TestContract predicate runResult) _ = do
     result <- runResult
@@ -71,52 +68,3 @@ instance
         (pCheck predicate result)
 
   testOptions = Tagged []
-
-data WalletTypeError
-  = -- | Expected enterprise address wallet, got one with staking keys.
-    ExpectedEnterpriseWallet
-    -- | Expected base address wallet, got one without staking keys.
-  | ExpectedWalletWithStakeKeys
-    -- | Index outside of range
-  | BadWalletIndex
-
-instance AsContractError e => AsContractError (Either WalletTypeError e) where
-  _ContractError = _Right . _ContractError
-
-instance Show WalletTypeError where
-  show ExpectedEnterpriseWallet = "Expected base address wallet, got one with staking keys."
-  show ExpectedWalletWithStakeKeys = "Expected base address wallet, got one with staking keys."
-  show BadWalletIndex = "Index outside of range."
-
-data WalletInfo t where
-  WithStakeKeysInfo :: PaymentPubKeyHash -> StakePubKeyHash -> WalletInfo 'WithStakeKeys
-  EnterpriseInfo :: PaymentPubKeyHash -> WalletInfo 'Enterprise
-
-ownPaymentPubKeyHash :: WalletInfo t -> PaymentPubKeyHash
-ownPaymentPubKeyHash = \case 
-  WithStakeKeysInfo pkh _ -> pkh
-  EnterpriseInfo pkh -> pkh
-
-ownStakePubKeyHash :: WalletInfo t -> Maybe StakePubKeyHash
-ownStakePubKeyHash = \case
-  WithStakeKeysInfo _ spkh -> Just spkh
-  EnterpriseInfo _ -> Nothing
-
-ownAddress :: WalletInfo t -> Address 
-ownAddress w = pubKeyHashAddress (ownPaymentPubKeyHash w) (ownStakePubKeyHash w)
-
-data WalletInfo' = forall t . WalletInfo' { getWalletInfo :: WalletInfo t}
-
-data WalletLookups k = WalletLookups {
-  lookupWallet :: 
-    forall (w :: Type) (s :: Row Type) (e :: Type) (t :: WalletType) .
-    MonadError (Either WalletTypeError e) m =>
-    WalletTag t k
-    -> m (WalletInfo t)
-  , 
-  lookupAddress ::
-    forall (w :: Type) (s :: Row Type) (e :: Type) (t :: Type) . 
-    MonadError (Either WalletTypeError e) m =>
-    k
-    -> m (Either WalletTypeError e) Address
-}

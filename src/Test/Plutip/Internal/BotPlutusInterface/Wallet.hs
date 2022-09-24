@@ -1,3 +1,5 @@
+{-# LANGUAGE TupleSections #-}
+
 module Test.Plutip.Internal.BotPlutusInterface.Wallet (
   BpiWallet (..),
   addSomeWallet,
@@ -33,7 +35,7 @@ import PlutusTx.Builtins (toBuiltin)
 import System.Directory (createDirectoryIfMissing)
 import Test.Plutip.Internal.BotPlutusInterface.Keys (KeyPair (vKey), StakeKeyPair (sVKey), genKeyPair, genStakeKeyPair, writeKeyPair, writeStakeKeyPairs)
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as Setup
-import Test.Plutip.Internal.BotPlutusInterface.Types (BpiError (BotInterfaceDirMissing, SignKeySaveError), BpiWallet (BpiWallet), TestWallet (twInitDistribiution), payKeys, stakeKeys, TestWallet')
+import Test.Plutip.Internal.BotPlutusInterface.Types (BpiError (BotInterfaceDirMissing, SignKeySaveError), BpiWallet (BpiWallet), TestWallet (twInitDistribiution, twTag), payKeys, stakeKeys, TestWallet' (TestWallet'), WalletTag (EnterpriseTag, WithStakeKeysTag))
 import Test.Plutip.Internal.Types (ClusterEnv, nodeSocket, supportDir)
 
 {-  Add wallet with arbitrary address and specified amount of Ada.
@@ -48,9 +50,9 @@ eitherAddSomeWallet funds = eitherAddSomeWalletDir funds Nothing
 
 -- | The same as `eitherAddSomeWallet`, but also
 -- saves the key file to a separate directory.
-eitherAddSomeWalletDir :: MonadIO m => TestWallet -> Maybe FilePath -> ReaderT ClusterEnv m (Either BpiError (BpiWallet k))
-eitherAddSomeWalletDir funds wallDir = do
-  bpiWallet <- createWallet (hasStakeKeys funds)
+eitherAddSomeWalletDir :: MonadIO m => TestWallet' k -> Maybe FilePath -> ReaderT ClusterEnv m (Either BpiError (BpiWallet k))
+eitherAddSomeWalletDir (TestWallet' funds) wallDir = do
+  bpiWallet <- createWallet (twTag funds)
   saveWallets bpiWallet wallDir
     >>= \case
       Right _ -> sendFunds bpiWallet >> pure (Right bpiWallet)
@@ -69,23 +71,25 @@ eitherAddSomeWalletDir funds wallDir = do
 
 -- | Add wallet with arbitrary address and specified amount of Ada.
 -- (version of `eitherAddSomeWallet` that will throw an error in case of failure)
-addSomeWallet :: MonadIO m => TestWallet -> ReaderT ClusterEnv m BpiWallet
+addSomeWallet :: MonadIO m => TestWallet' k -> ReaderT ClusterEnv m (BpiWallet k)
 addSomeWallet funds =
   eitherAddSomeWallet funds >>= either (error . show) pure
 
 -- | Version of `addSomeWallet` that also writes the
 -- wallet key file to a separate directory
-addSomeWalletDir :: MonadIO m => TestWallet -> Maybe FilePath -> ReaderT ClusterEnv m BpiWallet
+addSomeWalletDir :: MonadIO m => TestWallet' k -> Maybe FilePath -> ReaderT ClusterEnv m (BpiWallet k)
 addSomeWalletDir funds wallDir =
   eitherAddSomeWalletDir funds wallDir >>= either (error . show) pure
 
-createWallet :: MonadIO m => Bool -> m BpiWallet
-createWallet hasStakeKey = do
+createWallet :: MonadIO m => WalletTag t k -> m (BpiWallet k)
+createWallet tag = do 
   kp <- liftIO genKeyPair
-  skp <- if hasStakeKey then liftIO (fmap Just genStakeKeyPair) else pure Nothing
-  return $ BpiWallet kp skp
+  (skp, k) <- case tag of 
+    EnterpriseTag k -> pure (Nothing, k)
+    WithStakeKeysTag k -> fmap ((, k) . Just) (liftIO genStakeKeyPair)
+  return $ BpiWallet kp skp k
 
-saveWallets :: MonadIO m => BpiWallet -> Maybe FilePath -> ReaderT ClusterEnv m (Either BpiError ())
+saveWallets :: MonadIO m => BpiWallet k -> Maybe FilePath -> ReaderT ClusterEnv m (Either BpiError ())
 saveWallets bpiw fp = do
   cEnv <- ask
   isSet <- liftIO (Setup.directoryIsSet cEnv)
@@ -100,8 +104,8 @@ saveWallets bpiw fp = do
     isSet
 
 -- | Save the wallet to a specific directory.
-saveWalletDir :: MonadIO m => BpiWallet -> FilePath -> m (Either BpiError ())
-saveWalletDir (BpiWallet pay stake) wallDir = do
+saveWalletDir :: MonadIO m => BpiWallet k -> FilePath -> m (Either BpiError ())
+saveWalletDir (BpiWallet pay stake _) wallDir = do
   liftIO $ createDirectoryIfMissing True wallDir
   pLogs <- liftIO $ writeKeyPair wallDir pay
   sLogs <- maybe (pure []) (liftIO . writeStakeKeyPairs wallDir) stake
@@ -111,8 +115,8 @@ saveWalletDir (BpiWallet pay stake) wallDir = do
     Just e -> return $ left (SignKeySaveError . show) e
 
 -- | Make `AnyAddress` for mainnet
-cardanoMainnetAddress :: BpiWallet -> AddressAny
-cardanoMainnetAddress (BpiWallet pay stake) =
+cardanoMainnetAddress :: BpiWallet k -> AddressAny
+cardanoMainnetAddress (BpiWallet pay stake _) =
   CAPI.toAddressAny $
     CAPI.ShelleyAddress
       Shelley.Mainnet
@@ -124,14 +128,14 @@ cardanoMainnetAddress (BpiWallet pay stake) =
       )
 
 -- | Get `String` representation of address on mainnet
-mkMainnetAddress :: BpiWallet -> String
+mkMainnetAddress :: BpiWallet k -> String
 mkMainnetAddress bw =
   Text.unpack
     . CAPI.serialiseAddress
     $ cardanoMainnetAddress bw
 
-walletPaymentPkh :: BpiWallet -> PaymentPubKeyHash
+walletPaymentPkh :: BpiWallet k -> PaymentPubKeyHash
 walletPaymentPkh = PaymentPubKeyHash . PubKeyHash . toBuiltin . CAPI.serialiseToRawBytes . CAPI.verificationKeyHash . vKey . payKeys
 
-walletStakePkh :: BpiWallet -> Maybe StakePubKeyHash
+walletStakePkh :: BpiWallet k -> Maybe StakePubKeyHash
 walletStakePkh wall = StakePubKeyHash . PubKeyHash . toBuiltin . CAPI.serialiseToRawBytes . CAPI.verificationKeyHash . sVKey <$> stakeKeys wall

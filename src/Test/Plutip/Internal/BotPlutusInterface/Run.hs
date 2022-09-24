@@ -61,7 +61,6 @@ import Ledger (unPaymentPubKeyHash)
 import Plutus.Contract (Contract)
 import Plutus.PAB.Core.ContractInstance.STM (Activity (Active))
 import Test.Plutip.Config (PlutipConfig (budgetMultiplier))
-import Test.Plutip.Contract.Types (ownPaymentPubKeyHash, ownStakePubKeyHash, WalletInfo, WalletType)
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BIS
 import Test.Plutip.Internal.Types (
   ClusterEnv (chainIndexUrl, networkId, plutipConf),
@@ -69,16 +68,18 @@ import Test.Plutip.Internal.Types (
   FailureReason (CaughtException, ContractExecutionError),
  )
 import Wallet.Types (ContractInstanceId (ContractInstanceId))
+import Test.Plutip.Internal.BotPlutusInterface.Types (ownStakePubKeyHash, ownPaymentPubKeyHash, BpiWallet, WalletInfo' (WalletInfo'))
+import Test.Plutip.Internal.BotPlutusInterface.Lookups (makeWalletInfo)
 
 -- | default collateral size that's to be used as collateral.
 defCollateralSize :: Integer
 defCollateralSize = 10_000_000
 
 runContract_ ::
-  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (m :: Type -> Type) (t :: WalletType).
+  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (m :: Type -> Type) (k :: Type).
   (ToJSON w, Monoid w, MonadIO m) =>
   ClusterEnv ->
-  WalletInfo t ->
+  BpiWallet k ->
   Contract w s e a ->
   m ()
 runContract_ e w c = void $ runContract e w c
@@ -86,7 +87,7 @@ runContract_ e w c = void $ runContract e w c
 runContract ::
   (ToJSON w, Monoid w, MonadIO m) =>
   ClusterEnv ->
-  WalletInfo t ->
+  BpiWallet k ->
   Contract w s e a ->
   m (ExecutionResult w e a)
 runContract = runContractWithLogLvl $ Error [AnyLog]
@@ -97,11 +98,11 @@ runContract = runContractWithLogLvl $ Error [AnyLog]
 -- observe (or demonstrate) live logs. This function provides possibility to
 -- obtain this functionality and see live logs by setting desired log level.
 runContractWithLogLvl ::
-  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (m :: Type -> Type) (t :: WalletType).
+  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (m :: Type -> Type) (k :: Type).
   (ToJSON w, Monoid w, MonadIO m) =>
   Bpi.LogLevel ->
   ClusterEnv ->
-  WalletInfo t ->
+  BpiWallet k ->
   Contract w s e a ->
   m (ExecutionResult w e a)
 runContractWithLogLvl logLvl cEnv bpiWallet contract = do
@@ -134,8 +135,9 @@ runContractWithLogLvl logLvl cEnv bpiWallet contract = do
         , pcDryRun = False
         , pcProtocolParamsFile = Text.pack $ BIS.pParamsFile cEnv
         , pcLogLevel = logLvl
-        , pcOwnPubKeyHash = unPaymentPubKeyHash $ ownPaymentPubKeyHash bpiWallet
-        , pcOwnStakePubKeyHash = ownStakePubKeyHash bpiWallet
+        , pcOwnPubKeyHash = unPaymentPubKeyHash $ case walletInfo of WalletInfo' w -> ownPaymentPubKeyHash w 
+        , pcOwnStakePubKeyHash = case walletInfo of WalletInfo' w -> ownStakePubKeyHash w
+
         , pcTipPollingInterval = 1_000_000
         , pcPort = 9080
         , pcEnableTxEndpoint = False
@@ -146,6 +148,8 @@ runContractWithLogLvl logLvl cEnv bpiWallet contract = do
         , pcTxStatusPolling = TxStatusPolling 500_000 8
         , pcCollateralSize = fromInteger defCollateralSize
         }
+
+    walletInfo = makeWalletInfo bpiWallet
 
     runContract' :: ContractEnvironment w -> m (ExecutionResult w e a)
     runContract' contractEnv = do

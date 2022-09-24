@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Test.Plutip.LocalCluster (
   BpiWallet,
   addSomeWallet,
@@ -33,6 +35,7 @@ import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)
 import Test.Plutip.Internal.Types (ClusterEnv)
 import Test.Tasty (testGroup, withResource)
 import Test.Tasty.Providers (TestTree)
+import Data.Kind (Type)
 
 -- | Awaiting via `threadDelay`
 waitSeconds :: Natural -> ReaderT ClusterEnv IO ()
@@ -54,7 +57,7 @@ waitSeconds n = liftIO $ threadDelay (fromEnum n * 1_000_000)
 -- @since 0.2
 withCluster ::
   String ->
-  [(TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)] ->
+  [(TestWallets k, IO (ClusterEnv, NonEmpty (BpiWallet k)) -> TestTree)] ->
   TestTree
 withCluster = withConfiguredCluster def
 
@@ -73,9 +76,10 @@ withCluster = withConfiguredCluster def
 --
 -- @since 0.2
 withConfiguredCluster ::
+  forall (k :: Type).
   PlutipConfig ->
   String ->
-  [(TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)] ->
+  [(TestWallets k, IO (ClusterEnv, NonEmpty (BpiWallet k)) -> TestTree)] ->
   TestTree
 withConfiguredCluster conf name testCases =
   withResource (startCluster conf setup) (stopCluster . fst) $
@@ -85,7 +89,7 @@ withConfiguredCluster conf name testCases =
           (\idx (_, toTestGroup) -> toTestGroup $ second (!! idx) . snd <$> getResource)
           testCases
   where
-    setup :: ReaderT ClusterEnv IO (ClusterEnv, [NonEmpty BpiWallet])
+    setup :: ReaderT ClusterEnv IO (ClusterEnv, [NonEmpty (BpiWallet k)])
     setup = do
       env <- ask
 

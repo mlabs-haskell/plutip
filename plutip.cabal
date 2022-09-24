@@ -147,6 +147,7 @@ library
     Test.Plutip.Contract.Types
     Test.Plutip.Contract.Values
     Test.Plutip.Internal.BotPlutusInterface.Keys
+    Test.Plutip.Internal.BotPlutusInterface.Lookups
     Test.Plutip.Internal.BotPlutusInterface.Run
     Test.Plutip.Internal.BotPlutusInterface.Setup
     Test.Plutip.Internal.BotPlutusInterface.Types

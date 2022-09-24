@@ -14,9 +14,9 @@ module Test.Plutip.Internal.BotPlutusInterface.Types (
   ownPaymentPubKeyHash,
   ownStakePubKeyHash,
   ownAddress,
-  getTag, 
+  getTag,
   WalletInfo'(..)
-  ) where
+  , testWallet') where
 
 import Data.List.NonEmpty (NonEmpty)
 import Ledger (Value, PaymentPubKeyHash, StakePubKeyHash, Address, pubKeyHashAddress)
@@ -30,13 +30,13 @@ data WalletTag t k where
   WithStakeKeysTag :: k -> WalletTag 'WithStakeKeys k
   EnterpriseTag :: k -> WalletTag 'Enterprise k
 
-getTag :: WalletTag t k -> k
-getTag = \case 
-  WithStakeKeysTag k -> k 
-  EnterpriseTag k -> k 
-
 deriving stock instance Show k => Show (WalletTag t k)
 deriving stock instance Eq k => Eq (WalletTag t k)
+
+getTag :: WalletTag t k -> k
+getTag = \case
+  WithStakeKeysTag k -> k
+  EnterpriseTag k -> k
 
 data WalletType
   = Enterprise
@@ -67,6 +67,9 @@ data TestWallet t k = TestWallet
   , twExpected :: Maybe (ValueOrdering, Value)
   , twTag :: WalletTag t k
   }
+
+testWallet' :: [Positive] -> Maybe (ValueOrdering, Value) -> WalletTag t k -> TestWallet' k
+testWallet' twInitDistribiution twExpected twTag = TestWallet' $ TestWallet twInitDistribiution twExpected twTag
 
 data ValueOrdering = VEq | VGt | VLt | VGEq | VLEq
 
@@ -99,7 +102,7 @@ data WalletInfo t where
   EnterpriseInfo :: PaymentPubKeyHash -> WalletInfo 'Enterprise
 
 ownPaymentPubKeyHash :: WalletInfo t -> PaymentPubKeyHash
-ownPaymentPubKeyHash = \case 
+ownPaymentPubKeyHash = \case
   WithStakeKeysInfo pkh _ -> pkh
   EnterpriseInfo pkh -> pkh
 
@@ -108,7 +111,7 @@ ownStakePubKeyHash = \case
   WithStakeKeysInfo _ spkh -> Just spkh
   EnterpriseInfo _ -> Nothing
 
-ownAddress :: WalletInfo t -> Address 
+ownAddress :: WalletInfo t -> Address
 ownAddress w = pubKeyHashAddress (ownPaymentPubKeyHash w) (ownStakePubKeyHash w)
 
 data WalletInfo' = forall t . WalletInfo' (WalletInfo t)

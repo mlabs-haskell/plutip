@@ -24,7 +24,6 @@ module Test.Plutip.Predicate (
 ) where
 
 import BotPlutusInterface.Types (TxBudget (TxBudget), mintBudgets, spendBudgets)
-import Data.List.NonEmpty (NonEmpty)
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Ledger (ExBudget (ExBudget), ExCPU (ExCPU), ExMemory (ExMemory), TxId, Value)

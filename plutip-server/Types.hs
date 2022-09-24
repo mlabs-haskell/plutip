@@ -54,7 +54,7 @@ import UnliftIO.STM (TVar)
 -- cluster at any given moment).
 -- This MVar is used by start/stop handlers.
 -- The payload of ClusterStatus is irrelevant.
-type ClusterStatusRef = MVar (TVar (ClusterStatus (ClusterEnv, [BpiWallet])))
+type ClusterStatusRef = MVar (TVar (ClusterStatus (ClusterEnv, [BpiWallet Int])))
 
 data Env = Env
   { status :: ClusterStatusRef

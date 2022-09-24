@@ -22,7 +22,7 @@ import System.FilePath (replaceFileName)
 import Test.Plutip.Config (chainIndexPort, relayNodeLogs)
 import Test.Plutip.Internal.BotPlutusInterface.Keys (KeyPair (sKey))
 import Test.Plutip.Internal.BotPlutusInterface.Setup (keysDir)
-import Test.Plutip.Internal.BotPlutusInterface.Types (TestWallet (TestWallet))
+import Test.Plutip.Internal.BotPlutusInterface.Types (TestWallet (TestWallet), testWallet', WalletTag(EnterpriseTag))
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet (payKeys), addSomeWallet)
 import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)
 import Test.Plutip.Internal.Types (ClusterEnv (runningNode))
@@ -81,19 +81,19 @@ startClusterHandler
           , keysDirectory = keysDir clusterEnv
           }
     where
-      setup :: ReaderT ClusterEnv IO (ClusterEnv, [BpiWallet])
+      setup :: ReaderT ClusterEnv IO (ClusterEnv, [BpiWallet Int])
       setup = do
         env <- ask
         wallets <- do
-          for keysToGenerate $ \lovelaceAmounts -> do
-            addSomeWallet (TestWallet (fromInteger . unLovelace <$> lovelaceAmounts) Nothing False)
+          for (zip [0..] keysToGenerate) $ \(idx, lovelaceAmounts) ->
+            addSomeWallet (testWallet' (fromInteger . unLovelace <$> lovelaceAmounts) Nothing (EnterpriseTag idx))
         waitSeconds 2 -- wait for transactions to submit
         pure (env, wallets)
       getNodeSocketFile (runningNode -> RunningNode conn _ _ _) = nodeSocketFile conn
       getNodeConfigFile =
         -- assumption is that node.config lies in the same directory as node.socket
         flip replaceFileName "node.config" . getNodeSocketFile
-      getWalletPrivateKey :: BpiWallet -> PrivateKey
+      getWalletPrivateKey :: BpiWallet k -> PrivateKey
       getWalletPrivateKey = Text.decodeUtf8 . Base16.encode . serialiseToCBOR . sKey . payKeys
       interpret = fmap (either ClusterStartupFailure id) . runExceptT
 

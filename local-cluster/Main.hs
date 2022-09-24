@@ -6,10 +6,11 @@
 module Main (main) where
 
 import Control.Applicative (optional, (<**>))
-import Control.Monad (forM_, replicateM, void)
+import Control.Monad (forM_, void)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ReaderT (ReaderT))
 import Data.Default (def)
+import Data.Traversable (for)
 import Numeric.Positive (Positive)
 import Options.Applicative (Parser, helper, info)
 import Options.Applicative qualified as Options
@@ -27,7 +28,7 @@ import Test.Plutip.LocalCluster
     walletPaymentPkh
   )
 import GHC.Natural (Natural)
-import Test.Plutip.Internal.BotPlutusInterface.Types (TestWallet(TestWallet))
+import Test.Plutip.Internal.BotPlutusInterface.Types (WalletTag(EnterpriseTag), testWallet')
 
 main :: IO ()
 main = do
@@ -67,8 +68,8 @@ main = do
         amt -> Right $ fromInteger . toInteger $ amt
 
     initWallets numWallets numUtxos amt dirWallets = do
-      replicateM (max 0 numWallets) $
-        addSomeWalletDir (TestWallet (replicate numUtxos amt) Nothing False) dirWallets
+      for [0..(max 0 numWallets - 1)] $ \idx ->
+        addSomeWalletDir (testWallet' (replicate numUtxos amt) Nothing (EnterpriseTag idx)) dirWallets
 
     printWallet (w, n) = do
       putStrLn $ "Wallet " ++ show n ++ " PKH: " ++ show (walletPaymentPkh w)

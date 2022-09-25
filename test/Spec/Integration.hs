@@ -17,6 +17,7 @@ import Plutus.Contract (
   waitNSlots,
  )
 import Plutus.Contract qualified as Contract
+import Plutus.Contract.Types (mapError)
 import Spec.TestContract.AdjustTx (runAdjustTest)
 import Spec.TestContract.AlwaysFail (lockThenFailToSpend)
 import Spec.TestContract.LockSpendMint (lockThenSpend)
@@ -26,10 +27,12 @@ import Spec.TestContract.SimpleContracts (
   getUtxosThrowsEx,
   ownValue,
   ownValueToState,
-  payTo, payToPubKeyAddress
+  payTo,
+  payToPubKeyAddress,
  )
 import Spec.TestContract.ValidateTimeRange (failingTimeContract, successTimeContract)
 import Test.Plutip.Contract (
+  ClusterTest,
   ValueOrdering (VLt),
   assertExecution,
   assertExecutionWith,
@@ -40,8 +43,11 @@ import Test.Plutip.Contract (
   initLovelace,
   withCollateral,
   withContract,
-  withContractAs, ClusterTest
+  withContractAs,
  )
+import Test.Plutip.Contract.Types (WalletTag (EnterpriseTag, WithStakeKeysTag))
+import Test.Plutip.Internal.BotPlutusInterface.Lookups (WalletLookups (lookupWallet), lookupAddress)
+import Test.Plutip.Internal.BotPlutusInterface.Types (WalletInfo (EnterpriseInfo))
 import Test.Plutip.Internal.Types (
   FailureReason (CaughtException, ContractExecutionError),
   isException,
@@ -66,10 +72,6 @@ import Test.Plutip.Predicate (
  )
 import Test.Plutip.Predicate qualified as Predicate
 import Test.Tasty (TestTree)
-import Test.Plutip.Contract.Types (WalletTag(EnterpriseTag, WithStakeKeysTag))
-import Test.Plutip.Internal.BotPlutusInterface.Lookups (WalletLookups(lookupWallet), lookupAddress)
-import Plutus.Contract.Types (mapError)
-import Test.Plutip.Internal.BotPlutusInterface.Types (WalletInfo(EnterpriseInfo))
 
 test :: TestTree
 test =
@@ -107,18 +109,18 @@ test =
       , assertExecution
           "Pay negative amount"
           (initAda (WithStakeKeysTag (0 :: Int)) [100]) -- TODO: this test doesn't fail because negative amount
-          (withContract $ \wl -> do
-            EnterpriseInfo pkh1 <- lookupWallet wl (EnterpriseTag 0)
-            payTo pkh1 (-10_000_000)
+          ( withContract $ \wl -> do
+              EnterpriseInfo pkh1 <- lookupWallet wl (EnterpriseTag 0)
+              payTo pkh1 (-10_000_000)
           )
           [shouldFail]
       , -- Tests with wallet's Value assertions
         assertExecution
           "Pay from wallet to wallet"
           (initAda (EnterpriseTag ("pkh1" :: String)) [100] <> initAndAssertAda (EnterpriseTag "pkh2") [100, 13] 123)
-          (withContract $ \wl -> do
-            EnterpriseInfo pkh1 <- lookupWallet wl (EnterpriseTag "pkh2")
-            payTo pkh1 10_000_000
+          ( withContract $ \wl -> do
+              EnterpriseInfo pkh1 <- lookupWallet wl (EnterpriseTag "pkh2")
+              payTo pkh1 10_000_000
           )
           [shouldSucceed]
       , assertExecution
@@ -128,11 +130,11 @@ test =
           )
           ( do
               void $ -- run something prior to the contract which result will be checked
-                withContract $ \wl -> do 
+                withContract $ \wl -> do
                   addr1 <- lookupAddress wl 1
                   payToPubKeyAddress addr1 10_000_000
               withContractAs 1 $ -- run contract which result will be checked
-                \wl -> do 
+                \wl -> do
                   addr0 <- lookupAddress wl 0
                   mapError Right $ payToPubKeyAddress addr0 10_000_000
           )
@@ -305,7 +307,7 @@ testValueAssertionsOrderCorrectness =
                   _ <- waitNSlots 2
                   payTo w2pkh (toInteger payTo2Amt)
 
-              withContractAs 2 $ \wl -> do 
+              withContractAs 2 $ \wl -> do
                 EnterpriseInfo w1pkh <- lookupWallet wl (EnterpriseTag 1)
                 payTo w1pkh (toInteger payTo1Amt)
           )

@@ -27,8 +27,10 @@ import Numeric.Positive (Positive)
 import Test.Plutip.Internal.BotPlutusInterface.Run (defCollateralSize)
 import Test.Plutip.Internal.BotPlutusInterface.Types (
   TestWallet (TestWallet, twExpected, twInitDistribiution),
+  TestWallet' (TestWallet'),
   TestWallets (TestWallets, unTestWallets),
-  ValueOrdering (VEq), WalletTag, TestWallet' (TestWallet')
+  ValueOrdering (VEq),
+  WalletTag,
  )
 import Test.Plutip.Tools (ada)
 
@@ -51,7 +53,7 @@ initLovelaceAssertValueWith tag initial ord expect = TestWallets $ TestWallet' (
 --
 -- @since 0.2
 initLovelaceAssertValue :: WalletTag t k -> [Positive] -> Value -> TestWallets k
-initLovelaceAssertValue tag initial = initLovelaceAssertValueWith tag initial VEq 
+initLovelaceAssertValue tag initial = initLovelaceAssertValueWith tag initial VEq
 
 -- | Create a wallet with the given amounts of lovelace, and after contract execution
 -- compare the values at the wallet address with the given ordering and lovelace amount.
@@ -111,9 +113,10 @@ withCollateral :: TestWallets k -> TestWallets k
 withCollateral TestWallets {..} = TestWallets $ NonEmpty.map go unTestWallets
   where
     go :: TestWallet' k -> TestWallet' k
-    go (TestWallet' wall@TestWallet {..}) = 
-      TestWallet' wall
-        { twInitDistribiution = fromInteger defCollateralSize : twInitDistribiution
-        , twExpected =
-            second (Value.unionWith (+) $ Ada.lovelaceValueOf defCollateralSize) <$> twExpected
-        }
+    go (TestWallet' wall@TestWallet {..}) =
+      TestWallet'
+        wall
+          { twInitDistribiution = fromInteger defCollateralSize : twInitDistribiution
+          , twExpected =
+              second (Value.unionWith (+) $ Ada.lovelaceValueOf defCollateralSize) <$> twExpected
+          }

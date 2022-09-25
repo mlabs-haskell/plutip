@@ -4,27 +4,27 @@
 module Test.Plutip.Contract.Types (
   TestContractConstraints,
   TestContract (..),
-  WalletType(..),
-  WalletTag(..),
+  WalletType (..),
+  WalletTag (..),
   -- WalletInfo (..),ownPaymentPubKeyHash, ownStakePubKeyHash, ownAddress,
   -- WalletTypeError(..),
   -- WalletLookups, lookupAddress, lookupWallet, WalletInfo'(..)
-  ) where
+) where
 
 import Data.Aeson (ToJSON)
 import Data.Bool (bool)
 import Data.Dynamic (Typeable)
 import Data.Kind (Type)
+import Data.Map (Map)
 import Data.Tagged (Tagged (Tagged))
 import Ledger.Value (Value)
 import Plutus.Contract (AsContractError)
+import Test.Plutip.Internal.BotPlutusInterface.Types (WalletTag (EnterpriseTag, WithStakeKeysTag), WalletType (Enterprise, WithStakeKeys))
 import Test.Plutip.Internal.Types (
   ExecutionResult,
  )
 import Test.Plutip.Predicate (Predicate, debugInfo, pCheck)
 import Test.Tasty.Providers (IsTest (run, testOptions), testFailed, testPassed)
-import Test.Plutip.Internal.BotPlutusInterface.Types (WalletType(Enterprise, WithStakeKeys), WalletTag(WithStakeKeysTag, EnterpriseTag))
-import Data.Map (Map)
 
 type TestContractConstraints (w :: Type) (e :: Type) (k :: Type) (a :: Type) =
   ( ToJSON w
@@ -42,7 +42,7 @@ type TestContractConstraints (w :: Type) (e :: Type) (k :: Type) (a :: Type) =
   )
 
 -- | Test contract
-data TestContract (w :: Type) (e :: Type) (k :: Type) (a :: Type) 
+data TestContract (w :: Type) (e :: Type) (k :: Type) (a :: Type)
   = TestContract
       (Predicate w e k a)
       -- ^ Info about check to perform and how to report results

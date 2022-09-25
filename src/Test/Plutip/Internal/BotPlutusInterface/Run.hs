@@ -61,15 +61,15 @@ import Ledger (unPaymentPubKeyHash)
 import Plutus.Contract (Contract)
 import Plutus.PAB.Core.ContractInstance.STM (Activity (Active))
 import Test.Plutip.Config (PlutipConfig (budgetMultiplier))
+import Test.Plutip.Internal.BotPlutusInterface.Lookups (makeWalletInfo)
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BIS
+import Test.Plutip.Internal.BotPlutusInterface.Types (BpiWallet, WalletInfo' (WalletInfo'), ownPaymentPubKeyHash, ownStakePubKeyHash)
 import Test.Plutip.Internal.Types (
   ClusterEnv (chainIndexUrl, networkId, plutipConf),
   ExecutionResult (ExecutionResult),
   FailureReason (CaughtException, ContractExecutionError),
  )
 import Wallet.Types (ContractInstanceId (ContractInstanceId))
-import Test.Plutip.Internal.BotPlutusInterface.Types (ownStakePubKeyHash, ownPaymentPubKeyHash, BpiWallet, WalletInfo' (WalletInfo'))
-import Test.Plutip.Internal.BotPlutusInterface.Lookups (makeWalletInfo)
 
 -- | default collateral size that's to be used as collateral.
 defCollateralSize :: Integer
@@ -135,9 +135,8 @@ runContractWithLogLvl logLvl cEnv bpiWallet contract = do
         , pcDryRun = False
         , pcProtocolParamsFile = Text.pack $ BIS.pParamsFile cEnv
         , pcLogLevel = logLvl
-        , pcOwnPubKeyHash = unPaymentPubKeyHash $ case walletInfo of WalletInfo' w -> ownPaymentPubKeyHash w 
+        , pcOwnPubKeyHash = unPaymentPubKeyHash $ case walletInfo of WalletInfo' w -> ownPaymentPubKeyHash w
         , pcOwnStakePubKeyHash = case walletInfo of WalletInfo' w -> ownStakePubKeyHash w
-
         , pcTipPollingInterval = 1_000_000
         , pcPort = 9080
         , pcEnableTxEndpoint = False

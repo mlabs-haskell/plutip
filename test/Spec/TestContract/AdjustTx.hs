@@ -20,16 +20,19 @@ import Plutus.Contract (
   Contract,
   adjustUnbalancedTx,
   awaitTxConfirmed,
-  mkTxConstraints
+  mkTxConstraints,
  )
 import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
 import Test.Plutip.Contract (
+  ClusterTest,
   TestWallets,
   assertExecution,
   initAda,
-  withContract, ClusterTest
+  withContract,
  )
+import Test.Plutip.Internal.BotPlutusInterface.Lookups (WalletLookups (lookupWallet))
+import Test.Plutip.Internal.BotPlutusInterface.Types (WalletInfo (EnterpriseInfo), WalletTag (EnterpriseTag))
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet)
 import Test.Plutip.Internal.Types (ClusterEnv)
 import Test.Plutip.Predicate (
@@ -38,8 +41,6 @@ import Test.Plutip.Predicate (
  )
 import Test.Tasty (TestTree)
 import Prelude
-import Test.Plutip.Internal.BotPlutusInterface.Types (WalletInfo(EnterpriseInfo), WalletTag (EnterpriseTag))
-import Test.Plutip.Internal.BotPlutusInterface.Lookups (WalletLookups(lookupWallet))
 
 adjustTx :: PaymentPubKeyHash -> Contract () EmptySchema Text [Value]
 adjustTx toPkh = do
@@ -74,7 +75,7 @@ runAdjustTest =
   assertExecution
     "Adjust Unbalanced Tx Contract"
     (initAda (EnterpriseTag (0 :: Int)) [1000] <> initAda (EnterpriseTag 1) [1000])
-    (withContract $ \wl -> do
+    ( withContract $ \wl -> do
         EnterpriseInfo pkh <- lookupWallet wl (EnterpriseTag (1 :: Int))
         adjustTx' [pkh]
     )

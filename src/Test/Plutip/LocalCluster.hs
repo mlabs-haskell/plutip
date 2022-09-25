@@ -20,10 +20,11 @@ import Control.Monad.Reader (ReaderT, ask)
 import Data.Bifunctor (second)
 import Data.Default (def)
 import Data.List.NonEmpty (NonEmpty)
+import Data.List.NonEmpty qualified as NonEmpty
 import Numeric.Natural (Natural)
 import Test.Plutip.Config (PlutipConfig)
-import Test.Plutip.Contract (ada, ClusterTest(ClusterTest))
-import Test.Plutip.Internal.BotPlutusInterface.Types (TestWallets (unTestWallets, TestWallets), SomeBpiWallet (SomeBpiWallet), BpiWallet (bwTag), TestWallet (twTag), getTag, TestWallet' (TestWallet'), SomeTestWallet' (SomeTestWallet'))
+import Test.Plutip.Contract (ClusterTest (ClusterTest), ada)
+import Test.Plutip.Internal.BotPlutusInterface.Types (BpiWallet (bwTag), SomeBpiWallet (SomeBpiWallet), SomeTestWallet' (SomeTestWallet'), TestWallet (twTag), TestWallet' (TestWallet'), TestWallets (TestWallets, unTestWallets), getTag)
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   addSomeWallet,
   cardanoMainnetAddress,
@@ -34,7 +35,6 @@ import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)
 import Test.Plutip.Internal.Types (ClusterEnv)
 import Test.Tasty (testGroup, withResource)
 import Test.Tasty.Providers (TestTree)
-import qualified Data.List.NonEmpty as NonEmpty
 
 -- | Awaiting via `threadDelay`
 waitSeconds :: Natural -> ReaderT ClusterEnv IO ()
@@ -101,8 +101,6 @@ withConfiguredCluster conf name testCases =
       pure (env, wallets)
 
     getSomeTestWallets (ClusterTest (tws, _)) = SomeTestWallet' <$> unTestWallets tws
-
-    -- | Restore type information on BpiWallets by substituting tags from matching test wallets.
     substituteTags :: TestWallets k -> NonEmpty SomeBpiWallet -> NonEmpty (BpiWallet k)
     substituteTags (TestWallets tws) walls =
       NonEmpty.zipWith (\(TestWallet' tw) (SomeBpiWallet bw) -> bw {bwTag = getTag (twTag tw)}) tws walls

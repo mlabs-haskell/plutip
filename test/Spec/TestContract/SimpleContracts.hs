@@ -5,24 +5,28 @@ module Spec.TestContract.SimpleContracts (
   payTo,
   ownValue,
   ownValueToState,
-payToPubKeyAddress) where
+  payToPubKeyAddress,
+) where
 
 import Plutus.Contract (
   Contract,
   ContractError (ConstraintResolutionContractError),
   submitTx,
-  utxosAt, throwError
+  throwError,
+  utxosAt,
  )
 import Plutus.Contract qualified as Contract
 
 import Ledger (
+  Address (Address),
   CardanoTx,
   ChainIndexTxOut,
   PaymentPubKeyHash (PaymentPubKeyHash),
+  StakePubKeyHash (StakePubKeyHash),
   TxOutRef,
   Value,
   ciTxOutValue,
-  getCardanoTxId, Address (Address), StakePubKeyHash (StakePubKeyHash)
+  getCardanoTxId,
  )
 
 import Data.Map (Map)
@@ -35,8 +39,8 @@ import Data.Text (Text)
 import Ledger.Constraints (MkTxError (OwnPubKeyMissing))
 import Ledger.Constraints qualified as Constraints
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
-import Plutus.V1.Ledger.Api (Credential(ScriptCredential), StakingCredential (StakingHash, StakingPtr))
-import Plutus.V1.Ledger.Credential (Credential(PubKeyCredential))
+import Plutus.V1.Ledger.Api (Credential (ScriptCredential), StakingCredential (StakingHash, StakingPtr))
+import Plutus.V1.Ledger.Credential (Credential (PubKeyCredential))
 
 getUtxos :: Contract [Value] EmptySchema Text (Map TxOutRef ChainIndexTxOut)
 getUtxos = do
@@ -67,10 +71,11 @@ payToPubKeyAddress (Address crd stake) amt = do
     Just StakingPtr {} -> throwError "No support for staking pointers."
     Nothing -> pure Nothing
 
-  let constr = maybe 
-        (Constraints.mustPayToPubKey (PaymentPubKeyHash pkh) (Ada.lovelaceValueOf amt))
-        (\spkh -> Constraints.mustPayToPubKeyAddress (PaymentPubKeyHash pkh) (StakePubKeyHash spkh) (Ada.lovelaceValueOf amt))
-        mspkh
+  let constr =
+        maybe
+          (Constraints.mustPayToPubKey (PaymentPubKeyHash pkh) (Ada.lovelaceValueOf amt))
+          (\spkh -> Constraints.mustPayToPubKeyAddress (PaymentPubKeyHash pkh) (StakePubKeyHash spkh) (Ada.lovelaceValueOf amt))
+          mspkh
 
   tx <- submitTx constr
   _ <- Contract.awaitTxConfirmed (getCardanoTxId tx)

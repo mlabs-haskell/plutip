@@ -35,7 +35,7 @@ import PlutusTx.Builtins (toBuiltin)
 import System.Directory (createDirectoryIfMissing)
 import Test.Plutip.Internal.BotPlutusInterface.Keys (KeyPair (vKey), StakeKeyPair (sVKey), genKeyPair, genStakeKeyPair, writeKeyPair, writeStakeKeyPairs)
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as Setup
-import Test.Plutip.Internal.BotPlutusInterface.Types (BpiError (BotInterfaceDirMissing, SignKeySaveError), BpiWallet (BpiWallet), TestWallet (twInitDistribiution, twTag), payKeys, stakeKeys, TestWallet' (TestWallet'), WalletTag (EnterpriseTag, WithStakeKeysTag))
+import Test.Plutip.Internal.BotPlutusInterface.Types (BpiError (BotInterfaceDirMissing, SignKeySaveError), BpiWallet (BpiWallet), TestWallet (twInitDistribiution, twTag), TestWallet' (TestWallet'), WalletTag (EnterpriseTag, WithStakeKeysTag), payKeys, stakeKeys)
 import Test.Plutip.Internal.Types (ClusterEnv, nodeSocket, supportDir)
 
 {-  Add wallet with arbitrary address and specified amount of Ada.
@@ -82,11 +82,11 @@ addSomeWalletDir funds wallDir =
   eitherAddSomeWalletDir funds wallDir >>= either (error . show) pure
 
 createWallet :: MonadIO m => WalletTag t k -> m (BpiWallet k)
-createWallet tag = do 
+createWallet tag = do
   kp <- liftIO genKeyPair
-  (skp, k) <- case tag of 
+  (skp, k) <- case tag of
     EnterpriseTag k -> pure (Nothing, k)
-    WithStakeKeysTag k -> fmap ((, k) . Just) (liftIO genStakeKeyPair)
+    WithStakeKeysTag k -> fmap ((,k) . Just) (liftIO genStakeKeyPair)
   return $ BpiWallet kp skp k
 
 saveWallets :: MonadIO m => BpiWallet k -> Maybe FilePath -> ReaderT ClusterEnv m (Either BpiError ())

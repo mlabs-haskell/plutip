@@ -1,6 +1,6 @@
 {-# LANGUAGE ConstraintKinds #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE LambdaCase #-}
 
 -- |
 --  This module together with `Test.Plutip.Predicate` provides the way
@@ -126,9 +126,9 @@ module Test.Plutip.Contract (
   assertExecutionWith,
   ada,
   TestWallets,
-  ClusterTest(ClusterTest),
+  ClusterTest (ClusterTest),
   ValueOrdering (VEq, VGt, VLt, VGEq, VLEq),
-  ) where
+) where
 
 import BotPlutusInterface.Types (
   LogContext,
@@ -144,6 +144,8 @@ import Data.Bool (bool)
 import Data.Kind (Type)
 import Data.List.NonEmpty (NonEmpty, toList)
 import Data.List.NonEmpty qualified as NonEmpty
+import Data.Map (Map)
+import Data.Map.Strict qualified as Map
 import Data.Maybe (isJust)
 import Data.Row (Row)
 import Data.Tagged (Tagged (Tagged))
@@ -151,6 +153,7 @@ import Data.Text qualified as Text
 import Ledger.Value (Value)
 import Plutus.Contract (Contract, waitNSlots)
 import PlutusPrelude (render)
+import PlutusTx.These (These (That, These, This))
 import Prettyprinter (Doc, Pretty (pretty), vcat, (<+>))
 import Test.Plutip.Contract.Init (
   initAda,
@@ -167,14 +170,20 @@ import Test.Plutip.Contract.Init (
  )
 import Test.Plutip.Contract.Types (
   TestContract (TestContract),
-  TestContractConstraints
+  TestContractConstraints,
  )
 import Test.Plutip.Contract.Values (assertValues, valueAt)
+import Test.Plutip.Internal.BotPlutusInterface.Lookups (WalletLookups, lookupsMap, makeWalletInfo, makeWalletLookups)
 import Test.Plutip.Internal.BotPlutusInterface.Run (runContract)
 import Test.Plutip.Internal.BotPlutusInterface.Types (
+  BpiWallet (bwTag),
   TestWallet (twExpected, twTag),
+  TestWallet' (TestWallet'),
   TestWallets (unTestWallets),
-  ValueOrdering (VEq, VGEq, VGt, VLEq, VLt), TestWallet' (TestWallet'), getTag, BpiWallet (bwTag), WalletInfo' (WalletInfo'), ownAddress
+  ValueOrdering (VEq, VGEq, VGt, VLEq, VLt),
+  WalletInfo' (WalletInfo'),
+  getTag,
+  ownAddress,
  )
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (walletPaymentPkh)
 import Test.Plutip.Internal.Types (
@@ -189,17 +198,13 @@ import Test.Plutip.Tools.Format (fmtTxBudgets)
 import Test.Tasty (testGroup, withResource)
 import Test.Tasty.HUnit (assertFailure, testCase)
 import Test.Tasty.Providers (IsTest (run, testOptions), TestTree, singleTest, testPassed)
-import qualified Data.Map.Strict as Map
-import Data.Map (Map)
-import PlutusTx.These (These (This, That, These))
-import Test.Plutip.Internal.BotPlutusInterface.Lookups (WalletLookups, makeWalletLookups, lookupsMap, makeWalletInfo)
 
 type TestRunner (w :: Type) (e :: Type) (k :: Type) (a :: Type) =
   ReaderT (ClusterEnv, NonEmpty (BpiWallet k)) IO (ExecutionResult w e (a, Map k Value))
 
--- | A type for the output of `assertExecution`. 
+-- | A type for the output of `assertExecution`.
 -- `k` is existentially quantified to allow different key types in every test case.
-data ClusterTest = forall k . ClusterTest (TestWallets k, IO (ClusterEnv, NonEmpty (BpiWallet k)) -> TestTree)
+data ClusterTest = forall k. ClusterTest (TestWallets k, IO (ClusterEnv, NonEmpty (BpiWallet k)) -> TestTree)
 
 -- | When used with `withCluster`, builds `TestTree` from initial wallets distribution,
 --  Contract and list of assertions (predicates). Each assertion will be run as separate test case,
@@ -279,7 +284,7 @@ maybeAddValuesCheck ::
 maybeAddValuesCheck ioRes tws =
   bool id (valuesCheckCase :) (any isJust expected)
   where
-    expected = Map.fromList $ toList $ (\(TestWallet' tw ) -> (getTag (twTag tw), twExpected tw)) <$> unTestWallets tws
+    expected = Map.fromList $ toList $ (\(TestWallet' tw) -> (getTag (twTag tw), twExpected tw)) <$> unTestWallets tws
 
     valuesCheckCase :: TestTree
     valuesCheckCase =
@@ -294,20 +299,18 @@ maybeAddValuesCheck ioRes tws =
 
     checkValues o =
       left (Text.pack . show) o
-        >>= \(_, vs) -> let
-          theseToPair = \case
-            (These b c) -> (b, c)
-            _ -> error "The two maps should have the same keys as both follow from TestWallets."
-          (expecs, vals) = unzip $ Map.elems $ theseToPair <$> zipMaps expected vs
-          in
-            assertValues expecs vals
+        >>= \(_, vs) ->
+          let theseToPair = \case
+                (These b c) -> (b, c)
+                _ -> error "The two maps should have the same keys as both follow from TestWallets."
+              (expecs, vals) = unzip $ Map.elems $ theseToPair <$> zipMaps expected vs
+           in assertValues expecs vals
 
     zipMaps :: Ord a => Map a b -> Map a c -> Map a (These b c)
     zipMaps mb mc =
       let f (This b) (That c) = These b c
           f _ _ = error "All left are This and all right are That."
-        in Map.unionWith f (This <$> mb) (That <$> mc)
-
+       in Map.unionWith f (This <$> mb) (That <$> mc)
 
 -- | Run a contract using the first wallet as own wallet, and return `ExecutionResult`.
 -- This could be used by itself, or combined with multiple other contracts.
@@ -334,9 +337,7 @@ withContractAs ::
   TestRunner w e k a
 withContractAs walletIdx toContract = do
   (cEnv, wallets') <- ask
-  let 
-      
-      -- pick wallet for Contract's "own PKH", other wallets PKHs will be provided
+  let -- pick wallet for Contract's "own PKH", other wallets PKHs will be provided
       -- to the user in `withContractAs`
       (ownWallet, otherWallets) = separateWallets walletIdx $ NonEmpty.toList wallets'
 
@@ -368,16 +369,14 @@ withContractAs walletIdx toContract = do
   case outcome execValues of
     Left e -> fail $ "Failed to get values. Error: " ++ show e
     Right values -> return $ execRes {outcome = (,values) <$> outcome execRes}
-  
   where
-
     separateWallets :: k -> [BpiWallet k] -> (BpiWallet k, [BpiWallet k])
     separateWallets tag =
       let p = (== tag) . bwTag
           loop ys = \case
             (a : xs) -> if p a then (a, xs <> ys) else loop (a : ys) xs
             [] -> error $ "Should fail: bad wallet tag for own wallet: " <> show tag
-      in loop []
+       in loop []
 
 newtype StatsReport w e k a = StatsReport (IO (ExecutionResult w e (a, Map k Value)))
 

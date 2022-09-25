@@ -21,7 +21,7 @@ import Plutus.Contract (
   Contract,
   adjustUnbalancedTx,
   awaitTxConfirmed,
-  mkTxConstraints,
+  mkTxConstraints
  )
 import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
@@ -29,7 +29,6 @@ import Test.Plutip.Contract (
   TestWallets,
   assertExecution,
   initAda,
-  usingEnterpriseWallets,
   withContract,
  )
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet)
@@ -40,6 +39,8 @@ import Test.Plutip.Predicate (
  )
 import Test.Tasty (TestTree)
 import Prelude
+import Test.Plutip.Internal.BotPlutusInterface.Types (WalletInfo(EnterpriseInfo), WalletTag (EnterpriseTag))
+import Test.Plutip.Internal.BotPlutusInterface.Lookups (WalletLookups(lookupWallet))
 
 adjustTx :: PaymentPubKeyHash -> Contract () EmptySchema Text [Value]
 adjustTx toPkh = do
@@ -68,16 +69,19 @@ adjustTx' [] = do
 adjustTx' (pkh : _) = adjustTx pkh
 
 -- | A type for the output of `assertExecution`.
-type PlutipTest = (TestWallets, IO (ClusterEnv, NonEmpty.NonEmpty BpiWallet) -> TestTree)
+type PlutipTest k = (TestWallets k, IO (ClusterEnv, NonEmpty.NonEmpty (BpiWallet k)) -> TestTree)
 
 -- | Tests whether `adjustUnbalancedTx` actually tops up the
 -- UTxO to get to the minimum required ADA.
-runAdjustTest :: PlutipTest
+runAdjustTest :: PlutipTest Int
 runAdjustTest =
   assertExecution
     "Adjust Unbalanced Tx Contract"
-    (initAda [1000] <> initAda [1000])
-    (withContract $ usingEnterpriseWallets adjustTx')
+    (initAda (EnterpriseTag 0) [1000] <> initAda (EnterpriseTag 1) [1000])
+    (withContract $ \wl -> 
+      case lookupWallet wl (EnterpriseTag 1) of 
+        Right (EnterpriseInfo pkh ) -> adjustTx' [pkh]
+        Left _ -> error "dupa")
     [ shouldSucceed
     , yieldSatisfies
         "All UTxOs have minimum(?) ADA."

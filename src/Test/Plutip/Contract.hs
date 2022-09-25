@@ -194,7 +194,7 @@ import Data.Map (Map)
 import PlutusTx.These (These (This, That, These))
 import Test.Plutip.Internal.BotPlutusInterface.Lookups (WalletLookups, makeWalletLookups, lookupsMap, makeWalletInfo)
 
-type TestRunner (w :: Type) (e :: Type) (a :: Type) (k :: Type) =
+type TestRunner (w :: Type) (e :: Type) (k :: Type) (a :: Type) =
   ReaderT (ClusterEnv, NonEmpty (BpiWallet k)) IO (ExecutionResult w e (a, Map k Value))
 
 -- | A type for the output of `assertExecution`. 
@@ -220,7 +220,7 @@ assertExecution ::
   TestContractConstraints w e k a =>
   String ->
   TestWallets k ->
-  TestRunner w e a k ->
+  TestRunner w e k a ->
   [Predicate w e k a] ->
   ClusterTest
 assertExecution = assertExecutionWith mempty
@@ -236,7 +236,7 @@ assertExecutionWith ::
   [TraceOption] ->
   String ->
   TestWallets k ->
-  TestRunner w e a k ->
+  TestRunner w e k a ->
   [Predicate w e k a] ->
   ClusterTest
 assertExecutionWith options tag testWallets testRunner predicates =
@@ -317,7 +317,7 @@ withContract ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (k :: Type).
   TestContractConstraints w e k a =>
   (WalletLookups k -> Contract w s e a) ->
-  TestRunner w e a k
+  TestRunner w e k a
 withContract toContract = do
   (_, wallets') <- ask
   withContractAs (bwTag $ NonEmpty.head wallets') toContract
@@ -331,7 +331,7 @@ withContractAs ::
   TestContractConstraints w e k a =>
   k ->
   (WalletLookups k -> Contract w s e a) ->
-  TestRunner w e a k
+  TestRunner w e k a
 withContractAs walletIdx toContract = do
   (cEnv, wallets') <- ask
   let 

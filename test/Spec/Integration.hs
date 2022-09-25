@@ -30,7 +30,6 @@ import Spec.TestContract.SimpleContracts (
  )
 import Spec.TestContract.ValidateTimeRange (failingTimeContract, successTimeContract)
 import Test.Plutip.Contract (
-  TestWallets,
   ValueOrdering (VLt),
   assertExecution,
   assertExecutionWith,
@@ -44,11 +43,10 @@ import Test.Plutip.Contract (
   withContractAs, ClusterTest
  )
 import Test.Plutip.Internal.Types (
-  ClusterEnv,
   FailureReason (CaughtException, ContractExecutionError),
   isException,
  )
-import Test.Plutip.LocalCluster (BpiWallet, withConfiguredCluster)
+import Test.Plutip.LocalCluster (withConfiguredCluster)
 import Test.Plutip.Options (TraceOption (ShowBudgets, ShowTraceButOnlyContext))
 import Test.Plutip.Predicate (
   assertOverallBudget,
@@ -72,8 +70,6 @@ import Test.Plutip.Contract.Types (WalletTag(EnterpriseTag, WithStakeKeysTag))
 import Test.Plutip.Internal.BotPlutusInterface.Lookups (WalletLookups(lookupWallet), lookupAddress)
 import Plutus.Contract.Types (mapError)
 import Test.Plutip.Internal.BotPlutusInterface.Types (WalletInfo(EnterpriseInfo))
-import Data.Semigroup (Semigroup(sconcat))
-import qualified Data.List.NonEmpty as NonEmpty
 
 test :: TestTree
 test =
@@ -84,14 +80,14 @@ test =
         -- Basic Succeed or Failed tests
         assertExecution
           "Contract 1"
-          (sconcat $ NonEmpty.zipWith initAda (EnterpriseTag <$> (0 :| [1..])) (100 :| replicate 10 7))
+          (initAda (EnterpriseTag (0 :: Int)) (100 : replicate 10 7))
           (withContract $ const getUtxos)
           [ shouldSucceed
           , Predicate.not shouldFail
           ]
       , assertExecution
           "Contract 2"
-          (initAda (WithStakeKeysTag "pkh1") [100])
+          (initAda (WithStakeKeysTag ("pkh1" :: Text)) [100])
           (withContract $ const getUtxosThrowsErr)
           [ shouldFail
           , Predicate.not shouldSucceed
@@ -99,7 +95,7 @@ test =
       , assertExecutionWith
           [ShowTraceButOnlyContext ContractLog $ Error [AnyLog]]
           "Contract 3"
-          (initAda (WithStakeKeysTag 0) [100])
+          (initAda (WithStakeKeysTag (0 :: Int)) [100])
           ( withContract $
               const $ do
                 Contract.logInfo @Text "Some contract log with Info level."
@@ -110,31 +106,31 @@ test =
           ]
       , assertExecution
           "Pay negative amount"
-          (initAda (WithStakeKeysTag 0) [100]) -- TODO: this test doesn't fail because negative amount
+          (initAda (WithStakeKeysTag (0 :: Int)) [100]) -- TODO: this test doesn't fail because negative amount
           (withContract $ \wl -> do
             EnterpriseInfo pkh1 <- lookupWallet wl (EnterpriseTag 0)
-            mapError Right $ payTo pkh1 (-10_000_000)
+            payTo pkh1 (-10_000_000)
           )
           [shouldFail]
       , -- Tests with wallet's Value assertions
         assertExecution
           "Pay from wallet to wallet"
-          (initAda (EnterpriseTag "pkh1") [100] <> initAndAssertAda (EnterpriseTag "pkh2") [100, 13] 123)
-          (withContract $ \wl -> case lookupWallet wl (EnterpriseTag "pkh2") of
-            Left e -> error $ show e
-            Right (EnterpriseInfo pkh1) -> payTo pkh1 10_000_000
+          (initAda (EnterpriseTag ("pkh1" :: String)) [100] <> initAndAssertAda (EnterpriseTag "pkh2") [100, 13] 123)
+          (withContract $ \wl -> do
+            EnterpriseInfo pkh1 <- lookupWallet wl (EnterpriseTag "pkh2")
+            payTo pkh1 10_000_000
           )
           [shouldSucceed]
       , assertExecution
           "Two contracts one after another"
-          ( initAndAssertAdaWith (EnterpriseTag 0) [100] VLt 100 -- own wallet (index 0 in wallets lookups)
+          ( initAndAssertAdaWith (EnterpriseTag (0 :: Int)) [100] VLt 100 -- own wallet (index 0 in wallets lookups)
               <> initAndAssertAdaWith (EnterpriseTag 1) [100] VLt 100 -- wallet with index 1 in wallets lookups
           )
           ( do
               void $ -- run something prior to the contract which result will be checked
                 withContract $ \wl -> do 
                   addr1 <- lookupAddress wl 1
-                  mapError Right $ payToPubKeyAddress addr1 10_000_000
+                  payToPubKeyAddress addr1 10_000_000
               withContractAs 1 $ -- run contract which result will be checked
                 \wl -> do 
                   addr0 <- lookupAddress wl 0
@@ -264,10 +260,9 @@ testValueAssertionsOrderCorrectness =
               withContract $ \wl -> do
                 EnterpriseInfo w1pkh <- lookupWallet wl (EnterpriseTag "w1")
                 EnterpriseInfo w2pkh <- lookupWallet wl (EnterpriseTag "w2")
-                mapError Right $ do
-                  _ <- payTo w1pkh (toInteger payTo1Amt)
-                  _ <- waitNSlots 2
-                  payTo w2pkh (toInteger payTo2Amt)
+                _ <- payTo w1pkh (toInteger payTo1Amt)
+                _ <- waitNSlots 2
+                payTo w2pkh (toInteger payTo2Amt)
           )
           [shouldSucceed]
   , -- withContractAs case
@@ -297,23 +292,22 @@ testValueAssertionsOrderCorrectness =
      in assertExecution
           "Values asserted in correct order with withContractAs"
           ( withCollateral $ -- Initialize all the wallets with the collateral utxo.
-              initAndAssertLovelace (EnterpriseTag 0) [wallet0] wallet0After
+              initAndAssertLovelace (EnterpriseTag (0 :: Int)) [wallet0] wallet0After
                 <> initAndAssertLovelace (EnterpriseTag 1) [wallet1] wallet1After
                 <> initAndAssertLovelace (EnterpriseTag 2) [wallet2] wallet2After
           )
           ( do
               void $
                 withContractAs 1 $ \wl -> do
-                  EnterpriseInfo w0pkh <- lookupWallet wl (EnterpriseTag (0 :: Int))
+                  EnterpriseInfo w0pkh <- lookupWallet wl (EnterpriseTag 0)
                   EnterpriseInfo w2pkh <- lookupWallet wl (EnterpriseTag 1)
-                  mapError Right $ do
-                    _ <- payTo w0pkh (toInteger payTo0Amt)
-                    _ <- waitNSlots 2
-                    payTo w2pkh (toInteger payTo2Amt)
+                  _ <- payTo w0pkh (toInteger payTo0Amt)
+                  _ <- waitNSlots 2
+                  payTo w2pkh (toInteger payTo2Amt)
 
-              withContractAs 2 $ \wl -> case lookupWallet wl (EnterpriseTag 1) of 
-                Left e -> error $ show e
-                Right (EnterpriseInfo w1pkh) -> payTo w1pkh (toInteger payTo1Amt)
+              withContractAs 2 $ \wl -> do 
+                EnterpriseInfo w1pkh <- lookupWallet wl (EnterpriseTag 1)
+                payTo w1pkh (toInteger payTo1Amt)
           )
           [shouldSucceed]
   ]

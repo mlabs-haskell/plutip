@@ -67,9 +67,6 @@ adjustTx' [] = do
   adjustTx pkh
 adjustTx' (pkh : _) = adjustTx pkh
 
--- | A type for the output of `assertExecution`.
--- type PlutipTest k = (TestWallets k, IO (ClusterEnv, NonEmpty.NonEmpty (BpiWallet k)) -> TestTree)
-
 -- | Tests whether `adjustUnbalancedTx` actually tops up the
 -- UTxO to get to the minimum required ADA.
 runAdjustTest :: ClusterTest
@@ -77,10 +74,10 @@ runAdjustTest =
   assertExecution
     "Adjust Unbalanced Tx Contract"
     (initAda (EnterpriseTag (0 :: Int)) [1000] <> initAda (EnterpriseTag 1) [1000])
-    (withContract $ \wl -> 
-      case lookupWallet wl (EnterpriseTag 1) of 
-        Right (EnterpriseInfo pkh ) -> adjustTx' [pkh]
-        Left _ -> error "dupa")
+    (withContract $ \wl -> do
+        EnterpriseInfo pkh <- lookupWallet wl (EnterpriseTag (1 :: Int))
+        adjustTx' [pkh]
+    )
     [ shouldSucceed
     , yieldSatisfies
         "All UTxOs have minimum(?) ADA."

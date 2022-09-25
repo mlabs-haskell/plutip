@@ -126,6 +126,7 @@ module Test.Plutip.Contract (
   assertExecutionWith,
   ada,
   TestWallets,
+  ClusterTest(ClusterTest),
   ValueOrdering (VEq, VGt, VLt, VGEq, VLEq),
   ) where
 
@@ -166,7 +167,7 @@ import Test.Plutip.Contract.Init (
  )
 import Test.Plutip.Contract.Types (
   TestContract (TestContract),
-  TestContractConstraints,
+  TestContractConstraints
  )
 import Test.Plutip.Contract.Values (assertValues, valueAt)
 import Test.Plutip.Internal.BotPlutusInterface.Run (runContract)
@@ -196,6 +197,10 @@ import Test.Plutip.Internal.BotPlutusInterface.Lookups (WalletLookups, makeWalle
 type TestRunner (w :: Type) (e :: Type) (a :: Type) (k :: Type) =
   ReaderT (ClusterEnv, NonEmpty (BpiWallet k)) IO (ExecutionResult w e (a, Map k Value))
 
+-- | A type for the output of `assertExecution`. 
+-- `k` is existentially quantified to allow different key types in every test case.
+data ClusterTest = forall k . ClusterTest (TestWallets k, IO (ClusterEnv, NonEmpty (BpiWallet k)) -> TestTree)
+
 -- | When used with `withCluster`, builds `TestTree` from initial wallets distribution,
 --  Contract and list of assertions (predicates). Each assertion will be run as separate test case,
 --  although Contract will be executed only once.
@@ -211,13 +216,13 @@ type TestRunner (w :: Type) (e :: Type) (a :: Type) (k :: Type) =
 --
 -- @since 0.2
 assertExecution ::
-  forall (w :: Type) (e :: Type) (a :: Type) (k :: Type).
+  forall (w :: Type) (e :: Type) (k :: Type) (a :: Type).
   TestContractConstraints w e k a =>
   String ->
   TestWallets k ->
   TestRunner w e a k ->
   [Predicate w e k a] ->
-  (TestWallets k, IO (ClusterEnv, NonEmpty (BpiWallet k)) -> TestTree)
+  ClusterTest
 assertExecution = assertExecutionWith mempty
 
 -- | Version of assertExecution parametrised with a list of extra TraceOption's.
@@ -233,9 +238,9 @@ assertExecutionWith ::
   TestWallets k ->
   TestRunner w e a k ->
   [Predicate w e k a] ->
-  (TestWallets k, IO (ClusterEnv, NonEmpty (BpiWallet k)) -> TestTree)
+  ClusterTest
 assertExecutionWith options tag testWallets testRunner predicates =
-  (testWallets, toTestGroup)
+  ClusterTest (testWallets, toTestGroup)
   where
     toTestGroup :: IO (ClusterEnv, NonEmpty (BpiWallet k)) -> TestTree
     toTestGroup ioEnv =

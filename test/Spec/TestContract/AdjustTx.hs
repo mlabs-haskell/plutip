@@ -3,7 +3,6 @@ module Spec.TestContract.AdjustTx (
 ) where
 
 import Control.Lens.Operators ((^.))
-import Data.List.NonEmpty qualified as NonEmpty
 import Data.Text (Text)
 import Data.Void (Void)
 import Ledger (
@@ -29,7 +28,7 @@ import Test.Plutip.Contract (
   TestWallets,
   assertExecution,
   initAda,
-  withContract,
+  withContract, ClusterTest
  )
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet)
 import Test.Plutip.Internal.Types (ClusterEnv)
@@ -69,15 +68,15 @@ adjustTx' [] = do
 adjustTx' (pkh : _) = adjustTx pkh
 
 -- | A type for the output of `assertExecution`.
-type PlutipTest k = (TestWallets k, IO (ClusterEnv, NonEmpty.NonEmpty (BpiWallet k)) -> TestTree)
+-- type PlutipTest k = (TestWallets k, IO (ClusterEnv, NonEmpty.NonEmpty (BpiWallet k)) -> TestTree)
 
 -- | Tests whether `adjustUnbalancedTx` actually tops up the
 -- UTxO to get to the minimum required ADA.
-runAdjustTest :: PlutipTest Int
+runAdjustTest :: ClusterTest
 runAdjustTest =
   assertExecution
     "Adjust Unbalanced Tx Contract"
-    (initAda (EnterpriseTag 0) [1000] <> initAda (EnterpriseTag 1) [1000])
+    (initAda (EnterpriseTag (0 :: Int)) [1000] <> initAda (EnterpriseTag 1) [1000])
     (withContract $ \wl -> 
       case lookupWallet wl (EnterpriseTag 1) of 
         Right (EnterpriseInfo pkh ) -> adjustTx' [pkh]

@@ -1,3 +1,5 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Spec.Integration (test) where
 
 import BotPlutusInterface.Types (LogContext (ContractLog), LogLevel (Error), LogType (AnyLog))
@@ -39,7 +41,7 @@ import Test.Plutip.Contract (
   initLovelace,
   withCollateral,
   withContract,
-  withContractAs,
+  withContractAs, ClusterTest
  )
 import Test.Plutip.Internal.Types (
   ClusterEnv,
@@ -228,14 +230,12 @@ test =
               , errorSatisfies "Fail validation with 'I always fail'" errCheck
               ]
       , -- Test `adjustUnbalancedTx`
-        undefined
-        -- runAdjustTest
+        runAdjustTest
       ]
       ++ testValueAssertionsOrderCorrectness
 
 -- Tests for https://github.com/mlabs-haskell/plutip/issues/84
-testValueAssertionsOrderCorrectness ::
-  [(TestWallets k, IO (ClusterEnv, NonEmpty (BpiWallet k)) -> TestTree)]
+testValueAssertionsOrderCorrectness :: [ClusterTest]
 testValueAssertionsOrderCorrectness =
   [ -- withContract case
     let wallet0 = 100_000_000
@@ -256,14 +256,14 @@ testValueAssertionsOrderCorrectness =
      in assertExecution
           "Values asserted in correct order with withContract"
           ( withCollateral $
-              initAndAssertLovelace (EnterpriseTag "w0") [wallet0] wallet0After
+              initAndAssertLovelace (EnterpriseTag ("w0" :: String)) [wallet0] wallet0After
                 <> initAndAssertLovelace (EnterpriseTag "w1") [wallet1] wallet1After
                 <> initAndAssertLovelace (EnterpriseTag "w2") [wallet2] wallet2After
           )
           ( do
               withContract $ \wl -> do
                 EnterpriseInfo w1pkh <- lookupWallet wl (EnterpriseTag "w1")
-                EnterpriseInfo w2pkh <- lookupWallet wl (EnterpriseTag "w1")
+                EnterpriseInfo w2pkh <- lookupWallet wl (EnterpriseTag "w2")
                 mapError Right $ do
                   _ <- payTo w1pkh (toInteger payTo1Amt)
                   _ <- waitNSlots 2
@@ -304,8 +304,8 @@ testValueAssertionsOrderCorrectness =
           ( do
               void $
                 withContractAs 1 $ \wl -> do
-                  EnterpriseInfo w0pkh <- lookupWallet wl (EnterpriseTag "w1")
-                  EnterpriseInfo w2pkh <- lookupWallet wl (EnterpriseTag "w1")
+                  EnterpriseInfo w0pkh <- lookupWallet wl (EnterpriseTag (0 :: Int))
+                  EnterpriseInfo w2pkh <- lookupWallet wl (EnterpriseTag 1)
                   mapError Right $ do
                     _ <- payTo w0pkh (toInteger payTo0Amt)
                     _ <- waitNSlots 2

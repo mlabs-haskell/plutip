@@ -16,7 +16,7 @@ module Test.Plutip.Internal.BotPlutusInterface.Types (
   ownAddress,
   getTag,
   WalletInfo'(..)
-  , testWallet') where
+  , testWallet', SomeBpiWallet(..), SomeTestWallet'(..)) where
 
 import Data.List.NonEmpty (NonEmpty)
 import Ledger (Value, PaymentPubKeyHash, StakePubKeyHash, Address, pubKeyHashAddress)
@@ -57,10 +57,14 @@ data BpiWallet k = BpiWallet
   }
   deriving stock (Show)
 
+data SomeBpiWallet = forall k . SomeBpiWallet (BpiWallet k)
+
 newtype TestWallets k = TestWallets {unTestWallets :: NonEmpty (TestWallet' k) }
   deriving newtype (Semigroup)
 
 data TestWallet' k = forall t . TestWallet' (TestWallet t k)
+
+data SomeTestWallet' = forall k . SomeTestWallet' (TestWallet' k)
 
 data TestWallet t k = TestWallet
   { twInitDistribiution :: [Positive]

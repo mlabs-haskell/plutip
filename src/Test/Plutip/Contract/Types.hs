@@ -35,14 +35,14 @@ type TestContractConstraints (w :: Type) (e :: Type) (k :: Type) (a :: Type) =
   , Show k
   , Typeable w
   , Typeable e
-  , Typeable a
   , Typeable k
+  , Typeable a
   , Ord k
   , AsContractError e
   )
 
 -- | Test contract
-data TestContract (w :: Type) (e :: Type) (a :: Type) (k :: Type)
+data TestContract (w :: Type) (e :: Type) (k :: Type) (a :: Type) 
   = TestContract
       (Predicate w e k a)
       -- ^ Info about check to perform and how to report results
@@ -51,8 +51,8 @@ data TestContract (w :: Type) (e :: Type) (a :: Type) (k :: Type)
   deriving stock (Typeable)
 
 instance
-  forall (w :: Type) (e :: Type) (a :: Type) (k :: Type).
-  TestContractConstraints w e a k =>
+  forall (w :: Type) (e :: Type) (k :: Type) (a :: Type).
+  TestContractConstraints w e k a =>
   IsTest (TestContract w e k a)
   where
   run _ (TestContract predicate runResult) _ = do

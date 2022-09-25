@@ -22,10 +22,9 @@ import Data.Default (def)
 import Data.List.NonEmpty (NonEmpty)
 import Numeric.Natural (Natural)
 import Test.Plutip.Config (PlutipConfig)
-import Test.Plutip.Contract (ada)
-import Test.Plutip.Internal.BotPlutusInterface.Types (TestWallets (unTestWallets))
+import Test.Plutip.Contract (ada, ClusterTest(ClusterTest))
+import Test.Plutip.Internal.BotPlutusInterface.Types (TestWallets (unTestWallets, TestWallets), SomeBpiWallet (SomeBpiWallet), BpiWallet (bwTag), TestWallet (twTag), getTag, TestWallet' (TestWallet'), SomeTestWallet' (SomeTestWallet'))
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (
-  BpiWallet,
   addSomeWallet,
   cardanoMainnetAddress,
   mkMainnetAddress,
@@ -35,7 +34,7 @@ import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)
 import Test.Plutip.Internal.Types (ClusterEnv)
 import Test.Tasty (testGroup, withResource)
 import Test.Tasty.Providers (TestTree)
-import Data.Kind (Type)
+import qualified Data.List.NonEmpty as NonEmpty
 
 -- | Awaiting via `threadDelay`
 waitSeconds :: Natural -> ReaderT ClusterEnv IO ()
@@ -57,7 +56,7 @@ waitSeconds n = liftIO $ threadDelay (fromEnum n * 1_000_000)
 -- @since 0.2
 withCluster ::
   String ->
-  [(TestWallets k, IO (ClusterEnv, NonEmpty (BpiWallet k)) -> TestTree)] ->
+  [ClusterTest] ->
   TestTree
 withCluster = withConfiguredCluster def
 
@@ -76,31 +75,37 @@ withCluster = withConfiguredCluster def
 --
 -- @since 0.2
 withConfiguredCluster ::
-  forall (k :: Type).
   PlutipConfig ->
   String ->
-  [(TestWallets k, IO (ClusterEnv, NonEmpty (BpiWallet k)) -> TestTree)] ->
+  [ClusterTest] ->
   TestTree
 withConfiguredCluster conf name testCases =
   withResource (startCluster conf setup) (stopCluster . fst) $
     \getResource ->
       testGroup name $
         imap
-          (\idx (_, toTestGroup) -> toTestGroup $ second (!! idx) . snd <$> getResource)
+          (\idx (ClusterTest (tws, toTestGroup)) -> toTestGroup $ second (substituteTags tws . (!! idx)) . snd <$> getResource)
           testCases
   where
-    setup :: ReaderT ClusterEnv IO (ClusterEnv, [NonEmpty (BpiWallet k)])
+    -- setup :: ReaderT ClusterEnv IO (ClusterEnv, [NonEmpty SomeBpiWallet])
     setup = do
       env <- ask
 
       wallets <-
         traverse
-          (traverse addSomeWallet . unTestWallets . fst)
+          (traverse (\(SomeTestWallet' tw) -> SomeBpiWallet <$> addSomeWallet tw) . getSomeTestWallets)
           testCases
       -- had to bump waiting period here coz of chain-index slowdown,
       -- see https://github.com/mlabs-haskell/plutip/issues/120
       waitSeconds 5 -- wait for transactions to submit
       pure (env, wallets)
+
+    getSomeTestWallets (ClusterTest (tws, _)) = SomeTestWallet' <$> unTestWallets tws
+
+    -- | Restore type information on BpiWallets by substituting tags from matching test wallets.
+    substituteTags :: TestWallets k -> NonEmpty SomeBpiWallet -> NonEmpty (BpiWallet k)
+    substituteTags (TestWallets tws) walls =
+      NonEmpty.zipWith (\(TestWallet' tw) (SomeBpiWallet bw) -> bw {bwTag = getTag (twTag tw)}) tws walls
 
 imap :: (Int -> a -> b) -> [a] -> [b]
 imap fn = zipWith fn [0 ..]

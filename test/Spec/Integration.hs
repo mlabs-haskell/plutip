@@ -45,7 +45,7 @@ import Test.Plutip.Contract (
  )
 import Test.Plutip.Contract.Types (WalletTag (EnterpriseTag, WithStakeKeysTag))
 import Test.Plutip.Internal.BotPlutusInterface.Lookups (WalletLookups (lookupWallet), lookupAddress)
-import Test.Plutip.Internal.BotPlutusInterface.Types (EnterpriseInfo (EnterpriseInfo))
+import Test.Plutip.Internal.BotPlutusInterface.Types (PkhWallet (PkhWallet))
 import Test.Plutip.Internal.Types (
   FailureReason (CaughtException, ContractExecutionError),
   isException,
@@ -108,7 +108,7 @@ test =
           "Pay negative amount"
           (initAda (WithStakeKeysTag (0 :: Int)) [100]) -- TODO: this test doesn't fail because negative amount
           ( withContract $ \wl -> do
-              EnterpriseInfo pkh1 <- lookupWallet wl (EnterpriseTag 0)
+              PkhWallet pkh1 <- lookupWallet wl (EnterpriseTag 0)
               payTo pkh1 (-10_000_000)
           )
           [shouldFail]
@@ -117,7 +117,7 @@ test =
           "Pay from wallet to wallet"
           (initAda (EnterpriseTag ("pkh1" :: String)) [100] <> initAndAssertAda (EnterpriseTag "pkh2") [100, 13] 123)
           ( withContract $ \wl -> do
-              EnterpriseInfo pkh1 <- lookupWallet wl (EnterpriseTag "pkh2")
+              PkhWallet pkh1 <- lookupWallet wl (EnterpriseTag "pkh2")
               payTo pkh1 10_000_000
           )
           [shouldSucceed]
@@ -258,8 +258,8 @@ testValueAssertionsOrderCorrectness =
           )
           ( do
               withContract $ \wl -> do
-                EnterpriseInfo w1pkh <- lookupWallet wl (EnterpriseTag "w1")
-                EnterpriseInfo w2pkh <- lookupWallet wl (EnterpriseTag "w2")
+                PkhWallet w1pkh <- lookupWallet wl (EnterpriseTag "w1")
+                PkhWallet w2pkh <- lookupWallet wl (EnterpriseTag "w2")
                 _ <- payTo w1pkh (toInteger payTo1Amt)
                 _ <- waitNSlots 2
                 payTo w2pkh (toInteger payTo2Amt)
@@ -299,14 +299,14 @@ testValueAssertionsOrderCorrectness =
           ( do
               void $
                 withContractAs 1 $ \wl -> do
-                  EnterpriseInfo w0pkh <- lookupWallet wl (EnterpriseTag 0)
-                  EnterpriseInfo w2pkh <- lookupWallet wl (EnterpriseTag 2)
+                  PkhWallet w0pkh <- lookupWallet wl (EnterpriseTag 0)
+                  PkhWallet w2pkh <- lookupWallet wl (EnterpriseTag 2)
                   _ <- payTo w0pkh (toInteger payTo0Amt)
                   _ <- waitNSlots 2
                   payTo w2pkh (toInteger payTo2Amt)
 
               withContractAs 2 $ \wl -> do
-                EnterpriseInfo w1pkh <- lookupWallet wl (EnterpriseTag 1)
+                PkhWallet w1pkh <- lookupWallet wl (EnterpriseTag 1)
                 payTo w1pkh (toInteger payTo1Amt)
           )
           [shouldSucceed]

@@ -11,12 +11,18 @@ import Data.Kind (Type)
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Row (Row)
-import Data.String (IsString (fromString))
 import Ledger (Address)
 import Plutus.Contract (Contract, ContractError (OtherContractError))
 import Plutus.Contract.Error (AsContractError, _ContractError)
-import Test.Plutip.Internal.BotPlutusInterface.Types (BpiWallet (bwTag), EnterpriseInfo (EnterpriseInfo), WalletInfo, WalletTag (EnterpriseTag, WithStakeKeysTag), WalletTypeError (BadWalletIndex, ExpectedEnterpriseWallet, ExpectedWalletWithStakeKeys), WithStakeKeysInfo (WithStakeKeysInfo), ownAddress)
+import Test.Plutip.Internal.BotPlutusInterface.Types (BpiWallet (bwTag), PkhWallet (PkhWallet), WalletInfo, WalletTag (EnterpriseTag, WithStakeKeysTag), BaseWallet (BaseWallet), ownAddress)
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (walletPaymentPkh, walletStakePkh)
+import Data.Text (Text)
+
+-- Error messages for wallet lookup fails. 
+expectedEnterpriseWallet, expectedWalletWithStakeKeys, badWalletIndex :: Text
+expectedEnterpriseWallet = "Expected base address wallet, got one with staking keys."
+expectedWalletWithStakeKeys = "Expected base address wallet, got one with staking keys."
+badWalletIndex = "Index outside of range."
 
 data WalletLookups k = WalletLookups
   { lookupWallet ::
@@ -34,8 +40,8 @@ data WalletLookups k = WalletLookups
 makeWalletInfo :: BpiWallet k -> WalletInfo
 makeWalletInfo w =
   maybe
-    (Right $ EnterpriseInfo (walletPaymentPkh w))
-    (Left . WithStakeKeysInfo (walletPaymentPkh w))
+    (Right $ PkhWallet (walletPaymentPkh w))
+    (Left . BaseWallet (walletPaymentPkh w))
     (walletStakePkh w)
 
 lookupsMap :: Ord k => [BpiWallet k] -> Map k WalletInfo
@@ -51,12 +57,12 @@ makeWalletLookups lookups =
   WalletLookups
     { lookupWallet = lookupTaggedWallet lookups
     , lookupAddress = \k ->
-        maybe (throwError $ toError BadWalletIndex) pure $
+        maybe (toError badWalletIndex) pure $
           Map.lookup k $ ownAddress <$> lookups
     }
   where
-    toError :: AsContractError e => WalletTypeError -> e
-    toError = (\e -> withPrism _ContractError $ \f _ -> f e) . OtherContractError . fromString . show
+    toError :: MonadError e m => AsContractError e => Text -> m a
+    toError = throwError . (\e -> withPrism _ContractError $ \f _ -> f e) . OtherContractError
 
     lookupTaggedWallet ::
       forall (k :: Type) (w :: Type) (s :: Row Type) (e :: Type) (t :: Type).
@@ -65,10 +71,10 @@ makeWalletLookups lookups =
       WalletTag t k ->
       Contract w s e t
     lookupTaggedWallet wl (EnterpriseTag k) = case Map.lookup k wl of
-      Nothing -> throwError $ toError BadWalletIndex
-      Just (Right res@(EnterpriseInfo _)) -> pure res
-      Just (Left (WithStakeKeysInfo _ _)) -> throwError $ toError ExpectedEnterpriseWallet
+      Nothing -> toError badWalletIndex
+      Just (Right res@(PkhWallet _)) -> pure res
+      Just (Left (BaseWallet _ _)) -> toError expectedEnterpriseWallet
     lookupTaggedWallet wl (WithStakeKeysTag k) = case Map.lookup k wl of
-      Nothing -> throwError $ toError BadWalletIndex
-      Just (Right (EnterpriseInfo _)) -> throwError $ toError ExpectedWalletWithStakeKeys
-      Just (Left res@(WithStakeKeysInfo _ _)) -> pure res
+      Nothing -> toError badWalletIndex
+      Just (Right (PkhWallet _)) -> toError expectedWalletWithStakeKeys
+      Just (Left res@(BaseWallet _ _)) -> pure res

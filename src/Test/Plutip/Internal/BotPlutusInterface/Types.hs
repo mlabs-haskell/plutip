@@ -9,7 +9,6 @@ module Test.Plutip.Internal.BotPlutusInterface.Types (
   compareValuesWith,
   WalletTag (..),
   TestWallet' (..),
-  WalletTypeError (..),
   WalletInfo,
   ownPaymentPubKeyHash,
   ownStakePubKeyHash,
@@ -19,22 +18,20 @@ module Test.Plutip.Internal.BotPlutusInterface.Types (
   testWallet',
   SomeBpiWallet (..),
   SomeTestWallet' (..),
-  WithStakeKeysInfo (..),
-  EnterpriseInfo (..),
+  BaseWallet (..),
+  PkhWallet (..),
 ) where
 
-import Control.Lens.Prism (_Right)
 import Data.Data (Typeable)
 import Data.List.NonEmpty (NonEmpty)
 import Ledger (Address, PaymentPubKeyHash, StakePubKeyHash, Value, pubKeyHashAddress)
 import Ledger.Value qualified as Value
 import Numeric.Positive (Positive)
-import Plutus.Contract.Error (AsContractError (_ContractError))
 import Test.Plutip.Internal.BotPlutusInterface.Keys (KeyPair, StakeKeyPair)
 
 data WalletTag t k where
-  WithStakeKeysTag :: k -> WalletTag WithStakeKeysInfo k
-  EnterpriseTag :: k -> WalletTag EnterpriseInfo k
+  WithStakeKeysTag :: k -> WalletTag BaseWallet k
+  EnterpriseTag :: k -> WalletTag PkhWallet k
 
 deriving stock instance Show k => Show (WalletTag t k)
 deriving stock instance Eq k => Eq (WalletTag t k)
@@ -86,27 +83,15 @@ compareValuesWith VLt = Value.lt
 compareValuesWith VGEq = Value.geq
 compareValuesWith VLEq = Value.leq
 
-data WalletTypeError
-  = -- | Expected enterprise address wallet, got one with staking keys.
-    ExpectedEnterpriseWallet
-  | -- | Expected base address wallet, got one without staking keys.
-    ExpectedWalletWithStakeKeys
-  | -- | Index outside of range
-    BadWalletIndex
+-- | Type holding wallet information as seen with wallet lookups. Used internally only.
+type WalletInfo = Either BaseWallet PkhWallet
 
-instance AsContractError e => AsContractError (Either WalletTypeError e) where
-  _ContractError = _Right . _ContractError
-
-instance Show WalletTypeError where
-  show ExpectedEnterpriseWallet = "Expected base address wallet, got one with staking keys."
-  show ExpectedWalletWithStakeKeys = "Expected base address wallet, got one with staking keys."
-  show BadWalletIndex = "Index outside of range."
-
-type WalletInfo = Either WithStakeKeysInfo EnterpriseInfo
-
-data WithStakeKeysInfo = WithStakeKeysInfo {getBasePkh :: PaymentPubKeyHash, getSpkh :: StakePubKeyHash}
+-- | Base address wallet: supported by both Payment and Staking keys.
+data BaseWallet = BaseWallet {getBasePkh :: PaymentPubKeyHash, getSpkh :: StakePubKeyHash}
   deriving stock (Eq, Show, Typeable)
-newtype EnterpriseInfo = EnterpriseInfo {getPkh :: PaymentPubKeyHash}
+
+-- | Enterprise address wallet: supported only by Payment keys.
+newtype PkhWallet = PkhWallet {getPkh :: PaymentPubKeyHash}
   deriving stock (Eq, Show, Typeable)
 
 ownPaymentPubKeyHash :: WalletInfo -> PaymentPubKeyHash

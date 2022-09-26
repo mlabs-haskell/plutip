@@ -31,7 +31,7 @@ import Test.Plutip.Contract (
   withContract,
  )
 import Test.Plutip.Internal.BotPlutusInterface.Lookups (WalletLookups (lookupWallet))
-import Test.Plutip.Internal.BotPlutusInterface.Types (EnterpriseInfo (EnterpriseInfo), WalletTag (EnterpriseTag))
+import Test.Plutip.Internal.BotPlutusInterface.Types (PkhWallet (PkhWallet), WalletTag (EnterpriseTag))
 import Test.Plutip.Predicate (
   shouldSucceed,
   yieldSatisfies,
@@ -72,7 +72,7 @@ runAdjustTest =
     "Adjust Unbalanced Tx Contract"
     (initAda (EnterpriseTag (0 :: Int)) [1000] <> initAda (EnterpriseTag 1) [1000])
     ( withContract $ \wl -> do
-        EnterpriseInfo pkh <- lookupWallet wl (EnterpriseTag (1 :: Int))
+        PkhWallet pkh <- lookupWallet wl (EnterpriseTag (1 :: Int))
         adjustTx' [pkh]
     )
     [ shouldSucceed

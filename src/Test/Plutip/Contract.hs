@@ -133,7 +133,9 @@ module Test.Plutip.Contract (
   ada,
   TestWallets,
   ClusterTest (ClusterTest),
-  ValueOrdering (VEq, VGt, VLt, VGEq, VLEq),
+  -- Contract runners
+  runContract,
+  runContractWithLogLvl,
 ) where
 
 import BotPlutusInterface.Types (
@@ -180,18 +182,19 @@ import Test.Plutip.Contract.Types (
  )
 import Test.Plutip.Contract.Values (assertValues, valueAt)
 import Test.Plutip.Internal.BotPlutusInterface.Lookups (WalletLookups, lookupsMap, makeWalletInfo, makeWalletLookups)
-import Test.Plutip.Internal.BotPlutusInterface.Run (runContract)
+import Test.Plutip.Internal.BotPlutusInterface.Run
+    ( runContract, runContract, runContractWithLogLvl )
 import Test.Plutip.Internal.BotPlutusInterface.Types (
   BpiWallet (bwTag),
   TestWallet (twExpected, twTag),
   TestWallet' (TestWallet'),
   TestWallets (unTestWallets),
-  ValueOrdering (VEq, VGEq, VGt, VLEq, VLt),
   getTag,
   ownAddress,
   WalletInfo,
  )
-import Test.Plutip.Internal.BotPlutusInterface.Wallet (walletPaymentPkh)
+import Test.Plutip.Internal.BotPlutusInterface.Wallet
+    ( walletPaymentPkh )
 import Test.Plutip.Internal.Types (
   ClusterEnv,
   ExecutionResult (contractLogs, outcome),
@@ -346,14 +349,14 @@ withContractAs walletName toContract = do
   let -- pick wallet for Contract's "own PKH", other wallets PKHs will be provided
       -- to the user in `withContractAs`
       (ownWallet, otherWallets) = separateWallets walletName $ NonEmpty.toList wallets'
-      
+
       -- without own wallet
       otherLookups :: Map k WalletInfo
       otherLookups = lookupsMap otherWallets
 
       -- to be passed to the user, without own wallet
       walletLookups = makeWalletLookups otherLookups
-      
+
       -- these are `PaymentPubKeyHash`es of all wallets used in test case
       collectValuesAddr = ownAddress <$> Map.insert (bwTag ownWallet) (makeWalletInfo ownWallet) otherLookups
 

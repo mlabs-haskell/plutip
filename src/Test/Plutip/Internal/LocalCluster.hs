@@ -308,7 +308,7 @@ handleLogs clusterDir conf =
           Path partially hardcoded in Cardano.Wallet.Shelley.Launch.Cluster by
          `withRelayNode` ("node" subdir) and `genConfig` (file name)
         -}
-        (clusterDir </> "node" </> "cardano-node.log")
+        (clusterDir </> "pool-1" </> "cardano-node.log")
         toFile
 
 data ClusterStatus (a :: Type)

@@ -58,7 +58,7 @@ waitSeconds n = liftIO $ threadDelay (fromEnum n * 1_000_000)
 -- > test =
 -- >   withCluster
 -- >     "Tests with local cluster"
--- >     [ assertExecution "Get utxos" (initAda (PkhTag 0) 100) (withContract $ const getUtxos) [shouldSucceed]] 
+-- >     [ assertExecution "Get utxos" (initAda (PkhTag ()) 100) (withContract $ const getUtxos) [shouldSucceed]]
 -- >     ...
 --
 -- @since 0.2
@@ -78,7 +78,7 @@ withCluster = withConfiguredCluster def
 -- >     let myConfig = PlutipConfig ...
 -- >     withConfiguredCluster myConfig
 -- >     "Tests with local cluster"
--- >     [ assertExecution "Get utxos" (initAda (PkhTag 0) 100) (withContract $ const getUtxos) [shouldSucceed]] 
+-- >     [ assertExecution "Get utxos" (initAda (PkhTag ()) 100) (withContract $ const getUtxos) [shouldSucceed]]
 -- >     ...
 --
 -- @since 0.2

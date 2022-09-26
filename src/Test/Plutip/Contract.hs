@@ -99,7 +99,7 @@
 --    >   (initAda (PkhTag 0) 100 <> initAda (PkhTag 1) 101)
 --    >   ( do
 --    >       void $ -- run something prior to the contract which result will be checked
---    >         withContract $ \wl -> 
+--    >         withContract $ \wl ->
 --    >           PkhWallet pkh1 <- lookupWallet wl (PkhTag 1)
 --    >           payTo pkh1 10_000_000
 --    >       withContractAs 1 $ \wl -> do  -- run the contract which result will be checked
@@ -182,19 +182,22 @@ import Test.Plutip.Contract.Types (
  )
 import Test.Plutip.Contract.Values (assertValues, valueAt)
 import Test.Plutip.Internal.BotPlutusInterface.Lookups (WalletLookups, lookupsMap, makeWalletInfo, makeWalletLookups)
-import Test.Plutip.Internal.BotPlutusInterface.Run
-    ( runContract, runContract, runContractWithLogLvl )
+import Test.Plutip.Internal.BotPlutusInterface.Run (
+  runContract,
+  runContractWithLogLvl,
+ )
 import Test.Plutip.Internal.BotPlutusInterface.Types (
   BpiWallet (bwTag),
   TestWallet (twExpected, twTag),
   TestWallet' (TestWallet'),
   TestWallets (unTestWallets),
+  WalletInfo,
   getTag,
   ownAddress,
-  WalletInfo,
  )
-import Test.Plutip.Internal.BotPlutusInterface.Wallet
-    ( walletPaymentPkh )
+import Test.Plutip.Internal.BotPlutusInterface.Wallet (
+  walletPaymentPkh,
+ )
 import Test.Plutip.Internal.Types (
   ClusterEnv,
   ExecutionResult (contractLogs, outcome),
@@ -321,7 +324,7 @@ maybeAddValuesCheck ioRes tws =
           f _ _ = error "All left are This and all right are That."
        in Map.unionWith f (This <$> mb) (That <$> mc)
 
--- | Run a contract using the first wallet as own wallet, and return `ExecutionResult`.
+-- | Run a contract using the first wallet (in the order of how initializations are written) as own wallet, and return `ExecutionResult`.
 -- This could be used by itself, or combined with multiple other contracts.
 --
 -- @since 0.2

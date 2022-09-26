@@ -31,8 +31,9 @@ import Test.Plutip.Internal.BotPlutusInterface.Keys (KeyPair, StakeKeyPair)
 
 -- | Name for the wallet (k) together with information on what we expect the wallet to be.
 -- Used in wallet initialization specifies requested wallet's type, used in lookups specifies expected returned wallet type.
--- 
+--
 -- Don't use the same name `k` for two wallets, even with different tag constructors.
+-- `t` type parameter is the type of wallet that will be accessible from WalletLookups.
 data WalletTag t k where
   -- | Base address wallet: has both payment and staking keys
   BaseTag :: k -> WalletTag BaseWallet k
@@ -69,16 +70,18 @@ newtype TestWallets k = TestWallets {unTestWallets :: NonEmpty (TestWallet' k)}
 
 data TestWallet' k = forall t. TestWallet' (TestWallet t k)
 
+-- | Make TestWallet', takes utxo distribution, value assertions and WalletTag as arguments.
+testWallet' :: [Positive] -> Maybe (ValueOrdering, Value) -> WalletTag t k -> TestWallet' k
+testWallet' twInitDistribiution twExpected twTag = TestWallet' $ TestWallet twInitDistribiution twExpected twTag
+
 data SomeTestWallet' = forall k. SomeTestWallet' (TestWallet' k)
 
+-- | Description of wallet to initialize
 data TestWallet t k = TestWallet
   { twInitDistribiution :: [Positive]
   , twExpected :: Maybe (ValueOrdering, Value)
   , twTag :: WalletTag t k
   }
-
-testWallet' :: [Positive] -> Maybe (ValueOrdering, Value) -> WalletTag t k -> TestWallet' k
-testWallet' twInitDistribiution twExpected twTag = TestWallet' $ TestWallet twInitDistribiution twExpected twTag
 
 data ValueOrdering = VEq | VGt | VLt | VGEq | VLEq
 

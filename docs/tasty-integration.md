@@ -10,8 +10,8 @@ test =
   withConfiguredCluster def -- 1
     "Basic integration: launch, add wallet, tx from wallet to wallet" -- 2
     $ [ assertExecution "Contract 1" -- 3
-          (initAda [100,200] <> initLovelace 10_000_000) -- 3.1
-          (withContract $ \[wallet2pkh] -> someContract) -- 3.2
+          (initAda (PkhTag (0 :: Int)) [100,200] <> initLovelace (BaseTag 1) 10_000_000) -- 3.1
+          (withContract $ \wl -> someContract) -- 3.2
           [ shouldSucceed -- 3.3
           ]
       ]
@@ -20,8 +20,8 @@ test =
 1. Will start the local network with default config (more on configuring below)
 2. Description of test group that will be run on current instance of the network
 3. Test scenario that will be performed on the local network with it's description. Scenario includes:
-   1. (3.1.) Initialization of `wallets`. In this case two addresses will be funded: first will have 2 UTxOs with 100 and 200 Ada, second - single UTxO with 10 Ada.
-   2. (3.2) Execution of "`someContract :: Contract w s e a`". `PaymentPubKeyHash` of *first wallet* will be accessible in `someContract` as "own PaymentPubKeyHash". e.g with `ownFirstPaymentPubKeyHash`. `PaymentPubKeyHash` of *second* initiated wallet is brought into scope by `wallet2pkh` during pattern match on list (more on that below).
+   1. (3.1.) Initialization of `wallets`. In this case two addresses will be funded: first - enterprise address - will have 2 UTxOs with 100 and 200 Ada, second - base address - single UTxO with 10 Ada.
+   2. (3.2) Execution of "`someContract :: Contract w s e a`". `PaymentPubKeyHash` of *first wallet* will be accessible in `someContract` as "own PaymentPubKeyHash". e.g with `ownFirstPaymentPubKeyHash`. `PaymentPubKeyHash` of *second* initiated wallet is accessible through `wl :: WalletLookups`  (more on that below).
    3. (3.3) List of checks or `predicates` which will be performed for the result of `someContract` execution.
 
 It is possible to run several scenarios on single network instance - note that `withConfiguredCluster` accepts list of `assertExecution`'s.
@@ -33,25 +33,47 @@ It is possible to initialize arbitrary number of `wallets` in second argument of
 E.g. if `wallets` initialized like
 
 ```haskell
-(initAda [100] <> initAda [200] <> initAda [300])
+(initAda (PkhTag (0 :: Int)) [100] <> initAda (PkhTag 1) [200] <> initAda (BaseTag 2) [300])
 ```
 
 we will get 3 funded addresses represented by 3 corresponding `wallets`: 
 
-* `PaymentPubKeyHash` of wallet `initAda [100]` will be "own" `PaymentPubKeyHash` for contract executed it test case.
-* `PaymentPubKeyHash` of `wallets` `initAda [200]` and `initAda [300]` will be available via lambda argument. I.e.:
+* `PaymentPubKeyHash` of wallet 0 will be "own" `PaymentPubKeyHash` for contract executed it test case.
+* `PaymentPubKeyHash` of `wallets` 1 and 2 will be available via lambda wallet lookups argument. I.e.:
 
 
 ```haskell
-withContract $ \[pkh1, pkh2] -> someContract
+withContract $ \wl -> do
+  PkhWallet pkh1 <- lookupWallet wl (PkhTag 1)
+  BaseWallet pkh2 spkh2 <- lookupWallet wl (BaseTag 2)
+  someContract
 ```
 
-where
+note that the lookup return type depends on a query tag. Unfortunetely the type hint is needed to avoid cryptic error message.
 
-* `pkh1` is `PaymentPubKeyHash` of `wallet` `initAda [200]`
-* `pkh2` is `PaymentPubKeyHash` of `wallet` `initAda [300]`
 
-`PaymentPubKeyHash` of `wallet` `initAda [100]` is meant to be `pkh0` and not presented in the list.
+* `pkh1` is `PaymentPubKeyHash` of `wallet` `initAda (PkhTag 1) [200]`
+* `pkh2` is `PaymentPubKeyHash` of `wallet` `initAda (BaseTag 2) [300]` and `spkh2` is its `StakePubKeyHash`
+
+`PaymentPubKeyHash` of `wallet` `initAda (PkhTag 0) [100]` is meant to be `pkh0` and not presented in the lookups.
+
+
+You can execute a contract with base address as contracts address:
+```haskell
+(initAda (BaseTag 0) [100])
+```
+
+and witness in contract
+
+```haskell
+withContract $ \_ -> do
+  ourAddr :| _ <- Contract.ownAddresses
+  case addr of
+    Address (PubKeyCredential ourPkh) (Just (StakingHash (PubKeyCredential ourSpkh))) -> logInfo "This is the address we will get."
+    _ -> error "Nothing else matters"
+```
+
+Use `mustPayToPubKeyAddress` instead of `mustPayToPubKey` when your address has staking keys.
 
 ## Executing contracts
 
@@ -59,13 +81,13 @@ It is possible to run arbitrary number of contracts in 3d argument of `assertExe
 
 ```haskell
   assertExecution "Some description"
-          ( initAda [100])
+          ( initAda (PkhTag ()) [100])
           ( do
               void $
                 withContract $
-                  \pkhs -> contract1
+                  \wl -> contract1
               withContractAs 1 $
-                \pkhs -> contract2
+                \wl -> contract2
           )
           [shouldSucceed]
 ```
@@ -85,29 +107,29 @@ For example, consider the following scenario:
 
 ```haskell
   assertExecution "Some description"
-          ( initAda [100] -- walletA
-            <> initAda [200] -- walletB
-            <> initAda [300] -- walletC
+          ( initAda (PkhTag 'a') [100] -- walletA
+            <> initAda (PkhTag 'b') [200] -- walletB
+            <> initAda (PkhTag 'c') [300] -- walletC
           )
           ( do
               void $
-                withContractAs 1 $ -- running contract with walletB
-                  \[walletA_PKH, walletC_PKH] -> setupContract1
+                withContractAs 'b' $ -- running contract with walletB
+                  \wl -> do
+                    wallA <- lookupWallet wl (PkhTag 'a')
+                    setupContract1
               void $
-                withContractAs 2 $  -- running contract with walletC
-                  \[walletA_PKH, walletB_PKH] -> setupContract2
-              withContract $
-                \pkhs -> theContract
+                withContractAs 'c' $  -- running contract with walletC
+                  \wl -> do 
+                    wallB <- lookupWallet wl (PkhTag 'b')
+                    setupContract2
+              withContract $  -- uses first wallet, walletA
+                \wl -> theContract
           )
           [shouldSucceed]
 ```
 
-Under the hood, test runner builds list of wallets like this `[walletA, walletB, walletC]` and by calling `withContractAs` we can refer to an index (0 based) of specific wallet in this list. In that case, `PaymentPubKeyHash` of referenced `wallet` becomes "own" `PaymentPubKeyHash` of the contract, and `PaymentPubKeyHash`'es in argument of lambda  will be rearranged. E.g. in case of  `withContractAs 1`:
-
-* `PaymentPubKeyHash` of `walletB` will become own `PaymentPubKeyHash`
-* argument of lambada will contain `PaymentPubKeyHash`'es of `walletA` and `walletC`.
-
-Actually, `withContract` is just shortcut for `withContractAs 0`.
+`withContractAs` asks explicitly for the name of a wallet to be used as contract's.
+Instead `withContract` uses the first wallet, first in the order of how the initializations are written.
 
 ## Assertions
 
@@ -148,7 +170,7 @@ E.g. scenario like this
         assertExecutionWith
           [ShowBudgets]
           "Lock then spend contract"
-          (initAda (replicate 3 300))
+          (initAda (PkhTag ()) (replicate 3 300))
           (withContract $ const lockThenSpend)
           [ shouldSucceed
           ]

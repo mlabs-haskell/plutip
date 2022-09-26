@@ -31,7 +31,6 @@ import Spec.TestContract.SimpleContracts (
 import Spec.TestContract.ValidateTimeRange (failingTimeContract, successTimeContract)
 import Test.Plutip.Contract (
   ClusterTest,
-  ValueOrdering (VLt),
   assertExecution,
   assertExecutionWith,
   initAda,
@@ -45,7 +44,7 @@ import Test.Plutip.Contract (
  )
 import Test.Plutip.Contract.Types (WalletTag (BaseTag, PkhTag))
 import Test.Plutip.Internal.BotPlutusInterface.Lookups (WalletLookups (lookupWallet), lookupAddress)
-import Test.Plutip.Internal.BotPlutusInterface.Types (PkhWallet (PkhWallet))
+import Test.Plutip.Internal.BotPlutusInterface.Types (PkhWallet (PkhWallet), ValueOrdering (VLt))
 import Test.Plutip.Internal.Types (
   FailureReason (CaughtException, ContractExecutionError),
   isException,

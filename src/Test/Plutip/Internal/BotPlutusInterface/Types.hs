@@ -7,22 +7,24 @@ module Test.Plutip.Internal.BotPlutusInterface.Types (
   TestWallets (TestWallets, unTestWallets),
   ValueOrdering (VEq, VGt, VLt, VGEq, VLEq),
   compareValuesWith,
-  WalletType (..),
   WalletTag (..),
   TestWallet' (..),
   WalletTypeError (..),
-  WalletInfo (..),
+  WalletInfo,
   ownPaymentPubKeyHash,
   ownStakePubKeyHash,
   ownAddress,
   getTag,
-  WalletInfo' (..),
+  -- WalletInfo' (..),
   testWallet',
   SomeBpiWallet (..),
   SomeTestWallet' (..),
+  WithStakeKeysInfo (..),
+  EnterpriseInfo (..),
 ) where
 
 import Control.Lens.Prism (_Right)
+import Data.Data (Typeable)
 import Data.List.NonEmpty (NonEmpty)
 import Ledger (Address, PaymentPubKeyHash, StakePubKeyHash, Value, pubKeyHashAddress)
 import Ledger.Value qualified as Value
@@ -31,8 +33,8 @@ import Plutus.Contract.Error (AsContractError (_ContractError))
 import Test.Plutip.Internal.BotPlutusInterface.Keys (KeyPair, StakeKeyPair)
 
 data WalletTag t k where
-  WithStakeKeysTag :: k -> WalletTag 'WithStakeKeys k
-  EnterpriseTag :: k -> WalletTag 'Enterprise k
+  WithStakeKeysTag :: k -> WalletTag WithStakeKeysInfo k
+  EnterpriseTag :: k -> WalletTag EnterpriseInfo k
 
 deriving stock instance Show k => Show (WalletTag t k)
 deriving stock instance Eq k => Eq (WalletTag t k)
@@ -41,11 +43,6 @@ getTag :: WalletTag t k -> k
 getTag = \case
   WithStakeKeysTag k -> k
   EnterpriseTag k -> k
-
-data WalletType
-  = Enterprise
-  | WithStakeKeys
-  deriving stock (Show, Eq)
 
 data BpiError
   = SignKeySaveError !String
@@ -105,21 +102,18 @@ instance Show WalletTypeError where
   show ExpectedWalletWithStakeKeys = "Expected base address wallet, got one with staking keys."
   show BadWalletIndex = "Index outside of range."
 
-data WalletInfo t where
-  WithStakeKeysInfo :: PaymentPubKeyHash -> StakePubKeyHash -> WalletInfo 'WithStakeKeys
-  EnterpriseInfo :: PaymentPubKeyHash -> WalletInfo 'Enterprise
+type WalletInfo = Either WithStakeKeysInfo EnterpriseInfo
 
-ownPaymentPubKeyHash :: WalletInfo t -> PaymentPubKeyHash
-ownPaymentPubKeyHash = \case
-  WithStakeKeysInfo pkh _ -> pkh
-  EnterpriseInfo pkh -> pkh
+data WithStakeKeysInfo = WithStakeKeysInfo {getBasePkh :: PaymentPubKeyHash, getSpkh :: StakePubKeyHash}
+  deriving stock (Eq, Show, Typeable)
+newtype EnterpriseInfo = EnterpriseInfo {getPkh :: PaymentPubKeyHash}
+  deriving stock (Eq, Show, Typeable)
 
-ownStakePubKeyHash :: WalletInfo t -> Maybe StakePubKeyHash
-ownStakePubKeyHash = \case
-  WithStakeKeysInfo _ spkh -> Just spkh
-  EnterpriseInfo _ -> Nothing
+ownPaymentPubKeyHash :: WalletInfo -> PaymentPubKeyHash
+ownPaymentPubKeyHash = either getBasePkh getPkh
 
-ownAddress :: WalletInfo t -> Address
+ownStakePubKeyHash :: WalletInfo -> Maybe StakePubKeyHash
+ownStakePubKeyHash = either (Just . getSpkh) (const Nothing)
+
+ownAddress :: WalletInfo -> Address
 ownAddress w = pubKeyHashAddress (ownPaymentPubKeyHash w) (ownStakePubKeyHash w)
-
-data WalletInfo' = forall t. WalletInfo' (WalletInfo t)

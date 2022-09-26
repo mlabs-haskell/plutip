@@ -181,7 +181,6 @@ import Test.Plutip.Internal.BotPlutusInterface.Types (
   TestWallet' (TestWallet'),
   TestWallets (unTestWallets),
   ValueOrdering (VEq, VGEq, VGt, VLEq, VLt),
-  WalletInfo' (WalletInfo'),
   getTag,
   ownAddress,
  )
@@ -343,7 +342,7 @@ withContractAs walletIdx toContract = do
 
       otherLookups = lookupsMap otherWallets
       contractLookups = makeWalletLookups otherLookups
-      collectValuesAddr = (\(WalletInfo' w) -> ownAddress w) <$> Map.insert (bwTag ownWallet) (makeWalletInfo ownWallet) otherLookups
+      collectValuesAddr = ownAddress <$> Map.insert (bwTag ownWallet) (makeWalletInfo ownWallet) otherLookups
 
       {- these are `PaymentPubKeyHash`es of all wallets used in test case
       they stay in list is same order as `TestWallets` defined in test case

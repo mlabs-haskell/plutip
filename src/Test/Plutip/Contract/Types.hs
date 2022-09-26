@@ -4,7 +4,6 @@
 module Test.Plutip.Contract.Types (
   TestContractConstraints,
   TestContract (..),
-  WalletType (..),
   WalletTag (..),
   -- WalletInfo (..),ownPaymentPubKeyHash, ownStakePubKeyHash, ownAddress,
   -- WalletTypeError(..),
@@ -19,7 +18,7 @@ import Data.Map (Map)
 import Data.Tagged (Tagged (Tagged))
 import Ledger.Value (Value)
 import Plutus.Contract (AsContractError)
-import Test.Plutip.Internal.BotPlutusInterface.Types (WalletTag (EnterpriseTag, WithStakeKeysTag), WalletType (Enterprise, WithStakeKeys))
+import Test.Plutip.Internal.BotPlutusInterface.Types (WalletTag (EnterpriseTag, WithStakeKeysTag))
 import Test.Plutip.Internal.Types (
   ExecutionResult,
  )

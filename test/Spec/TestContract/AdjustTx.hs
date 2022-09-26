@@ -26,20 +26,16 @@ import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
 import Test.Plutip.Contract (
   ClusterTest,
-  TestWallets,
   assertExecution,
   initAda,
   withContract,
  )
 import Test.Plutip.Internal.BotPlutusInterface.Lookups (WalletLookups (lookupWallet))
-import Test.Plutip.Internal.BotPlutusInterface.Types (WalletInfo (EnterpriseInfo), WalletTag (EnterpriseTag))
-import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet)
-import Test.Plutip.Internal.Types (ClusterEnv)
+import Test.Plutip.Internal.BotPlutusInterface.Types (EnterpriseInfo (EnterpriseInfo), WalletTag (EnterpriseTag))
 import Test.Plutip.Predicate (
   shouldSucceed,
   yieldSatisfies,
  )
-import Test.Tasty (TestTree)
 import Prelude
 
 adjustTx :: PaymentPubKeyHash -> Contract () EmptySchema Text [Value]

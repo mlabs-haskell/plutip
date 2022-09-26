@@ -6,7 +6,6 @@ import BotPlutusInterface.Types (LogContext (ContractLog), LogLevel (Error), Log
 import Control.Exception (ErrorCall, Exception (fromException))
 import Control.Monad (void)
 import Data.Default (Default (def))
-import Data.List.NonEmpty (NonEmpty ((:|)))
 import Data.Map qualified as Map
 import Data.Maybe (isJust)
 import Data.Text (Text, isInfixOf, pack)
@@ -17,7 +16,6 @@ import Plutus.Contract (
   waitNSlots,
  )
 import Plutus.Contract qualified as Contract
-import Plutus.Contract.Types (mapError)
 import Spec.TestContract.AdjustTx (runAdjustTest)
 import Spec.TestContract.AlwaysFail (lockThenFailToSpend)
 import Spec.TestContract.LockSpendMint (lockThenSpend)
@@ -47,7 +45,7 @@ import Test.Plutip.Contract (
  )
 import Test.Plutip.Contract.Types (WalletTag (EnterpriseTag, WithStakeKeysTag))
 import Test.Plutip.Internal.BotPlutusInterface.Lookups (WalletLookups (lookupWallet), lookupAddress)
-import Test.Plutip.Internal.BotPlutusInterface.Types (WalletInfo (EnterpriseInfo))
+import Test.Plutip.Internal.BotPlutusInterface.Types (EnterpriseInfo (EnterpriseInfo))
 import Test.Plutip.Internal.Types (
   FailureReason (CaughtException, ContractExecutionError),
   isException,
@@ -136,7 +134,7 @@ test =
               withContractAs 1 $ -- run contract which result will be checked
                 \wl -> do
                   addr0 <- lookupAddress wl 0
-                  mapError Right $ payToPubKeyAddress addr0 10_000_000
+                  payToPubKeyAddress addr0 10_000_000
           )
           [shouldSucceed]
       , -- Tests with assertions on Contract return value

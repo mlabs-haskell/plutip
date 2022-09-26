@@ -26,6 +26,7 @@ import Spec.TestContract.SimpleContracts (
   ownValueToState,
   payTo,
  )
+import Spec.TestContract.MintAndPay (mintAndPayTokens)
 import Spec.TestContract.ValidateTimeRange (failingTimeContract, successTimeContract)
 import Test.Plutip.Contract (
   TestWallets,
@@ -214,8 +215,20 @@ test =
               ]
       , -- Test `adjustUnbalancedTx`
         runAdjustTest
+      , testMintMintAndPay
       ]
       ++ testValueAssertionsOrderCorrectness
+
+-- mint bug
+testMintMintAndPay :: (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
+testMintMintAndPay =
+  assertExecution
+    "testMintMintAndPay"
+    (withCollateral $ initAda [1000] <> initAda [1111])
+    (withContract $ \[p1] -> mintAndPayTokens p1)
+    [ shouldSucceed
+    ]
+
 
 -- Tests for https://github.com/mlabs-haskell/plutip/issues/84
 testValueAssertionsOrderCorrectness ::

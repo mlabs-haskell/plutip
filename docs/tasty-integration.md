@@ -75,6 +75,16 @@ withContract $ \_ -> do
 
 Use `mustPayToPubKeyAddress` instead of `mustPayToPubKey` when your address has staking keys.
 
+
+You can also query for wallet address right away:
+
+```haskell
+withContract $ \wl -> do
+  addr1 <- lookupAddress wl 1
+  addr2 <- lookupAddress wl 2
+  someContract
+```
+
 ## Executing contracts
 
 It is possible to run arbitrary number of contracts in 3d argument of `assertExecution` using its monadic nature. E.g.:

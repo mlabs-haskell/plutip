@@ -15,7 +15,7 @@ import Data.Map (Map)
 import Data.Tagged (Tagged (Tagged))
 import Ledger.Value (Value)
 import Plutus.Contract (AsContractError)
-import Test.Plutip.Internal.BotPlutusInterface.Types (WalletTag (EnterpriseTag, WithStakeKeysTag))
+import Test.Plutip.Internal.BotPlutusInterface.Types (WalletTag (BaseTag, PkhTag))
 import Test.Plutip.Internal.Types (
   ExecutionResult,
  )

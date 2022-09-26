@@ -30,16 +30,16 @@ import Numeric.Positive (Positive)
 import Test.Plutip.Internal.BotPlutusInterface.Keys (KeyPair, StakeKeyPair)
 
 data WalletTag t k where
-  WithStakeKeysTag :: k -> WalletTag BaseWallet k
-  EnterpriseTag :: k -> WalletTag PkhWallet k
+  BaseTag :: k -> WalletTag BaseWallet k
+  PkhTag :: k -> WalletTag PkhWallet k
 
 deriving stock instance Show k => Show (WalletTag t k)
 deriving stock instance Eq k => Eq (WalletTag t k)
 
 getTag :: WalletTag t k -> k
 getTag = \case
-  WithStakeKeysTag k -> k
-  EnterpriseTag k -> k
+  BaseTag k -> k
+  PkhTag k -> k
 
 data BpiError
   = SignKeySaveError !String

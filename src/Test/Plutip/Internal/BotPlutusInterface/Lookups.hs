@@ -15,7 +15,7 @@ import Data.Text (Text)
 import Ledger (Address)
 import Plutus.Contract (Contract, ContractError (OtherContractError))
 import Plutus.Contract.Error (AsContractError, _ContractError)
-import Test.Plutip.Internal.BotPlutusInterface.Types (BaseWallet (BaseWallet), BpiWallet (bwTag), PkhWallet (PkhWallet), WalletInfo, WalletTag (EnterpriseTag, WithStakeKeysTag), ownAddress)
+import Test.Plutip.Internal.BotPlutusInterface.Types (BaseWallet (BaseWallet), BpiWallet (bwTag), PkhWallet (PkhWallet), WalletInfo, WalletTag (BaseTag, PkhTag), ownAddress)
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (walletPaymentPkh, walletStakePkh)
 
 -- Error messages for wallet lookup fails.
@@ -70,11 +70,11 @@ makeWalletLookups lookups =
       Map k WalletInfo ->
       WalletTag t k ->
       Contract w s e t
-    lookupTaggedWallet wl (EnterpriseTag k) = case Map.lookup k wl of
+    lookupTaggedWallet wl (PkhTag k) = case Map.lookup k wl of
       Nothing -> toError badWalletIndex
       Just (Right res@(PkhWallet _)) -> pure res
       Just (Left (BaseWallet _ _)) -> toError expectedEnterpriseWallet
-    lookupTaggedWallet wl (WithStakeKeysTag k) = case Map.lookup k wl of
+    lookupTaggedWallet wl (BaseTag k) = case Map.lookup k wl of
       Nothing -> toError badWalletIndex
       Just (Right (PkhWallet _)) -> toError expectedWalletWithStakeKeys
       Just (Left res@(BaseWallet _ _)) -> pure res

@@ -68,7 +68,7 @@ and witness in contract
 ```haskell
 withContract $ \_ -> do
   ourAddr :| _ <- Contract.ownAddresses
-  case addr of
+  case ourAddr of
     Address (PubKeyCredential ourPkh) (Just (StakingHash (PubKeyCredential ourSpkh))) -> logInfo "This is the address we will get."
     _ -> error "Nothing else matters"
 ```

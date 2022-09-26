@@ -6,16 +6,20 @@ import BotPlutusInterface.Types (LogContext (ContractLog), LogLevel (Error), Log
 import Control.Exception (ErrorCall, Exception (fromException))
 import Control.Monad (void)
 import Data.Default (Default (def))
+import Data.List.NonEmpty (NonEmpty ((:|)))
 import Data.Map qualified as Map
 import Data.Maybe (isJust)
 import Data.Text (Text, isInfixOf, pack)
+import Ledger (Address (Address), PaymentPubKeyHash (PaymentPubKeyHash), StakePubKeyHash (StakePubKeyHash))
 import Ledger.Ada (lovelaceValueOf)
 import Ledger.Constraints (MkTxError (OwnPubKeyMissing))
 import Plutus.Contract (
   ContractError (ConstraintResolutionContractError),
+  throwError,
   waitNSlots,
  )
 import Plutus.Contract qualified as Contract
+import Plutus.V2.Ledger.Api (Credential (PubKeyCredential), StakingCredential (StakingHash))
 import Spec.TestContract.AdjustTx (runAdjustTest)
 import Spec.TestContract.AlwaysFail (lockThenFailToSpend)
 import Spec.TestContract.LockSpendMint (lockThenSpend)
@@ -44,7 +48,7 @@ import Test.Plutip.Contract (
  )
 import Test.Plutip.Contract.Types (WalletTag (BaseTag, PkhTag))
 import Test.Plutip.Internal.BotPlutusInterface.Lookups (WalletLookups (lookupWallet), lookupAddress)
-import Test.Plutip.Internal.BotPlutusInterface.Types (PkhWallet (PkhWallet), ValueOrdering (VLt))
+import Test.Plutip.Internal.BotPlutusInterface.Types (BaseWallet (BaseWallet), PkhWallet (PkhWallet), ValueOrdering (VLt))
 import Test.Plutip.Internal.Types (
   FailureReason (CaughtException, ContractExecutionError),
   isException,
@@ -224,6 +228,7 @@ test =
               [ shouldFail
               , errorSatisfies "Fail validation with 'I always fail'" errCheck
               ]
+      , walletLookupsTest
       , -- Test `adjustUnbalancedTx`
         runAdjustTest
       ]
@@ -310,3 +315,38 @@ testValueAssertionsOrderCorrectness =
           )
           [shouldSucceed]
   ]
+
+walletLookupsTest :: ClusterTest
+walletLookupsTest =
+  assertExecution @() @Text
+    "Wallets initilized expectedly."
+    ( initAndAssertAda (BaseTag 'a') [10, 20] 30
+        <> initAndAssertAda (BaseTag 'b') [11, 22] 33
+        <> initAndAssertAda (PkhTag 'c') [1, 2] 3
+    )
+    ( withContract $ \wl -> do
+        BaseWallet pkhb spkhb <- lookupWallet wl (BaseTag 'b')
+        PkhWallet pkhc <- lookupWallet wl (PkhTag 'c')
+        addrb <- lookupAddress wl 'b'
+        addrc <- lookupAddress wl 'c'
+
+        case addrb of
+          Address (PubKeyCredential pkhb') (Just (StakingHash (PubKeyCredential spkhb'))) ->
+            if pkhb == PaymentPubKeyHash pkhb' && spkhb == StakePubKeyHash spkhb'
+              then pure ()
+              else throwError "Unexpected key hashes of wallet 'b'."
+          _ -> throwError "Unexpected address of wallet 'b'."
+
+        case addrc of
+          Address (PubKeyCredential pkhc') Nothing ->
+            if pkhc == PaymentPubKeyHash pkhc'
+              then pure ()
+              else throwError "Unexpected key hashes of wallet 'c'."
+          _ -> throwError "Unexpected address of wallet 'c'."
+
+        ourAddr :| _ <- Contract.ownAddresses
+        case ourAddr of
+          Address (PubKeyCredential _) (Just (StakingHash (PubKeyCredential _))) -> pure ()
+          _ -> throwError "Unexpected contract own address."
+    )
+    [shouldSucceed]

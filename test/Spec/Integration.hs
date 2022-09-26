@@ -188,7 +188,7 @@ test =
         assertExecutionWith
           [ShowBudgets] -- this influences displaying the budgets only and is not necessary for budget assertions
           "Lock then spend contract"
-          (initAda (WithStakeKeysTag ()) (replicate 3 300))
+          (initAda (EnterpriseTag ()) (replicate 3 300))
           (withContract $ const lockThenSpend)
           [ shouldSucceed
           , budgetsFitUnder
@@ -300,7 +300,7 @@ testValueAssertionsOrderCorrectness =
               void $
                 withContractAs 1 $ \wl -> do
                   EnterpriseInfo w0pkh <- lookupWallet wl (EnterpriseTag 0)
-                  EnterpriseInfo w2pkh <- lookupWallet wl (EnterpriseTag 1)
+                  EnterpriseInfo w2pkh <- lookupWallet wl (EnterpriseTag 2)
                   _ <- payTo w0pkh (toInteger payTo0Amt)
                   _ <- waitNSlots 2
                   payTo w2pkh (toInteger payTo2Amt)

@@ -5,9 +5,6 @@ module Test.Plutip.Contract.Types (
   TestContractConstraints,
   TestContract (..),
   WalletTag (..),
-  -- WalletInfo (..),ownPaymentPubKeyHash, ownStakePubKeyHash, ownAddress,
-  -- WalletTypeError(..),
-  -- WalletLookups, lookupAddress, lookupWallet, WalletInfo'(..)
 ) where
 
 import Data.Aeson (ToJSON)

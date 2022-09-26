@@ -24,7 +24,15 @@ import Data.List.NonEmpty qualified as NonEmpty
 import Numeric.Natural (Natural)
 import Test.Plutip.Config (PlutipConfig)
 import Test.Plutip.Contract (ClusterTest (ClusterTest), ada)
-import Test.Plutip.Internal.BotPlutusInterface.Types (BpiWallet (bwTag), SomeBpiWallet (SomeBpiWallet), SomeTestWallet' (SomeTestWallet'), TestWallet (twTag), TestWallet' (TestWallet'), TestWallets (TestWallets, unTestWallets), getTag)
+import Test.Plutip.Internal.BotPlutusInterface.Types (
+  BpiWallet (bwTag),
+  SomeBpiWallet (SomeBpiWallet),
+  SomeTestWallet' (SomeTestWallet'),
+  TestWallet (twTag),
+  TestWallet' (TestWallet'),
+  TestWallets (TestWallets, unTestWallets),
+  getTag,
+ )
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   addSomeWallet,
   cardanoMainnetAddress,
@@ -101,6 +109,8 @@ withConfiguredCluster conf name testCases =
       pure (env, wallets)
 
     getSomeTestWallets (ClusterTest (tws, _)) = SomeTestWallet' <$> unTestWallets tws
+
+    -- Restore type information on BpiWallets by substituting tags from matching test wallets.
     substituteTags :: TestWallets k -> NonEmpty SomeBpiWallet -> NonEmpty (BpiWallet k)
     substituteTags (TestWallets tws) walls =
       NonEmpty.zipWith (\(TestWallet' tw) (SomeBpiWallet bw) -> bw {bwTag = getTag (twTag tw)}) tws walls

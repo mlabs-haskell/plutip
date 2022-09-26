@@ -11,14 +11,14 @@ import Data.Kind (Type)
 import Data.Map (Map)
 import Data.Map qualified as Map
 import Data.Row (Row)
+import Data.Text (Text)
 import Ledger (Address)
 import Plutus.Contract (Contract, ContractError (OtherContractError))
 import Plutus.Contract.Error (AsContractError, _ContractError)
-import Test.Plutip.Internal.BotPlutusInterface.Types (BpiWallet (bwTag), PkhWallet (PkhWallet), WalletInfo, WalletTag (EnterpriseTag, WithStakeKeysTag), BaseWallet (BaseWallet), ownAddress)
+import Test.Plutip.Internal.BotPlutusInterface.Types (BaseWallet (BaseWallet), BpiWallet (bwTag), PkhWallet (PkhWallet), WalletInfo, WalletTag (EnterpriseTag, WithStakeKeysTag), ownAddress)
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (walletPaymentPkh, walletStakePkh)
-import Data.Text (Text)
 
--- Error messages for wallet lookup fails. 
+-- Error messages for wallet lookup fails.
 expectedEnterpriseWallet, expectedWalletWithStakeKeys, badWalletIndex :: Text
 expectedEnterpriseWallet = "Expected base address wallet, got one with staking keys."
 expectedWalletWithStakeKeys = "Expected base address wallet, got one with staking keys."

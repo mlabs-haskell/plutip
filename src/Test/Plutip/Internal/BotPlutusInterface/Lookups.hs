@@ -15,7 +15,14 @@ import Data.Text (Text)
 import Ledger (Address)
 import Plutus.Contract (Contract, ContractError (OtherContractError))
 import Plutus.Contract.Error (AsContractError, _ContractError)
-import Test.Plutip.Internal.BotPlutusInterface.Types (BaseWallet (BaseWallet), BpiWallet (bwTag), PkhWallet (PkhWallet), WalletInfo, WalletTag (BaseTag, PkhTag), ownAddress)
+import Test.Plutip.Internal.BotPlutusInterface.Types (
+  BaseWallet (BaseWallet),
+  BpiWallet (bwTag),
+  PkhWallet (PkhWallet),
+  WalletInfo,
+  WalletTag (BaseTag, PkhTag),
+  ownAddress,
+ )
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (walletPaymentPkh, walletStakePkh)
 
 -- Error messages for wallet lookup fails.
@@ -24,6 +31,7 @@ expectedEnterpriseWallet = "Expected base address wallet, got one with staking k
 expectedWalletWithStakeKeys = "Expected base address wallet, got one with staking keys."
 badWalletIndex = "Index outside of range."
 
+-- | Type to be used for looking up wallet informations. Wallets accessed by their k typed names.
 data WalletLookups k = WalletLookups
   { lookupWallet ::
       forall (t :: Type) (w :: Type) (s :: Row Type) (e :: Type).

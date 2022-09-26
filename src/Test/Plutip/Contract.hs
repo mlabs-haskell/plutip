@@ -21,6 +21,8 @@
 --  `initLovelace`. In addition, the value in these wallets can be asserted after the contract
 --  execution with `initAdaAssertValue` or `initAndAssertAda`. When `initAdaAssertValue` or `initAndAssertAda` used
 --  to initiate wallets corresponding test case will be added automatically.
+--  A wallet is named with a tag, the tag contstructor specifies what type of wallet is to be initialized.
+--  Don't use the same name `k` for two wallets even with different tag constructors.
 --
 --  Each assertion in assertions list will become separate test case in `TestTree`,
 --  however Contract will be executed only once.
@@ -29,7 +31,7 @@
 --
 --    > assertExecution
 --    >   "Some Contract"                   -- Contract description
---    >   (initAda 100)                     -- wallets and initial funds for them (single wallet in this case)
+--    >   (initAda (PkhTag ()) 100)                     -- wallets and initial funds for them (single wallet in this case)
 --    >   (withContract $ \_ -> myContract) -- contract execution
 --    >   [ shouldSucceed                   -- list of assertions
 --    >   , not $ shouldYield someResult
@@ -38,7 +40,7 @@
 --
 --  To use multiple wallets, you can use the `Semigroup` instance of `TestWallets`. To reference the
 --  wallet inside the contract, the following callback function is used together with `withContract`:
---  @[PaymentPubKeyHash] -> Contract w s e a@.
+--  @WalletLookups k -> Contract w s e a@.
 --
 -- To display information useful for debugging together with test results use `assertExecutionWith`
 -- and provide it with options:
@@ -47,15 +49,16 @@
 --    - ShowTrace, for displaying contract execution trace
 --    - ShowTraceButOnlyContext, like ShowTrace but filter what to show
 --
---  Note that @[PaymentPubKeyHash]@ does not include the contract's own wallet,
+--  Note that @WalletLookups@ don't include the contract's own wallet,
 --  for that you can use `Plutus.Contract.ownPaymentPubKeyHash` inside the Contract monad.
 --
 --  When contract supplied to test with `withContract`,
 --  the 1st initiated wallet will be used as "own" wallet, e.g.:
 --
 --    > assertExecution  "Send some Ada"
---    >   (initAda 100 <> initAda 101 <> initAda 102)
---    >   (withContract $ \[pkh1, pkh2] ->
+--    >   (initAda (PkhTag 0) 100 <> initAda (PkhTag 1) 101 <> initAda (PkhTag 2) 102)
+--    >   (withContract $ \wl -> do
+--    >     PkhWallet pkh1 <- lookupWallet wl (PkhTag 1)
 --    >     payToPubKey pkh1 (Ada.lovelaceValueOf amt))
 --    >   [shouldSucceed]
 --
@@ -64,18 +67,19 @@
 --  - 3 wallets will be initialised with 100, 101 and 102 Ada respectively
 --  - wallet with 100 Ada will be used as own wallet to run the contract
 --  - `pkh1` - `PaymentPubKeyHash` of wallet with 101 Ada
---  - `pkh2` - `PaymentPubKeyHash` of wallet with 102 Ada
 --
 --
---  When contract supplied to test with `withContractAs`, wallet with provided index (0 based)
+--  When contract supplied to test with `withContractAs`, wallet with provided name
 --  will be used as "own" wallet, e.g.:
 --
 --    > assertExecutionWith
 --    >   [ShowBudgets, ShowTraceButOnlyContext ContractLog Error]
 --    >   "Send some Ada"
---    >   (initAda 100 <> initAda 101 <> initAda 102)
---    >   (withContractAs 1 $ \[pkh0, pkh2] ->
---    >     payToPubKey pkh1 (Ada.lovelaceValueOf amt))
+--    >   (initAda (PkhTag "pkh0") 100 <> initAda (PkhTag "myOwnWallet") 101 <> initAda (PkhTag "pkh2") 102)
+--    >   (withContractAs "myOwnWallet" $ \wl -> do
+--    >     PkhWallet pkh0 <- lookupWallet wl (PkhTag "pkh0")
+--    >     PkhWallet pkh2 <- lookupWallet wl (PkhTag "pkh2")
+--    >     payToPubKey pkh2 (Ada.lovelaceValueOf amt))
 --    >   [shouldSucceed]
 --
 --  Here:
@@ -92,13 +96,15 @@
 --
 --    > assertExecution
 --    >   "Two contracts one after another"
---    >   (initAda 100 <> initAda 101)
+--    >   (initAda (PkhTag 0) 100 <> initAda (PkhTag 1) 101)
 --    >   ( do
 --    >       void $ -- run something prior to the contract which result will be checked
---    >         withContract $
---    >           \[pkh1] -> payTo pkh1 10_000_000
---    >       withContractAs 1 $ -- run the contract which result will be checked
---    >         \[pkh1] -> payTo pkh1 10_000_000
+--    >         withContract $ \wl -> 
+--    >           PkhWallet pkh1 <- lookupWallet wl (PkhTag 1)
+--    >           payTo pkh1 10_000_000
+--    >       withContractAs 1 $ \wl -> do  -- run the contract which result will be checked
+--    >         PkhWallet pkh0 <- lookupWallet wl (PkhTag 0)
+--    >         payTo pkh0 10_000_000
 --    >   )
 --    >   [shouldSucceed]
 --
@@ -183,6 +189,7 @@ import Test.Plutip.Internal.BotPlutusInterface.Types (
   ValueOrdering (VEq, VGEq, VGt, VLEq, VLt),
   getTag,
   ownAddress,
+  WalletInfo,
  )
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (walletPaymentPkh)
 import Test.Plutip.Internal.Types (
@@ -211,7 +218,7 @@ data ClusterTest = forall k. ClusterTest (TestWallets k, IO (ClusterEnv, NonEmpt
 --
 -- > assertExecution
 -- >   "Some Contract"                   -- Contract description
--- >   (initAda 100)                     -- wallets and initial funds for them (single wallet in this case)
+-- >   (initAda (PkhTag 0) 100)                     -- wallets and initial funds for them (single wallet in this case)
 -- >   (withContract $ \_ -> myContract) -- contract execution
 -- >   [ shouldSucceed                   -- list of assertions
 -- >   , not $ shouldYield someResult
@@ -324,7 +331,7 @@ withContract toContract = do
   (_, wallets') <- ask
   withContractAs (bwTag $ NonEmpty.head wallets') toContract
 
--- | Run a contract using the nth wallet as own wallet, and return `ExecutionResult`.
+-- | Run a contract using wallet with the given tag as own wallet, and return `ExecutionResult`.
 -- This could be used by itself, or combined with multiple other contracts.
 --
 -- @since 0.2
@@ -334,24 +341,21 @@ withContractAs ::
   k ->
   (WalletLookups k -> Contract w s e a) ->
   TestRunner w e k a
-withContractAs walletIdx toContract = do
+withContractAs walletName toContract = do
   (cEnv, wallets') <- ask
   let -- pick wallet for Contract's "own PKH", other wallets PKHs will be provided
       -- to the user in `withContractAs`
-      (ownWallet, otherWallets) = separateWallets walletIdx $ NonEmpty.toList wallets'
-
+      (ownWallet, otherWallets) = separateWallets walletName $ NonEmpty.toList wallets'
+      
+      -- without own wallet
+      otherLookups :: Map k WalletInfo
       otherLookups = lookupsMap otherWallets
-      contractLookups = makeWalletLookups otherLookups
-      collectValuesAddr = ownAddress <$> Map.insert (bwTag ownWallet) (makeWalletInfo ownWallet) otherLookups
 
-      {- these are `PaymentPubKeyHash`es of all wallets used in test case
-      they stay in list is same order as `TestWallets` defined in test case
-      so collected Values will be in same order as well
-      it is important to preserve this order for Values check with `assertValues`
-      as there is no other mechanism atm to match `TestWallet` with collected `Value`
-      -}
-      -- collectValuesAddr :: NonEmpty Address
-      -- collectValuesAddr = fmap ownAddress walletInfs
+      -- to be passed to the user, without own wallet
+      walletLookups = makeWalletLookups otherLookups
+      
+      -- these are `PaymentPubKeyHash`es of all wallets used in test case
+      collectValuesAddr = ownAddress <$> Map.insert (bwTag ownWallet) (makeWalletInfo ownWallet) otherLookups
 
       -- contract that gets all the values present at the test wallets.
       valuesAtWallet :: Contract w s e (Map k Value)
@@ -360,7 +364,7 @@ withContractAs walletIdx toContract = do
           >> traverse valueAt collectValuesAddr
 
   -- run the test contract
-  execRes <- liftIO $ runContract cEnv ownWallet (toContract contractLookups)
+  execRes <- liftIO $ runContract cEnv ownWallet (toContract walletLookups)
 
   -- get all the values present at the test wallets after the user given contracts has been executed.
   execValues <- liftIO $ runContract cEnv ownWallet valuesAtWallet

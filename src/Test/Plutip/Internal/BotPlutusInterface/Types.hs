@@ -29,8 +29,14 @@ import Ledger.Value qualified as Value
 import Numeric.Positive (Positive)
 import Test.Plutip.Internal.BotPlutusInterface.Keys (KeyPair, StakeKeyPair)
 
+-- | Name for the wallet (k) together with information on what we expect the wallet to be.
+-- Used in wallet initialization specifies requested wallet's type, used in lookups specifies expected returned wallet type.
+-- 
+-- Don't use the same name `k` for two wallets, even with different tag constructors.
 data WalletTag t k where
+  -- | Base address wallet: has both payment and staking keys
   BaseTag :: k -> WalletTag BaseWallet k
+  -- | Enterprise address wallet: has only payment keys
   PkhTag :: k -> WalletTag PkhWallet k
 
 deriving stock instance Show k => Show (WalletTag t k)
@@ -57,6 +63,7 @@ data BpiWallet k = BpiWallet
 
 data SomeBpiWallet = forall k. SomeBpiWallet (BpiWallet k)
 
+-- | Test wallets with k typed wallet tags.
 newtype TestWallets k = TestWallets {unTestWallets :: NonEmpty (TestWallet' k)}
   deriving newtype (Semigroup)
 

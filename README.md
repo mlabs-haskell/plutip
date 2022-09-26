@@ -23,31 +23,32 @@ tests :: TestTree
 tests =
   withCluster
     "Integration tests"
-    [ assertExecution "Get utxos" (initAndAssertAda 100 100)
+    [ assertExecution "Get utxos" (initAndAssertAda (PkhTag ()) 100 100)
         (withContract $ const GetUtxos.getUtxos)
         [shouldSucceed]
-    , assertExecution "Throws Contract error" (initAda 100)
+    , assertExecution "Throws Contract error" (initAda (PkhTag ()) 100)
         (withContract $ const GetUtxos.getUtxosThrowsErr)
         [shouldFail]
-    , assertExecution "Throws Exception" (initAda 100)
+    , assertExecution "Throws Exception" (initAda (PkhTag ()) 100)
         (withContract $ const GetUtxos.getUtxosThrowsEx)
         [shouldFail]
     , assertExecution
         "Pay wallet-to-wallet"
-        (initAda 300 <> initAndAssertAda 100 110)
-        (withContract $ \[w1] ->
-          PayToWallet.payTo (ledgerPaymentPkh w1) 10_000_000)
+        (initAda (PkhTag 0) 300 <> initAndAssertAda (PkhTag 1) 100 110)
+        (withContract $ \wl ->
+          w1 <- lookupWallet wl (PkhTag 1)
+          PayToWallet.payTo (getPkh w1) 10_000_000)
         [shouldSuceed]
     , assertExecution
         "Lock at script then spend - budget overspend"
-        (initAda 100)
+        (initAda (PkhTag ()) 100)
         (withContract $
           const LockUnlock.lockThenSpend)
         [shouldFail]
     , assertExecutionWith
         [ShowTrace, ShowBudgets]
         "Lock at script then spend - validation fail"
-        (initAda 100)
+        (initAda (PkhTag ()) 100)
         (withContract $
           const LockUnlockValidationFail.lockThenSpend)
         [shouldFail]

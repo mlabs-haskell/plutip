@@ -87,7 +87,7 @@ test =
           ]
       , assertExecution
           "Contract 2"
-          (initAda (BaseTag ("pkh1" :: Text)) [100])
+          (initAda (PkhTag ("pkh1" :: Text)) [100])
           (withContract $ const getUtxosThrowsErr)
           [ shouldFail
           , Predicate.not shouldSucceed
@@ -95,7 +95,7 @@ test =
       , assertExecutionWith
           [ShowTraceButOnlyContext ContractLog $ Error [AnyLog]]
           "Contract 3"
-          (initAda (BaseTag (0 :: Int)) [100])
+          (initAda (PkhTag (0 :: Int)) [100])
           ( withContract $
               const $ do
                 Contract.logInfo @Text "Some contract log with Info level."
@@ -106,7 +106,7 @@ test =
           ]
       , assertExecution
           "Pay negative amount"
-          (initAda (BaseTag (0 :: Int)) [100]) -- TODO: this test doesn't fail because negative amount
+          (initAda (PkhTag (0 :: Int)) [100]) -- TODO: this test doesn't fail because negative amount
           ( withContract $ \wl -> do
               PkhWallet pkh1 <- lookupWallet wl (PkhTag 0)
               payTo pkh1 (-10_000_000)
@@ -178,7 +178,7 @@ test =
               _ -> False
          in assertExecution
               "Contract which throws exception"
-              (initAda (BaseTag ()) [100])
+              (initAda (PkhTag ()) [100])
               (withContract $ const getUtxosThrowsEx)
               [ shouldFail
               , Predicate.not shouldSucceed
@@ -206,21 +206,21 @@ test =
               _ -> False
          in assertExecution
               "Fails because outside validity interval"
-              (initAda (BaseTag ()) [100])
+              (initAda (PkhTag ()) [100])
               (withContract $ const failingTimeContract)
               [ shouldFail
               , failReasonSatisfies "Execution error is OutsideValidityIntervalUTxO" isValidityError
               ]
       , assertExecution
           "Passes validation with exact time range checks"
-          (initAda (BaseTag ()) [100])
+          (initAda (PkhTag ()) [100])
           (withContract $ const successTimeContract)
           [shouldSucceed]
       , -- always fail validation test
         let errCheck e = "I always fail" `isInfixOf` pack (show e)
          in assertExecution
               "Always fails to validate"
-              (initAda (BaseTag ()) [100])
+              (initAda (PkhTag ()) [100])
               (withContract $ const lockThenFailToSpend)
               [ shouldFail
               , errorSatisfies "Fail validation with 'I always fail'" errCheck

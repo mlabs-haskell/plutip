@@ -58,7 +58,7 @@ waitSeconds n = liftIO $ threadDelay (fromEnum n * 1_000_000)
 -- > test =
 -- >   withCluster
 -- >     "Tests with local cluster"
--- >     [ shouldSucceed "Get utxos" (initAda 100) $ const getUtxos
+-- >     [ assertExecution "Get utxos" (initAda (PkhTag 0) 100) (withContract $ const getUtxos) [shouldSucceed]] 
 -- >     ...
 --
 -- @since 0.2
@@ -78,7 +78,7 @@ withCluster = withConfiguredCluster def
 -- >     let myConfig = PlutipConfig ...
 -- >     withConfiguredCluster myConfig
 -- >     "Tests with local cluster"
--- >     [ shouldSucceed "Get utxos" (initAda 100) $ const getUtxos
+-- >     [ assertExecution "Get utxos" (initAda (PkhTag 0) 100) (withContract $ const getUtxos) [shouldSucceed]] 
 -- >     ...
 --
 -- @since 0.2
@@ -95,7 +95,7 @@ withConfiguredCluster conf name testCases =
           (\idx (ClusterTest (tws, toTestGroup)) -> toTestGroup $ second (substituteTags tws . (!! idx)) . snd <$> getResource)
           testCases
   where
-    -- setup :: ReaderT ClusterEnv IO (ClusterEnv, [NonEmpty SomeBpiWallet])
+    setup :: ReaderT ClusterEnv IO (ClusterEnv, [NonEmpty SomeBpiWallet])
     setup = do
       env <- ask
 

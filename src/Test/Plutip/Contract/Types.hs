@@ -13,6 +13,7 @@ import Data.Dynamic (Typeable)
 import Data.Kind (Type)
 import Data.Map (Map)
 import Data.Tagged (Tagged (Tagged))
+import Data.Text (Text)
 import Ledger.Value (Value)
 import Plutus.Contract (AsContractError)
 import Test.Plutip.Internal.BotPlutusInterface.Types (WalletTag (BaseTag, PkhTag))
@@ -22,34 +23,31 @@ import Test.Plutip.Internal.Types (
 import Test.Plutip.Predicate (Predicate, debugInfo, pCheck)
 import Test.Tasty.Providers (IsTest (run, testOptions), testFailed, testPassed)
 
-type TestContractConstraints (w :: Type) (e :: Type) (k :: Type) (a :: Type) =
+type TestContractConstraints (w :: Type) (e :: Type) (a :: Type) =
   ( ToJSON w
   , Monoid w
   , Show w
   , Show e
   , Show a
-  , Show k
   , Typeable w
   , Typeable e
-  , Typeable k
   , Typeable a
-  , Ord k
   , AsContractError e
   )
 
 -- | Test contract
-data TestContract (w :: Type) (e :: Type) (k :: Type) (a :: Type)
+data TestContract (w :: Type) (e :: Type) (a :: Type)
   = TestContract
-      (Predicate w e k a)
+      (Predicate w e a)
       -- ^ Info about check to perform and how to report results
-      (IO (ExecutionResult w e (a, Map k Value)))
+      (IO (ExecutionResult w e (a, Map Text Value)))
       -- ^ Result of contract execution
   deriving stock (Typeable)
 
 instance
-  forall (w :: Type) (e :: Type) (k :: Type) (a :: Type).
-  TestContractConstraints w e k a =>
-  IsTest (TestContract w e k a)
+  forall (w :: Type) (e :: Type) (a :: Type).
+  TestContractConstraints w e a =>
+  IsTest (TestContract w e a)
   where
   run _ (TestContract predicate runResult) _ = do
     result <- runResult

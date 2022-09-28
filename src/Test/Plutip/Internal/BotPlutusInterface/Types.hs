@@ -14,16 +14,14 @@ module Test.Plutip.Internal.BotPlutusInterface.Types (
   ownStakePubKeyHash,
   ownAddress,
   getTag,
-  -- WalletInfo' (..),
   testWallet',
-  SomeBpiWallet (..),
-  SomeTestWallet' (..),
   BaseWallet (..),
   PkhWallet (..),
 ) where
 
 import Data.Data (Typeable)
 import Data.List.NonEmpty (NonEmpty)
+import Data.Text (Text)
 import Ledger (Address, PaymentPubKeyHash, StakePubKeyHash, Value, pubKeyHashAddress)
 import Ledger.Value qualified as Value
 import Numeric.Positive (Positive)
@@ -34,19 +32,19 @@ import Test.Plutip.Internal.BotPlutusInterface.Keys (KeyPair, StakeKeyPair)
 --
 -- Don't use the same name `k` for two wallets, even with different tag constructors.
 -- `t` type parameter is the type of wallet that will be accessible from WalletLookups.
-data WalletTag t k where
+data WalletTag t where
   -- | Base address wallet: has both payment and staking keys
-  BaseTag :: k -> WalletTag BaseWallet k
+  BaseTag :: Text -> WalletTag BaseWallet
   -- | Enterprise address wallet: has only payment keys
-  PkhTag :: k -> WalletTag PkhWallet k
+  PkhTag :: Text -> WalletTag PkhWallet
 
-deriving stock instance Show k => Show (WalletTag t k)
-deriving stock instance Eq k => Eq (WalletTag t k)
+deriving stock instance Show (WalletTag t)
+deriving stock instance Eq (WalletTag t)
 
-getTag :: WalletTag t k -> k
+getTag :: WalletTag t -> Text
 getTag = \case
-  BaseTag k -> k
-  PkhTag k -> k
+  BaseTag tag -> tag
+  PkhTag tag -> tag
 
 data BpiError
   = SignKeySaveError !String
@@ -55,32 +53,30 @@ data BpiError
 
 -- | Wallet that can be used by bot interface,
 --  backed by `.skey` file when added to cluster with `addSomeWallet`
-data BpiWallet k = BpiWallet
+data BpiWallet = BpiWallet
   { payKeys :: KeyPair
   , stakeKeys :: Maybe StakeKeyPair
-  , bwTag :: k
+  , bwTag :: Text
   }
   deriving stock (Show)
 
-data SomeBpiWallet = forall k. SomeBpiWallet (BpiWallet k)
-
 -- | Test wallets with k typed wallet tags.
-newtype TestWallets k = TestWallets {unTestWallets :: NonEmpty (TestWallet' k)}
+newtype TestWallets = TestWallets {unTestWallets :: NonEmpty TestWallet'}
   deriving newtype (Semigroup)
 
-data TestWallet' k = forall t. TestWallet' (TestWallet t k)
+data TestWallet' = forall t. TestWallet' (TestWallet t)
 
 -- | Make TestWallet', takes utxo distribution, value assertions and WalletTag as arguments.
-testWallet' :: [Positive] -> Maybe (ValueOrdering, Value) -> WalletTag t k -> TestWallet' k
+testWallet' :: [Positive] -> Maybe (ValueOrdering, Value) -> WalletTag t -> TestWallet'
 testWallet' twInitDistribiution twExpected twTag = TestWallet' $ TestWallet twInitDistribiution twExpected twTag
 
-data SomeTestWallet' = forall k. SomeTestWallet' (TestWallet' k)
+-- data SomeTestWallet' = forall k. SomeTestWallet' TestWallet'
 
 -- | Description of wallet to initialize
-data TestWallet t k = TestWallet
+data TestWallet t = TestWallet
   { twInitDistribiution :: [Positive]
   , twExpected :: Maybe (ValueOrdering, Value)
-  , twTag :: WalletTag t k
+  , twTag :: WalletTag t
   }
 
 data ValueOrdering = VEq | VGt | VLt | VGEq | VLEq

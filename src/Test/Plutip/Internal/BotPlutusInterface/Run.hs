@@ -76,10 +76,10 @@ defCollateralSize :: Integer
 defCollateralSize = 10_000_000
 
 runContract_ ::
-  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (m :: Type -> Type) (k :: Type).
+  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (m :: Type -> Type).
   (ToJSON w, Monoid w, MonadIO m) =>
   ClusterEnv ->
-  BpiWallet k ->
+  BpiWallet ->
   Contract w s e a ->
   m ()
 runContract_ e w c = void $ runContract e w c
@@ -87,7 +87,7 @@ runContract_ e w c = void $ runContract e w c
 runContract ::
   (ToJSON w, Monoid w, MonadIO m) =>
   ClusterEnv ->
-  BpiWallet k ->
+  BpiWallet ->
   Contract w s e a ->
   m (ExecutionResult w e a)
 runContract = runContractWithLogLvl $ Error [AnyLog]
@@ -98,11 +98,11 @@ runContract = runContractWithLogLvl $ Error [AnyLog]
 -- observe (or demonstrate) live logs. This function provides possibility to
 -- obtain this functionality and see live logs by setting desired log level.
 runContractWithLogLvl ::
-  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (m :: Type -> Type) (k :: Type).
+  forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type) (m :: Type -> Type).
   (ToJSON w, Monoid w, MonadIO m) =>
   Bpi.LogLevel ->
   ClusterEnv ->
-  BpiWallet k ->
+  BpiWallet ->
   Contract w s e a ->
   m (ExecutionResult w e a)
 runContractWithLogLvl logLvl cEnv bpiWallet contract = do

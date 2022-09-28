@@ -26,63 +26,63 @@ import Test.Plutip.Internal.BotPlutusInterface.Types (
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (walletPaymentPkh, walletStakePkh)
 
 -- Error messages for wallet lookup fails.
-expectedEnterpriseWallet, expectedWalletWithStakeKeys, badWalletIndex :: Text
+expectedEnterpriseWallet, expectedWalletWithStakeKeys :: Text
 expectedEnterpriseWallet = "Expected base address wallet, got one with staking keys."
 expectedWalletWithStakeKeys = "Expected base address wallet, got one with staking keys."
-badWalletIndex = "Index outside of range."
+badWalletTag :: Text -> Text
+badWalletTag tag = "Wallet not found by tag '" <> tag <> "'."
 
 -- | Type to be used for looking up wallet informations. Wallets accessed by their k typed names.
-data WalletLookups k = WalletLookups
+data WalletLookups = WalletLookups
   { lookupWallet ::
       forall (t :: Type) (w :: Type) (s :: Row Type) (e :: Type).
       AsContractError e =>
-      WalletTag t k ->
+      WalletTag t ->
       Contract w s e t
   , lookupAddress ::
       forall (w :: Type) (s :: Row Type) (e :: Type).
       AsContractError e =>
-      k ->
+      Text ->
       Contract w s e Address
   }
 
-makeWalletInfo :: BpiWallet k -> WalletInfo
+makeWalletInfo :: BpiWallet -> WalletInfo
 makeWalletInfo w =
   maybe
     (Right $ PkhWallet (walletPaymentPkh w))
     (Left . BaseWallet (walletPaymentPkh w))
     (walletStakePkh w)
 
-lookupsMap :: Ord k => [BpiWallet k] -> Map k WalletInfo
+lookupsMap :: [BpiWallet] -> Map Text WalletInfo
 lookupsMap bpiWalls =
   Map.fromList $
     (\w -> (bwTag w, makeWalletInfo w)) <$> bpiWalls
 
 makeWalletLookups ::
-  Ord k =>
-  Map k WalletInfo ->
-  WalletLookups k
+  Map Text WalletInfo ->
+  WalletLookups
 makeWalletLookups lookups =
   WalletLookups
     { lookupWallet = lookupTaggedWallet lookups
-    , lookupAddress = \k ->
-        maybe (toError badWalletIndex) pure $
-          Map.lookup k $ ownAddress <$> lookups
+    , lookupAddress = \tag ->
+        maybe (toError $ badWalletTag tag) pure $
+          Map.lookup tag $ ownAddress <$> lookups
     }
   where
     toError :: MonadError e m => AsContractError e => Text -> m a
     toError = throwError . (\e -> withPrism _ContractError $ \f _ -> f e) . OtherContractError
 
     lookupTaggedWallet ::
-      forall (k :: Type) (w :: Type) (s :: Row Type) (e :: Type) (t :: Type).
-      (Ord k, AsContractError e) =>
-      Map k WalletInfo ->
-      WalletTag t k ->
+      forall (w :: Type) (s :: Row Type) (e :: Type) (t :: Type).
+      (AsContractError e) =>
+      Map Text WalletInfo ->
+      WalletTag t ->
       Contract w s e t
-    lookupTaggedWallet wl (PkhTag k) = case Map.lookup k wl of
-      Nothing -> toError badWalletIndex
+    lookupTaggedWallet wl (PkhTag tag) = case Map.lookup tag wl of
+      Nothing -> toError $ badWalletTag tag
       Just (Right res@(PkhWallet _)) -> pure res
       Just (Left (BaseWallet _ _)) -> toError expectedEnterpriseWallet
-    lookupTaggedWallet wl (BaseTag k) = case Map.lookup k wl of
-      Nothing -> toError badWalletIndex
+    lookupTaggedWallet wl (BaseTag tag) = case Map.lookup tag wl of
+      Nothing -> toError $ badWalletTag tag
       Just (Right (PkhWallet _)) -> toError expectedWalletWithStakeKeys
       Just (Left res@(BaseWallet _ _)) -> pure res

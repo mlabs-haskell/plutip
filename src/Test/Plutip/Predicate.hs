@@ -26,6 +26,7 @@ module Test.Plutip.Predicate (
 import BotPlutusInterface.Types (TxBudget (TxBudget), mintBudgets, spendBudgets)
 import Data.Map (Map)
 import Data.Map qualified as Map
+import Data.Text (Text)
 import Ledger (ExBudget (ExBudget), ExCPU (ExCPU), ExMemory (ExMemory), TxId, Value)
 import PlutusCore.Evaluation.Machine.ExMemory (CostingInteger)
 import Prettyprinter (
@@ -54,29 +55,29 @@ import Text.Show.Pretty (ppShow)
 --  Each predicate will result in separate test case.
 --
 -- @since 0.2
-data Predicate w e k a = Predicate
+data Predicate w e a = Predicate
   { -- | description for the case when predicate holds
     positive :: String
   , -- | description for the opposite of `positive` case (mostly for `not` functionality)
     negative :: String
   , -- | some useful debugging info that `Predicate` can print based on contract execution result,
     -- used to print info in case of check failure
-    debugInfo :: ExecutionResult w e (a, Map k Value) -> String
+    debugInfo :: ExecutionResult w e (a, Map Text Value) -> String
   , -- | check that `Predicate` performs on Contract execution result,
     -- if check evaluates to `False` test case considered failure
-    pCheck :: ExecutionResult w e (a, Map k Value) -> Bool
+    pCheck :: ExecutionResult w e (a, Map Text Value) -> Bool
   }
 
 -- | `positive` description of `Predicate` that will be used as test case tag.
 --
 -- @since 0.2
-pTag :: Predicate w e k a -> String
+pTag :: Predicate w e a -> String
 pTag = positive
 
 -- | Switch the meaning of `Predicate` to the opposite.
 --
 -- @since 0.2
-not :: Predicate w e k a -> Predicate w e k a
+not :: Predicate w e a -> Predicate w e a
 not predicate =
   let (Predicate pos' neg' dbgInfo' check') = predicate
    in Predicate neg' pos' dbgInfo' (Prelude.not . check')
@@ -88,7 +89,7 @@ not predicate =
 -- | Check that Contract didn't fail.
 --
 -- @since 0.2
-shouldSucceed :: (Show w, Show e, Show a, Show k) => Predicate w e k a
+shouldSucceed :: (Show w, Show e, Show a) => Predicate w e a
 shouldSucceed =
   Predicate
     "Contract should succeed"
@@ -113,7 +114,7 @@ prettyExecutionResult ExecutionResult {outcome, contractState} =
 -- | Check that Contract didn't succeed.
 --
 -- @since 0.2
-shouldFail :: (Show e, Show a, Show w, Show k) => Predicate w e k a
+shouldFail :: (Show e, Show a, Show w) => Predicate w e a
 shouldFail = Test.Plutip.Predicate.not shouldSucceed
 
 -- Contract result --
@@ -121,7 +122,7 @@ shouldFail = Test.Plutip.Predicate.not shouldSucceed
 -- | Check that Contract returned the expected value.
 --
 -- @since 0.2
-shouldYield :: (Show a, Eq a) => a -> Predicate w e k a
+shouldYield :: (Show a, Eq a) => a -> Predicate w e a
 shouldYield expected =
   (yieldSatisfies "" (== expected))
     { positive = "Should yield '" <> ppShow expected <> "'"
@@ -133,7 +134,7 @@ shouldYield expected =
 --  Provided `String` description will be used in tes case tag.
 --
 -- @since 0.2
-yieldSatisfies :: (Show a) => String -> (a -> Bool) -> Predicate w e k a
+yieldSatisfies :: (Show a) => String -> (a -> Bool) -> Predicate w e a
 yieldSatisfies description p =
   Predicate
     description
@@ -156,7 +157,7 @@ yieldSatisfies description p =
 --  State will be accessible even if Contract failed.
 --
 -- @since 0.2
-stateIs :: (Show w, Eq w) => w -> Predicate w e k a
+stateIs :: (Show w, Eq w) => w -> Predicate w e a
 stateIs expected =
   (stateSatisfies "" (== expected))
     { positive = "State should be '" <> ppShow expected <> "'"
@@ -169,7 +170,7 @@ stateIs expected =
 --  Provided `String` description will be used in test case tag.
 --
 -- @since 0.2
-stateSatisfies :: Show w => String -> (w -> Bool) -> Predicate w e k a
+stateSatisfies :: Show w => String -> (w -> Bool) -> Predicate w e a
 stateSatisfies description p =
   Predicate
     description
@@ -190,7 +191,7 @@ stateSatisfies description p =
 --  predicate won't hold.
 --
 -- @since 0.2
-shouldThrow :: (Show e, Eq e) => e -> Predicate w e k a
+shouldThrow :: (Show e, Eq e) => e -> Predicate w e a
 shouldThrow expected =
   (errorSatisfies "" (== expected))
     { positive = "Should throw '" <> ppShow expected <> "'"
@@ -204,7 +205,7 @@ shouldThrow expected =
 --  Provided `String` description will be used in test case tag.
 --
 -- @since 0.2
-errorSatisfies :: Show e => String -> (e -> Bool) -> Predicate w e k a
+errorSatisfies :: Show e => String -> (e -> Bool) -> Predicate w e a
 errorSatisfies description p =
   failReasonSatisfies description $ \case
     ContractExecutionError e -> p e
@@ -216,7 +217,7 @@ errorSatisfies description p =
 --  Provided `String` description will be used in test case tag.
 --
 -- @since 0.2
-failReasonSatisfies :: Show e => String -> (FailureReason e -> Bool) -> Predicate w e k a
+failReasonSatisfies :: Show e => String -> (FailureReason e -> Bool) -> Predicate w e a
 failReasonSatisfies description p =
   Predicate
     description
@@ -242,7 +243,7 @@ failReasonSatisfies description p =
 -- If heck fails, all collected budgets will be printed to output.
 --
 -- @since 0.2
-overallBudgetFits :: ExCPU -> ExMemory -> Predicate w e k a
+overallBudgetFits :: ExCPU -> ExMemory -> Predicate w e a
 overallBudgetFits cpuLimit memLimit =
   let p =
         assertOverallBudget
@@ -257,7 +258,7 @@ overallBudgetFits cpuLimit memLimit =
 -- If heck fails, all collected budgets will be printed to output.
 --
 -- @since 0.2
-assertOverallBudget :: String -> (ExCPU -> Bool) -> (ExMemory -> Bool) -> Predicate w e k a
+assertOverallBudget :: String -> (ExCPU -> Bool) -> (ExMemory -> Bool) -> Predicate w e a
 assertOverallBudget description cpuCheck memCheck =
   let positive = description
       negative = ("Should violate '" <> description <> "'")
@@ -293,7 +294,7 @@ assertOverallBudget description cpuCheck memCheck =
 -- If check fails, any budget that didn't fit limit, will be printed to output.
 --
 -- @since 0.2
-budgetsFitUnder :: Limit 'Script -> Limit 'Policy -> Predicate w e k a
+budgetsFitUnder :: Limit 'Script -> Limit 'Policy -> Predicate w e a
 budgetsFitUnder (Limit sCpu sMem) (Limit pCpu pMem) =
   let positive =
         mconcat

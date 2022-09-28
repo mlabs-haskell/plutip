@@ -54,6 +54,8 @@ import Types (
   StopClusterResponse (StopClusterFailure, StopClusterSuccess),
  )
 
+import Data.Text qualified as T
+
 startClusterHandler :: ServerOptions -> StartClusterRequest -> AppM StartClusterResponse
 startClusterHandler
   ServerOptions {nodeLogs}
@@ -81,11 +83,12 @@ startClusterHandler
           , keysDirectory = keysDir clusterEnv
           }
     where
-      setup :: ReaderT ClusterEnv IO (ClusterEnv, [BpiWallet Int])
+      setup :: ReaderT ClusterEnv IO (ClusterEnv, [BpiWallet])
       setup = do
         env <- ask
+        let tags = T.pack . show <$> [0 ..]
         wallets <- do
-          for (zip [0 ..] keysToGenerate) $ \(idx, lovelaceAmounts) ->
+          for (zip tags keysToGenerate) $ \(idx, lovelaceAmounts) ->
             addSomeWallet (testWallet' (fromInteger . unLovelace <$> lovelaceAmounts) Nothing (PkhTag idx))
         waitSeconds 2 -- wait for transactions to submit
         pure (env, wallets)
@@ -93,7 +96,7 @@ startClusterHandler
       getNodeConfigFile =
         -- assumption is that node.config lies in the same directory as node.socket
         flip replaceFileName "node.config" . getNodeSocketFile
-      getWalletPrivateKey :: BpiWallet k -> PrivateKey
+      getWalletPrivateKey :: BpiWallet -> PrivateKey
       getWalletPrivateKey = Text.decodeUtf8 . Base16.encode . serialiseToCBOR . sKey . payKeys
       interpret = fmap (either ClusterStartupFailure id) . runExceptT
 
@@ -106,4 +109,4 @@ stopClusterHandler StopClusterRequest = do
     else do
       statusTVar <- liftIO $ takeMVar statusMVar
       liftIO $ stopCluster statusTVar
-      pure $ StopClusterSuccess
+      pure StopClusterSuccess

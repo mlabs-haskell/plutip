@@ -70,9 +70,9 @@ runAdjustTest :: ClusterTest
 runAdjustTest =
   assertExecution
     "Adjust Unbalanced Tx Contract"
-    (initAda (PkhTag (0 :: Int)) [1000] <> initAda (PkhTag 1) [1000])
+    (initAda (PkhTag "w1") [1000] <> initAda (PkhTag "w2") [1000])
     ( withContract $ \wl -> do
-        PkhWallet pkh <- lookupWallet wl (PkhTag (1 :: Int))
+        PkhWallet pkh <- lookupWallet wl (PkhTag "w2")
         adjustTx' [pkh]
     )
     [ shouldSucceed

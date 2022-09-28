@@ -26,8 +26,6 @@ import Test.Plutip.Config (PlutipConfig)
 import Test.Plutip.Contract (ClusterTest (ClusterTest), ada)
 import Test.Plutip.Internal.BotPlutusInterface.Types (
   BpiWallet (bwTag),
-  SomeBpiWallet (SomeBpiWallet),
-  SomeTestWallet' (SomeTestWallet'),
   TestWallet (twTag),
   TestWallet' (TestWallet'),
   TestWallets (TestWallets, unTestWallets),
@@ -95,25 +93,25 @@ withConfiguredCluster conf name testCases =
           (\idx (ClusterTest (tws, toTestGroup)) -> toTestGroup $ second (substituteTags tws . (!! idx)) . snd <$> getResource)
           testCases
   where
-    setup :: ReaderT ClusterEnv IO (ClusterEnv, [NonEmpty SomeBpiWallet])
+    setup :: ReaderT ClusterEnv IO (ClusterEnv, [NonEmpty BpiWallet])
     setup = do
       env <- ask
 
       wallets <-
         traverse
-          (traverse (\(SomeTestWallet' tw) -> SomeBpiWallet <$> addSomeWallet tw) . getSomeTestWallets)
+          (traverse addSomeWallet . getTestWallets)
           testCases
       -- had to bump waiting period here coz of chain-index slowdown,
       -- see https://github.com/mlabs-haskell/plutip/issues/120
       waitSeconds 5 -- wait for transactions to submit
       pure (env, wallets)
 
-    getSomeTestWallets (ClusterTest (tws, _)) = SomeTestWallet' <$> unTestWallets tws
+    getTestWallets (ClusterTest (tws, _)) = unTestWallets tws
 
     -- Restore type information on BpiWallets by substituting tags from matching test wallets.
-    substituteTags :: TestWallets k -> NonEmpty SomeBpiWallet -> NonEmpty (BpiWallet k)
+    substituteTags :: TestWallets -> NonEmpty BpiWallet -> NonEmpty BpiWallet
     substituteTags (TestWallets tws) walls =
-      NonEmpty.zipWith (\(TestWallet' tw) (SomeBpiWallet bw) -> bw {bwTag = getTag (twTag tw)}) tws walls
+      NonEmpty.zipWith (\(TestWallet' tw) bw -> bw {bwTag = getTag (twTag tw)}) tws walls
 
 imap :: (Int -> a -> b) -> [a] -> [b]
 imap fn = zipWith fn [0 ..]

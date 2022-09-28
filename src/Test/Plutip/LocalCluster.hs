@@ -20,16 +20,12 @@ import Control.Monad.Reader (ReaderT, ask)
 import Data.Bifunctor (second)
 import Data.Default (def)
 import Data.List.NonEmpty (NonEmpty)
-import Data.List.NonEmpty qualified as NonEmpty
 import Numeric.Natural (Natural)
 import Test.Plutip.Config (PlutipConfig)
 import Test.Plutip.Contract (ClusterTest (ClusterTest), ada)
 import Test.Plutip.Internal.BotPlutusInterface.Types (
-  BpiWallet (bwTag),
-  TestWallet (twTag),
-  TestWallet' (TestWallet'),
-  TestWallets (TestWallets, unTestWallets),
-  getTag,
+  BpiWallet,
+  TestWallets (unTestWallets),
  )
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   addSomeWallet,
@@ -90,7 +86,7 @@ withConfiguredCluster conf name testCases =
     \getResource ->
       testGroup name $
         imap
-          (\idx (ClusterTest (tws, toTestGroup)) -> toTestGroup $ second (substituteTags tws . (!! idx)) . snd <$> getResource)
+          (\idx (ClusterTest (_, toTestGroup)) -> toTestGroup $ second (!! idx) . snd <$> getResource)
           testCases
   where
     setup :: ReaderT ClusterEnv IO (ClusterEnv, [NonEmpty BpiWallet])
@@ -107,11 +103,6 @@ withConfiguredCluster conf name testCases =
       pure (env, wallets)
 
     getTestWallets (ClusterTest (tws, _)) = unTestWallets tws
-
-    -- Restore type information on BpiWallets by substituting tags from matching test wallets.
-    substituteTags :: TestWallets -> NonEmpty BpiWallet -> NonEmpty BpiWallet
-    substituteTags (TestWallets tws) walls =
-      NonEmpty.zipWith (\(TestWallet' tw) bw -> bw {bwTag = getTag (twTag tw)}) tws walls
 
 imap :: (Int -> a -> b) -> [a] -> [b]
 imap fn = zipWith fn [0 ..]

@@ -109,7 +109,7 @@ test =
           ]
       , assertExecution
           "Pay negative amount"
-          (initAda (PkhTag "w1") [100]) -- TODO: this test doesn't fail because negative amount
+          (initAda (PkhTag "w1") [100])
           ( withContract $ \wl -> do
               PkhWallet pkh1 <- lookupWallet wl (PkhTag "w1")
               payTo pkh1 (-10_000_000)

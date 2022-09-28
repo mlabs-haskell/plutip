@@ -70,8 +70,6 @@ data TestWallet' = forall t. TestWallet' (TestWallet t)
 testWallet' :: [Positive] -> Maybe (ValueOrdering, Value) -> WalletTag t -> TestWallet'
 testWallet' twInitDistribiution twExpected twTag = TestWallet' $ TestWallet twInitDistribiution twExpected twTag
 
--- data SomeTestWallet' = forall k. SomeTestWallet' TestWallet'
-
 -- | Description of wallet to initialize
 data TestWallet t = TestWallet
   { twInitDistribiution :: [Positive]

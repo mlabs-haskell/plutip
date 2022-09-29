@@ -17,7 +17,7 @@ import Plutus.Contract (
 import Plutus.Contract qualified as Contract
 import Spec.TestContract.AdjustTx (runAdjustTest)
 import Spec.TestContract.AlwaysFail (lockThenFailToSpend)
-import Spec.TestContract.LockSpendMint (lockThenSpend)
+import Spec.TestContract.LockSpendMint (lockThenSpend, mintAndSendTokens)
 import Spec.TestContract.SimpleContracts (
   getUtxos,
   getUtxosThrowsErr,
@@ -212,6 +212,16 @@ test =
               [ shouldFail
               , errorSatisfies "Fail validation with 'I always fail'" errCheck
               ]
+      , assertExecution
+          "Mint and send zero tokens."
+          (initAda [100] <> initAda [200])
+          (withContract $ \[pkh] -> mintAndSendTokens 0 pkh)
+          [shouldSucceed]
+      , assertExecution
+          "Mint and send 5 tokens."
+          (initAda [100] <> initAda [200])
+          (withContract $ \[pkh] -> mintAndSendTokens 5 pkh)
+          [shouldSucceed]
       , -- Test `adjustUnbalancedTx`
         runAdjustTest
       ]

@@ -1,4 +1,4 @@
-module Spec.TestContract.LockSpendMint (lockThenSpend) where
+module Spec.TestContract.LockSpendMint (lockThenSpend, mintAndSendTokens) where
 
 import Control.Monad (void)
 import Data.List.NonEmpty qualified as NonEmpty
@@ -23,7 +23,7 @@ import Ledger.Scripts qualified as Scripts
 import Ledger.Typed.Scripts (TypedValidator, Validator, ValidatorTypes, mkUntypedMintingPolicy)
 import Ledger.Typed.Scripts qualified as TypedScripts
 import Ledger.Value (flattenValue, tokenName)
-import Plutus.Contract (Contract, awaitTxConfirmed, submitTx, submitTxConstraintsWith)
+import Plutus.Contract (Contract, adjustUnbalancedTx, awaitTxConfirmed, mkTxConstraints, submitTx, submitTxConstraintsWith)
 import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
 import Plutus.Script.Utils.V1.Scripts qualified as ScriptUtils
@@ -31,6 +31,7 @@ import Plutus.V1.Ledger.Value qualified as Value
 import PlutusTx qualified
 import PlutusTx.Prelude qualified as PP
 import Prelude
+import Prelude qualified as Hask
 
 lockThenSpend :: Contract () EmptySchema Text [(TxOutRef, ChainIndexTxOut)]
 lockThenSpend = do
@@ -170,3 +171,23 @@ mintingPolicy =
 
 currencySymbol :: CurrencySymbol
 currencySymbol = ScriptUtils.scriptCurrencySymbol mintingPolicy
+
+mintAndSendTokens :: Integer -> PaymentPubKeyHash -> Contract () EmptySchema Text ()
+mintAndSendTokens n pkh = do
+  let token = Value.singleton currencySymbol (tokenName "ff") n
+
+      txc =
+        Constraints.mustMintValue token
+          <> Constraints.mustPayToPubKey pkh token
+
+      lkps = Constraints.plutusV1MintingPolicy mintingPolicy
+
+  utx <- mkTxConstraints @TestZeroToken lkps txc
+  tx <- adjustUnbalancedTx utx
+  Contract.submitTxConfirmed tx
+
+data TestZeroToken
+
+instance ValidatorTypes TestZeroToken where
+  type DatumType TestZeroToken = ()
+  type RedeemerType TestZeroToken = ()

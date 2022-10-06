@@ -1,3 +1,5 @@
+{-# LANGUAGE PartialTypeSignatures #-}
+{-# OPTIONS_GHC -Wno-partial-type-signatures #-}
 -- | Helpers based on Cardano.Api (do not use `cardano-cli` executable)
 module Test.Plutip.Tools.CardanoApi (
   currentBlock,
@@ -15,7 +17,6 @@ import Control.Exception (Exception)
 import Data.Set qualified as Set
 import GHC.Generics (Generic)
 import Ouroboros.Consensus.HardFork.Combinator.AcrossEras (EraMismatch)
-import Ouroboros.Network.Protocol.LocalStateQuery.Type (AcquireFailure)
 import Test.Plutip.Internal.Types (ClusterEnv (runningNode))
 
 newtype CardanoApiError
@@ -25,7 +26,7 @@ newtype CardanoApiError
 instance Exception CardanoApiError
 
 -- | Get current block using `Cardano.Api` library
-currentBlock :: ClusterEnv -> IO (Either AcquireFailure (WithOrigin C.BlockNo))
+currentBlock :: ClusterEnv -> IO (Either _ (WithOrigin C.BlockNo))
 currentBlock (runningNode -> rn) = do
   let query = C.QueryChainBlockNo
       info = connectionInfo rn

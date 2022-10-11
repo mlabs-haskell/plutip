@@ -18,6 +18,7 @@ import Plutus.Contract qualified as Contract
 import Spec.TestContract.AdjustTx (runAdjustTest)
 import Spec.TestContract.AlwaysFail (lockThenFailToSpend)
 import Spec.TestContract.LockSpendMint (lockThenSpend)
+import Spec.TestContract.MintAndPay (zeroAdaOutTestContract)
 import Spec.TestContract.SimpleContracts (
   getUtxos,
   getUtxosThrowsErr,
@@ -26,7 +27,6 @@ import Spec.TestContract.SimpleContracts (
   ownValueToState,
   payTo,
  )
-import Spec.TestContract.MintAndPay (mintAndPayTokens)
 import Spec.TestContract.ValidateTimeRange (failingTimeContract, successTimeContract)
 import Test.Plutip.Contract (
   TestWallets,
@@ -215,20 +215,19 @@ test =
               ]
       , -- Test `adjustUnbalancedTx`
         runAdjustTest
-      , testMintMintAndPay
+      , testBugMintAndPay
       ]
       ++ testValueAssertionsOrderCorrectness
 
--- mint bug
-testMintMintAndPay :: (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
-testMintMintAndPay =
+-- https://github.com/mlabs-haskell/plutip/issues/138
+testBugMintAndPay :: (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
+testBugMintAndPay =
   assertExecution
-    "testMintMintAndPay"
+    "Adjustment of outputs with 0 Ada does not fail"
     (withCollateral $ initAda [1000] <> initAda [1111])
-    (withContract $ \[p1] -> mintAndPayTokens p1)
+    (withContract $ \[p1] -> zeroAdaOutTestContract p1)
     [ shouldSucceed
     ]
-
 
 -- Tests for https://github.com/mlabs-haskell/plutip/issues/84
 testValueAssertionsOrderCorrectness ::

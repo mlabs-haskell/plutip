@@ -15,10 +15,11 @@ module Test.Plutip.Internal.BotPlutusInterface.Types (
   getTag,
   mkWallet,
   BaseWallet (..),
-  PkhWallet (..),
+  EntWallet (..),
   twExpected,
   wsTag,
   twDistribution,
+  WalletSpec,
 ) where
 
 import Data.Data (Typeable)
@@ -35,10 +36,10 @@ import Test.Plutip.Internal.BotPlutusInterface.Keys (KeyPair, StakeKeyPair)
 -- Don't use the same name `k` for two wallets, even with different tag constructors.
 -- `t` type parameter is the type of wallet that will be accessible from WalletLookups.
 data WalletTag t where
-  -- | Base address wallet: has both payment and staking keys
+  -- | Option to create wallet with base address: has both payment and staking keys
   BaseTag :: Text -> WalletTag BaseWallet
-  -- | Enterprise address wallet: has only payment keys
-  PkhTag :: Text -> WalletTag PkhWallet
+  -- | Option to create wallet with enterprise address: has only payment keys
+  EntTag :: Text -> WalletTag EntWallet
 
 deriving stock instance Show (WalletTag t)
 deriving stock instance Eq (WalletTag t)
@@ -59,39 +60,37 @@ data BpiWallet = BpiWallet
 
 type TestWallets = NonEmpty TestWallet
 
-data TestWallet = forall t. TestWallet (WalletSpec t)
-
-twExpected :: TestWallet -> Maybe (ValueOrdering, Value)
-twExpected (TestWallet (WalletSpec _ expected _)) = expected
-
-twDistribution :: TestWallet -> [Positive]
-twDistribution (TestWallet (WalletSpec d _ _)) = d
-
-getTag :: TestWallet -> Text
-getTag (TestWallet (WalletSpec _ _ tag)) = getTag' tag
-  where
-    getTag' :: WalletTag t -> Text
-    getTag' = \case
-      BaseTag tag' -> tag'
-      PkhTag tag' -> tag'
+data TestWallet = forall t. TestWallet (WalletSpec t) (Maybe (ValueOrdering, Value))
 
 -- | Make TestWallet, takes utxo distribution, value assertions and WalletTag as arguments.
 mkWallet :: [Positive] -> Maybe (ValueOrdering, Value) -> WalletTag t -> TestWallet
 mkWallet twInitDistribiution expected tag =
-  TestWallet $ WalletSpec twInitDistribiution expected tag
+  TestWallet (WalletSpec twInitDistribiution tag) expected
+
+twExpected :: TestWallet -> Maybe (ValueOrdering, Value)
+twExpected (TestWallet _ expected) = expected
+
+twDistribution :: TestWallet -> [Positive]
+twDistribution (TestWallet (WalletSpec d _) _) = d
+
+getTag :: TestWallet -> Text
+getTag (TestWallet (WalletSpec _ tag) _) = getTag' tag
+  where
+    getTag' :: WalletTag t -> Text
+    getTag' = \case
+      BaseTag tag' -> tag'
+      EntTag tag' -> tag'
 
 -- | Description of wallet to initialize
 data WalletSpec t
   = WalletSpec
       [Positive]
       -- ^ initial distribution
-      (Maybe (ValueOrdering, Value))
-      -- ^ expected values
       (WalletTag t)
       -- ^ tag
 
 wsTag :: WalletSpec t -> WalletTag t
-wsTag (WalletSpec _ _ t) = t
+wsTag (WalletSpec _ t) = t
 
 data ValueOrdering = VEq | VGt | VLt | VGEq | VLEq
 
@@ -104,14 +103,14 @@ compareValuesWith VGEq = Value.geq
 compareValuesWith VLEq = Value.leq
 
 -- | Type holding wallet information as seen with wallet lookups. Used internally only.
-type WalletInfo = Either BaseWallet PkhWallet
+type WalletInfo = Either BaseWallet EntWallet
 
 -- | Base address wallet: supported by both Payment and Staking keys.
 data BaseWallet = BaseWallet {getBasePkh :: PaymentPubKeyHash, getSpkh :: StakePubKeyHash}
   deriving stock (Eq, Show, Typeable)
 
 -- | Enterprise address wallet: supported only by Payment keys.
-newtype PkhWallet = PkhWallet {getPkh :: PaymentPubKeyHash}
+newtype EntWallet = EntWallet {getPkh :: PaymentPubKeyHash}
   deriving stock (Eq, Show, Typeable)
 
 ownPaymentPubKeyHash :: WalletInfo -> PaymentPubKeyHash

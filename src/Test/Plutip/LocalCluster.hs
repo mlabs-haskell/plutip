@@ -25,6 +25,9 @@ import Test.Plutip.Config (PlutipConfig)
 import Test.Plutip.Contract (ClusterTest (ClusterTest), ada)
 import Test.Plutip.Internal.BotPlutusInterface.Types (
   BpiWallet,
+  TestWallet (TestWallet),
+  twDistribution,
+  wsTag,
  )
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   addSomeWallet,
@@ -51,7 +54,7 @@ waitSeconds n = liftIO $ threadDelay (fromEnum n * 1_000_000)
 -- > test =
 -- >   withCluster
 -- >     "Tests with local cluster"
--- >     [ assertExecution "Get utxos" (initAda (PkhTag ()) 100) (withContract $ const getUtxos) [shouldSucceed]]
+-- >     [ assertExecution "Get utxos" (initAda (EntTag "w1") 100) (withContract $ const getUtxos) [shouldSucceed]]
 -- >     ...
 --
 -- @since 0.2
@@ -71,7 +74,7 @@ withCluster = withConfiguredCluster def
 -- >     let myConfig = PlutipConfig ...
 -- >     withConfiguredCluster myConfig
 -- >     "Tests with local cluster"
--- >     [ assertExecution "Get utxos" (initAda (PkhTag ()) 100) (withContract $ const getUtxos) [shouldSucceed]]
+-- >     [ assertExecution "Get utxos" (initAda (EntTag "w1") 100) (withContract $ const getUtxos) [shouldSucceed]]
 -- >     ...
 --
 -- @since 0.2
@@ -94,7 +97,7 @@ withConfiguredCluster conf name testCases =
 
       wallets <-
         traverse
-          (traverse addSomeWallet . getTestWallets)
+          (traverse addTestWallet . getTestWallets)
           testCases
       -- had to bump waiting period here coz of chain-index slowdown,
       -- see https://github.com/mlabs-haskell/plutip/issues/120
@@ -102,6 +105,9 @@ withConfiguredCluster conf name testCases =
       pure (env, wallets)
 
     getTestWallets (ClusterTest (tws, _)) = tws
+
+    addTestWallet tw@(TestWallet spec _) =
+      addSomeWallet (wsTag spec) (twDistribution tw)
 
 imap :: (Int -> a -> b) -> [a] -> [b]
 imap fn = zipWith fn [0 ..]

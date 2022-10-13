@@ -28,7 +28,7 @@ import Test.Plutip.LocalCluster
     walletPaymentPkh
   )
 import GHC.Natural (Natural)
-import Test.Plutip.Internal.BotPlutusInterface.Types (WalletTag(PkhTag), mkWallet)
+import Test.Plutip.Internal.BotPlutusInterface.Types (WalletTag(EntTag))
 import Data.Text qualified as T
 
 main :: IO ()
@@ -70,7 +70,8 @@ main = do
 
     initWallets numWallets numUtxos amt dirWallets = do
       for [0..(max 0 numWallets - 1)] $ \idx ->
-        addSomeWalletDir (mkWallet (replicate numUtxos amt) Nothing (PkhTag $ T.pack $ show idx)) dirWallets
+        addSomeWalletDir (EntTag $ T.pack $ show idx) 
+          (replicate numUtxos amt)  dirWallets
 
     printWallet (w, n) = do
       putStrLn $ "Wallet " ++ show n ++ " PKH: " ++ show (walletPaymentPkh w)

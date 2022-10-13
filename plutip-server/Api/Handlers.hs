@@ -22,7 +22,7 @@ import System.FilePath (replaceFileName)
 import Test.Plutip.Config (chainIndexPort, relayNodeLogs)
 import Test.Plutip.Internal.BotPlutusInterface.Keys (KeyPair (sKey))
 import Test.Plutip.Internal.BotPlutusInterface.Setup (keysDir)
-import Test.Plutip.Internal.BotPlutusInterface.Types (WalletTag (PkhTag), mkWallet)
+import Test.Plutip.Internal.BotPlutusInterface.Types (WalletTag (EntTag), mkWallet)
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet (payKeys), addSomeWallet)
 import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)
 import Test.Plutip.Internal.Types (ClusterEnv (runningNode))
@@ -89,7 +89,7 @@ startClusterHandler
         let tags = T.pack . show <$> [0 ..]
         wallets <- do
           for (zip tags keysToGenerate) $ \(idx, lovelaceAmounts) ->
-            addSomeWallet (mkWallet (fromInteger . unLovelace <$> lovelaceAmounts) Nothing (PkhTag idx))
+            addSomeWallet (EntTag idx) (fromInteger . unLovelace <$> lovelaceAmounts)
         waitSeconds 2 -- wait for transactions to submit
         pure (env, wallets)
       getNodeSocketFile (runningNode -> RunningNode conn _ _ _) = nodeSocketFile conn

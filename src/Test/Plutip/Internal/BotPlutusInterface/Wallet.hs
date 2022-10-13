@@ -35,6 +35,7 @@ import Ledger (
   PubKeyHash (PubKeyHash),
   StakePubKeyHash (StakePubKeyHash),
  )
+import Numeric.Positive (Positive)
 import PlutusTx.Builtins (toBuiltin)
 import System.Directory (createDirectoryIfMissing)
 import Test.Plutip.Internal.BotPlutusInterface.Keys (
@@ -49,13 +50,9 @@ import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as Setup
 import Test.Plutip.Internal.BotPlutusInterface.Types (
   BpiError (BotInterfaceDirMissing, SignKeySaveError),
   BpiWallet (BpiWallet),
-  TestWallet (TestWallet),
-  -- WalletSpec (wsInitDistribiution, wsTag),
-  WalletTag (BaseTag, PkhTag),
+  WalletTag (BaseTag, EntTag),
   payKeys,
   stakeKeys,
-  twDistribution,
-  wsTag,
  )
 import Test.Plutip.Internal.Types (ClusterEnv, nodeSocket, supportDir)
 
@@ -66,14 +63,14 @@ During wallet addition `.skey` file with required name generated and saved
  to be used by bot interface.
  Directory for files could be obtained with `Test.Plutip.BotPlutusInterface.Setup.keysDir`
 -}
-eitherAddSomeWallet :: MonadIO m => TestWallet -> ReaderT ClusterEnv m (Either BpiError BpiWallet)
-eitherAddSomeWallet funds = eitherAddSomeWalletDir funds Nothing
+eitherAddSomeWallet :: MonadIO m => WalletTag t -> [Positive] -> ReaderT ClusterEnv m (Either BpiError BpiWallet)
+eitherAddSomeWallet tag funds = eitherAddSomeWalletDir tag funds Nothing
 
 -- | The same as `eitherAddSomeWallet`, but also
 -- saves the key file to a separate directory.
-eitherAddSomeWalletDir :: MonadIO m => TestWallet -> Maybe FilePath -> ReaderT ClusterEnv m (Either BpiError BpiWallet)
-eitherAddSomeWalletDir tw wallDir = do
-  bpiWallet <- createWallet tw
+eitherAddSomeWalletDir :: MonadIO m => WalletTag t -> [Positive] -> Maybe FilePath -> ReaderT ClusterEnv m (Either BpiError BpiWallet)
+eitherAddSomeWalletDir tag funds wallDir = do
+  bpiWallet <- createWallet tag
   saveWallets bpiWallet wallDir
     >>= \case
       Right _ -> sendFunds bpiWallet >> pure (Right bpiWallet)
@@ -88,25 +85,25 @@ eitherAddSomeWalletDir tw wallDir = do
           nullTracer -- todo: fix tracer to be not `nullTracer`
           (nodeSocket cEnv)
           (supportDir cEnv)
-          [(fundAddress, toAmt v) | v <- twDistribution tw]
+          [(fundAddress, toAmt v) | v <- funds]
 
 -- | Add wallet with arbitrary address and specified amount of Ada.
 -- (version of `eitherAddSomeWallet` that will throw an error in case of failure)
-addSomeWallet :: MonadIO m => TestWallet -> ReaderT ClusterEnv m BpiWallet
-addSomeWallet funds =
-  eitherAddSomeWallet funds >>= either (error . show) pure
+addSomeWallet :: MonadIO m => WalletTag t -> [Positive] -> ReaderT ClusterEnv m BpiWallet
+addSomeWallet tag funds =
+  eitherAddSomeWallet tag funds >>= either (error . show) pure
 
 -- | Version of `addSomeWallet` that also writes the
 -- wallet key file to a separate directory
-addSomeWalletDir :: MonadIO m => TestWallet -> Maybe FilePath -> ReaderT ClusterEnv m BpiWallet
-addSomeWalletDir funds wallDir =
-  eitherAddSomeWalletDir funds wallDir >>= either (error . show) pure
+addSomeWalletDir :: MonadIO m => WalletTag t -> [Positive] -> Maybe FilePath -> ReaderT ClusterEnv m BpiWallet
+addSomeWalletDir tag funds wallDir =
+  eitherAddSomeWalletDir tag funds wallDir >>= either (error . show) pure
 
-createWallet :: MonadIO m => TestWallet -> m BpiWallet
-createWallet (TestWallet spec) = do
+createWallet :: MonadIO m => WalletTag t -> m BpiWallet
+createWallet tag = do
   kp <- liftIO genKeyPair
-  (skp, k) <- case wsTag spec of
-    PkhTag k -> pure (Nothing, k)
+  (skp, k) <- case tag of
+    EntTag k -> pure (Nothing, k)
     BaseTag k -> fmap ((,k) . Just) (liftIO genStakeKeyPair)
   return $ BpiWallet kp skp k
 

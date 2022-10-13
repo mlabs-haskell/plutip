@@ -117,7 +117,7 @@ withCollateral :: TestWallets -> TestWallets
 withCollateral = NonEmpty.map go
   where
     go :: TestWallet -> TestWallet
-    go tw@(TestWallet spec) =
+    go tw@(TestWallet spec _) =
       mkWallet
         (fromInteger defCollateralSize : twDistribution tw)
         (second (Value.unionWith (+) collateral) <$> twExpected tw)

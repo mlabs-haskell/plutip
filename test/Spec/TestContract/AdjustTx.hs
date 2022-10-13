@@ -31,7 +31,7 @@ import Test.Plutip.Contract (
   withContract,
  )
 import Test.Plutip.Internal.BotPlutusInterface.Lookups (WalletLookups (lookupWallet))
-import Test.Plutip.Internal.BotPlutusInterface.Types (PkhWallet (PkhWallet), WalletTag (PkhTag))
+import Test.Plutip.Internal.BotPlutusInterface.Types (EntWallet (EntWallet), WalletTag (EntTag))
 import Test.Plutip.Predicate (
   shouldSucceed,
   yieldSatisfies,
@@ -70,9 +70,9 @@ runAdjustTest :: ClusterTest
 runAdjustTest =
   assertExecution
     "Adjust Unbalanced Tx Contract"
-    (initAda (PkhTag "w1") [1000] <> initAda (PkhTag "w2") [1000])
+    (initAda (EntTag "w1") [1000] <> initAda (EntTag "w2") [1000])
     ( withContract $ \wl -> do
-        PkhWallet pkh <- lookupWallet wl (PkhTag "w2")
+        EntWallet pkh <- lookupWallet wl (EntTag "w2")
         adjustTx' [pkh]
     )
     [ shouldSucceed

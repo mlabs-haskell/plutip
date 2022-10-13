@@ -18,9 +18,9 @@ import Plutus.Contract.Error (AsContractError, _ContractError)
 import Test.Plutip.Internal.BotPlutusInterface.Types (
   BaseWallet (BaseWallet),
   BpiWallet (bwTag),
-  PkhWallet (PkhWallet),
+  EntWallet (EntWallet),
   WalletInfo,
-  WalletTag (BaseTag, PkhTag),
+  WalletTag (BaseTag, EntTag),
   ownAddress,
  )
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (walletPaymentPkh, walletStakePkh)
@@ -49,7 +49,7 @@ data WalletLookups = WalletLookups
 makeWalletInfo :: BpiWallet -> WalletInfo
 makeWalletInfo w =
   maybe
-    (Right $ PkhWallet (walletPaymentPkh w))
+    (Right $ EntWallet (walletPaymentPkh w))
     (Left . BaseWallet (walletPaymentPkh w))
     (walletStakePkh w)
 
@@ -78,11 +78,11 @@ makeWalletLookups lookups =
       Map Text WalletInfo ->
       WalletTag t ->
       Contract w s e t
-    lookupTaggedWallet wl (PkhTag tag) = case Map.lookup tag wl of
+    lookupTaggedWallet wl (EntTag tag) = case Map.lookup tag wl of
       Nothing -> toError $ badWalletTag tag
-      Just (Right res@(PkhWallet _)) -> pure res
+      Just (Right res@(EntWallet _)) -> pure res
       Just (Left (BaseWallet _ _)) -> toError expectedEnterpriseWallet
     lookupTaggedWallet wl (BaseTag tag) = case Map.lookup tag wl of
       Nothing -> toError $ badWalletTag tag
-      Just (Right (PkhWallet _)) -> toError expectedWalletWithStakeKeys
+      Just (Right (EntWallet _)) -> toError expectedWalletWithStakeKeys
       Just (Left res@(BaseWallet _ _)) -> pure res

@@ -46,7 +46,7 @@ addWalletWithAdas :: [Ada] -> ReaderT ClusterEnv IO (BpiWallet k)
 addWalletWithAdas funds = addSomeWallet $ testWallet'
   (map (fromInteger . Ada.toLovelace) funds)
   Nothing
-  (PkhTag ())
+  (EntTag ())
 ```
 
 > Aside: Feel free to choose the amount of ada you want to fund your wallet with. Just remember: `addSomeWallet` takes a list of _lovelace_ amounts. Here, I've actually made my custom `Ada` type as well some helper utilities (not the same as `Plutus.V1.Ledger.Ada` as that is removed in newer `plutus-ledger-api` versions).
@@ -195,7 +195,7 @@ begin = do
     setup = do
       env <- ask
       -- Gotta have all those utxos for the collaterals.
-      ownWallet <- addWalletWithAdas $ testWallet' (300 :  replicate 50 10) Nothing (PkhTag 0)
+      ownWallet <- addWalletWithAdas $ testWallet' (300 :  replicate 50 10) Nothing (EntTag 0)
       -- Wait for faucet funds to be added.
       waitSeconds 2
       pure (env, ownWallet)

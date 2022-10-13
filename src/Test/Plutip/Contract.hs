@@ -31,7 +31,7 @@
 --
 --    > assertExecution
 --    >   "Some Contract"                   -- Contract description
---    >   (initAda (PkhTag ()) 100)                     -- wallets and initial funds for them (single wallet in this case)
+--    >   (initAda (EntTag ()) 100)                     -- wallets and initial funds for them (single wallet in this case)
 --    >   (withContract $ \_ -> myContract) -- contract execution
 --    >   [ shouldSucceed                   -- list of assertions
 --    >   , not $ shouldYield someResult
@@ -56,9 +56,9 @@
 --  the 1st initiated wallet will be used as "own" wallet, e.g.:
 --
 --    > assertExecution  "Send some Ada"
---    >   (initAda (PkhTag 0) 100 <> initAda (PkhTag 1) 101 <> initAda (PkhTag 2) 102)
+--    >   (initAda (EntTag 0) 100 <> initAda (EntTag 1) 101 <> initAda (EntTag 2) 102)
 --    >   (withContract $ \wl -> do
---    >     PkhWallet pkh1 <- lookupWallet wl (PkhTag 1)
+--    >     EntWallet pkh1 <- lookupWallet wl (EntTag 1)
 --    >     payToPubKey pkh1 (Ada.lovelaceValueOf amt))
 --    >   [shouldSucceed]
 --
@@ -75,10 +75,10 @@
 --    > assertExecutionWith
 --    >   [ShowBudgets, ShowTraceButOnlyContext ContractLog Error]
 --    >   "Send some Ada"
---    >   (initAda (PkhTag "pkh0") 100 <> initAda (PkhTag "myOwnWallet") 101 <> initAda (PkhTag "pkh2") 102)
+--    >   (initAda (EntTag "pkh0") 100 <> initAda (EntTag "myOwnWallet") 101 <> initAda (EntTag "pkh2") 102)
 --    >   (withContractAs "myOwnWallet" $ \wl -> do
---    >     PkhWallet pkh0 <- lookupWallet wl (PkhTag "pkh0")
---    >     PkhWallet pkh2 <- lookupWallet wl (PkhTag "pkh2")
+--    >     EntWallet pkh0 <- lookupWallet wl (EntTag "pkh0")
+--    >     EntWallet pkh2 <- lookupWallet wl (EntTag "pkh2")
 --    >     payToPubKey pkh2 (Ada.lovelaceValueOf amt))
 --    >   [shouldSucceed]
 --
@@ -96,14 +96,14 @@
 --
 --    > assertExecution
 --    >   "Two contracts one after another"
---    >   (initAda (PkhTag 0) 100 <> initAda (PkhTag 1) 101)
+--    >   (initAda (EntTag 0) 100 <> initAda (EntTag 1) 101)
 --    >   ( do
 --    >       void $ -- run something prior to the contract which result will be checked
 --    >         withContract $ \wl ->
---    >           PkhWallet pkh1 <- lookupWallet wl (PkhTag 1)
+--    >           EntWallet pkh1 <- lookupWallet wl (EntTag 1)
 --    >           payTo pkh1 10_000_000
 --    >       withContractAs 1 $ \wl -> do  -- run the contract which result will be checked
---    >         PkhWallet pkh0 <- lookupWallet wl (PkhTag 0)
+--    >         EntWallet pkh0 <- lookupWallet wl (EntTag 0)
 --    >         payTo pkh0 10_000_000
 --    >   )
 --    >   [shouldSucceed]
@@ -224,7 +224,7 @@ newtype ClusterTest = ClusterTest (TestWallets, IO (ClusterEnv, NonEmpty BpiWall
 --
 -- > assertExecution
 -- >   "Some Contract"                   -- Contract description
--- >   (initAda (PkhTag 0) 100)                     -- wallets and initial funds for them (single wallet in this case)
+-- >   (initAda (EntTag 0) 100)                     -- wallets and initial funds for them (single wallet in this case)
 -- >   (withContract $ \_ -> myContract) -- contract execution
 -- >   [ shouldSucceed                   -- list of assertions
 -- >   , not $ shouldYield someResult

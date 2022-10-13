@@ -10,7 +10,7 @@ test =
   withConfiguredCluster def -- 1
     "Basic integration: launch, add wallet, tx from wallet to wallet" -- 2
     $ [ assertExecution "Contract 1" -- 3
-          (initAda (PkhTag (0 :: Int)) [100,200] <> initLovelace (BaseTag 1) 10_000_000) -- 3.1
+          (initAda (EntTag (0 :: Int)) [100,200] <> initLovelace (BaseTag 1) 10_000_000) -- 3.1
           (withContract $ \wl -> someContract) -- 3.2
           [ shouldSucceed -- 3.3
           ]
@@ -33,7 +33,7 @@ It is possible to initialize arbitrary number of `wallets` in second argument of
 E.g. if `wallets` initialized like
 
 ```haskell
-(initAda (PkhTag (0 :: Int)) [100] <> initAda (PkhTag 1) [200] <> initAda (BaseTag 2) [300])
+(initAda (EntTag (0 :: Int)) [100] <> initAda (EntTag 1) [200] <> initAda (BaseTag 2) [300])
 ```
 
 we will get 3 funded addresses represented by 3 corresponding `wallets`: 
@@ -44,7 +44,7 @@ we will get 3 funded addresses represented by 3 corresponding `wallets`:
 
 ```haskell
 withContract $ \wl -> do
-  PkhWallet pkh1 <- lookupWallet wl (PkhTag 1)
+  EntWallet pkh1 <- lookupWallet wl (EntTag 1)
   BaseWallet pkh2 spkh2 <- lookupWallet wl (BaseTag 2)
   someContract
 ```
@@ -52,10 +52,10 @@ withContract $ \wl -> do
 note that the lookup return type depends on a query tag. Unfortunetely the type hint is needed to avoid cryptic error message.
 
 
-* `pkh1` is `PaymentPubKeyHash` of `wallet` `initAda (PkhTag 1) [200]`
+* `pkh1` is `PaymentPubKeyHash` of `wallet` `initAda (EntTag 1) [200]`
 * `pkh2` is `PaymentPubKeyHash` of `wallet` `initAda (BaseTag 2) [300]` and `spkh2` is its `StakePubKeyHash`
 
-`PaymentPubKeyHash` of `wallet` `initAda (PkhTag 0) [100]` is meant to be `pkh0` and not presented in the lookups.
+`PaymentPubKeyHash` of `wallet` `initAda (EntTag 0) [100]` is meant to be `pkh0` and not presented in the lookups.
 
 
 You can execute a contract with base address as contracts address:
@@ -91,7 +91,7 @@ It is possible to run arbitrary number of contracts in 3d argument of `assertExe
 
 ```haskell
   assertExecution "Some description"
-          ( initAda (PkhTag ()) [100])
+          ( initAda (EntTag ()) [100])
           ( do
               void $
                 withContract $
@@ -117,20 +117,20 @@ For example, consider the following scenario:
 
 ```haskell
   assertExecution "Some description"
-          ( initAda (PkhTag 'a') [100] -- walletA
-            <> initAda (PkhTag 'b') [200] -- walletB
-            <> initAda (PkhTag 'c') [300] -- walletC
+          ( initAda (EntTag 'a') [100] -- walletA
+            <> initAda (EntTag 'b') [200] -- walletB
+            <> initAda (EntTag 'c') [300] -- walletC
           )
           ( do
               void $
                 withContractAs 'b' $ -- running contract with walletB
                   \wl -> do
-                    wallA <- lookupWallet wl (PkhTag 'a')
+                    wallA <- lookupWallet wl (EntTag 'a')
                     setupContract1
               void $
                 withContractAs 'c' $  -- running contract with walletC
                   \wl -> do 
-                    wallB <- lookupWallet wl (PkhTag 'b')
+                    wallB <- lookupWallet wl (EntTag 'b')
                     setupContract2
               withContract $  -- uses first wallet, walletA
                 \wl -> theContract
@@ -180,7 +180,7 @@ E.g. scenario like this
         assertExecutionWith
           [ShowBudgets]
           "Lock then spend contract"
-          (initAda (PkhTag ()) (replicate 3 300))
+          (initAda (EntTag ()) (replicate 3 300))
           (withContract $ const lockThenSpend)
           [ shouldSucceed
           ]

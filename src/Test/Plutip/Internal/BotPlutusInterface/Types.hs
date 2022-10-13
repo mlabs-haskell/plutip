@@ -3,20 +3,22 @@
 module Test.Plutip.Internal.BotPlutusInterface.Types (
   BpiError (..),
   BpiWallet (BpiWallet, payKeys, stakeKeys, bwTag),
-  TestWallet (TestWallet, twInitDistribiution, twExpected, twTag),
-  TestWallets (TestWallets, unTestWallets),
+  TestWallets,
   ValueOrdering (VEq, VGt, VLt, VGEq, VLEq),
   compareValuesWith,
   WalletTag (..),
-  TestWallet' (..),
+  TestWallet (..),
   WalletInfo,
   ownPaymentPubKeyHash,
   ownStakePubKeyHash,
   ownAddress,
   getTag,
-  testWallet',
+  mkWallet,
   BaseWallet (..),
   PkhWallet (..),
+  twExpected,
+  wsTag,
+  twDistribution,
 ) where
 
 import Data.Data (Typeable)
@@ -41,11 +43,6 @@ data WalletTag t where
 deriving stock instance Show (WalletTag t)
 deriving stock instance Eq (WalletTag t)
 
-getTag :: WalletTag t -> Text
-getTag = \case
-  BaseTag tag -> tag
-  PkhTag tag -> tag
-
 data BpiError
   = SignKeySaveError !String
   | BotInterfaceDirMissing
@@ -60,22 +57,41 @@ data BpiWallet = BpiWallet
   }
   deriving stock (Show)
 
--- | Test wallets with k typed wallet tags.
-newtype TestWallets = TestWallets {unTestWallets :: NonEmpty TestWallet'}
-  deriving newtype (Semigroup)
+type TestWallets = NonEmpty TestWallet
 
-data TestWallet' = forall t. TestWallet' (TestWallet t)
+data TestWallet = forall t. TestWallet (WalletSpec t)
 
--- | Make TestWallet', takes utxo distribution, value assertions and WalletTag as arguments.
-testWallet' :: [Positive] -> Maybe (ValueOrdering, Value) -> WalletTag t -> TestWallet'
-testWallet' twInitDistribiution twExpected twTag = TestWallet' $ TestWallet twInitDistribiution twExpected twTag
+twExpected :: TestWallet -> Maybe (ValueOrdering, Value)
+twExpected (TestWallet (WalletSpec _ expected _)) = expected
+
+twDistribution :: TestWallet -> [Positive]
+twDistribution (TestWallet (WalletSpec d _ _)) = d
+
+getTag :: TestWallet -> Text
+getTag (TestWallet (WalletSpec _ _ tag)) = getTag' tag
+  where
+    getTag' :: WalletTag t -> Text
+    getTag' = \case
+      BaseTag tag' -> tag'
+      PkhTag tag' -> tag'
+
+-- | Make TestWallet, takes utxo distribution, value assertions and WalletTag as arguments.
+mkWallet :: [Positive] -> Maybe (ValueOrdering, Value) -> WalletTag t -> TestWallet
+mkWallet twInitDistribiution expected tag =
+  TestWallet $ WalletSpec twInitDistribiution expected tag
 
 -- | Description of wallet to initialize
-data TestWallet t = TestWallet
-  { twInitDistribiution :: [Positive]
-  , twExpected :: Maybe (ValueOrdering, Value)
-  , twTag :: WalletTag t
-  }
+data WalletSpec t
+  = WalletSpec
+      [Positive]
+      -- ^ initial distribution
+      (Maybe (ValueOrdering, Value))
+      -- ^ expected values
+      (WalletTag t)
+      -- ^ tag
+
+wsTag :: WalletSpec t -> WalletTag t
+wsTag (WalletSpec _ _ t) = t
 
 data ValueOrdering = VEq | VGt | VLt | VGEq | VLEq
 

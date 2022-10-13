@@ -26,11 +26,15 @@ import Numeric.Positive (Positive)
 
 import Test.Plutip.Internal.BotPlutusInterface.Run (defCollateralSize)
 import Test.Plutip.Internal.BotPlutusInterface.Types (
-  TestWallet (TestWallet, twExpected, twInitDistribiution),
-  TestWallet' (TestWallet'),
-  TestWallets (TestWallets, unTestWallets),
+  -- WalletSpec (wsExpected, wsInitDistribiution),
+  TestWallet (TestWallet),
+  TestWallets,
   ValueOrdering (VEq),
   WalletTag,
+  mkWallet,
+  twDistribution,
+  twExpected,
+  wsTag,
  )
 import Test.Plutip.Tools (ada)
 
@@ -39,14 +43,14 @@ import Test.Plutip.Tools (ada)
 --
 -- @since 0.2
 initLovelace :: WalletTag t -> [Positive] -> TestWallets
-initLovelace tag initial = TestWallets $ TestWallet' (TestWallet initial Nothing tag) :| []
+initLovelace tag initial = mkWallet initial Nothing tag :| []
 
 -- | Create a wallet with the given amounts of lovelace, and after contract execution
 -- compare the values at the wallet address with the given ordering and value.
 --
 -- @since 0.2
 initLovelaceAssertValueWith :: WalletTag t -> [Positive] -> ValueOrdering -> Value -> TestWallets
-initLovelaceAssertValueWith tag initial ord expect = TestWallets $ TestWallet' (TestWallet initial (Just (ord, expect)) tag) :| []
+initLovelaceAssertValueWith tag initial ord expect = mkWallet initial (Just (ord, expect)) tag :| []
 
 -- | Create a wallet with the given amounts of lovelace, and after contract execution
 -- check if values at the wallet address are equal to a given value.
@@ -110,13 +114,13 @@ initAndAssertAda tag initial expect =
 -- | Initialize all the 'TestWallets' with the collateral utxo and
 --   adjust the 'twExpected' value accordingly.
 withCollateral :: TestWallets -> TestWallets
-withCollateral TestWallets {..} = TestWallets $ NonEmpty.map go unTestWallets
+withCollateral = NonEmpty.map go
   where
-    go :: TestWallet' -> TestWallet'
-    go (TestWallet' wall@TestWallet {..}) =
-      TestWallet'
-        wall
-          { twInitDistribiution = fromInteger defCollateralSize : twInitDistribiution
-          , twExpected =
-              second (Value.unionWith (+) $ Ada.lovelaceValueOf defCollateralSize) <$> twExpected
-          }
+    go :: TestWallet -> TestWallet
+    go tw@(TestWallet spec) =
+      mkWallet
+        (fromInteger defCollateralSize : twDistribution tw)
+        (second (Value.unionWith (+) collateral) <$> twExpected tw)
+        (wsTag spec)
+
+    collateral = Ada.lovelaceValueOf defCollateralSize

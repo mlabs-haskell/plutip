@@ -25,7 +25,6 @@ import Test.Plutip.Config (PlutipConfig)
 import Test.Plutip.Contract (ClusterTest (ClusterTest), ada)
 import Test.Plutip.Internal.BotPlutusInterface.Types (
   BpiWallet,
-  TestWallets (unTestWallets),
  )
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   addSomeWallet,
@@ -102,7 +101,7 @@ withConfiguredCluster conf name testCases =
       waitSeconds 5 -- wait for transactions to submit
       pure (env, wallets)
 
-    getTestWallets (ClusterTest (tws, _)) = unTestWallets tws
+    getTestWallets (ClusterTest (tws, _)) = tws
 
 imap :: (Int -> a -> b) -> [a] -> [b]
 imap fn = zipWith fn [0 ..]

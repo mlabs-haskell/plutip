@@ -189,12 +189,11 @@ import Test.Plutip.Internal.BotPlutusInterface.Run (
  )
 import Test.Plutip.Internal.BotPlutusInterface.Types (
   BpiWallet (bwTag),
-  TestWallet (twExpected, twTag),
-  TestWallet' (TestWallet'),
-  TestWallets (unTestWallets),
+  TestWallets,
   WalletInfo,
   getTag,
   ownAddress,
+  twExpected,
  )
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   walletPaymentPkh,
@@ -297,7 +296,7 @@ maybeAddValuesCheck ::
 maybeAddValuesCheck ioRes tws =
   bool id (valuesCheckCase :) (any isJust expected)
   where
-    expected = Map.fromList $ toList $ (\(TestWallet' tw) -> (getTag (twTag tw), twExpected tw)) <$> unTestWallets tws
+    expected = Map.fromList $ toList $ (\tw -> (getTag tw, twExpected tw)) <$> tws
 
     valuesCheckCase :: TestTree
     valuesCheckCase =

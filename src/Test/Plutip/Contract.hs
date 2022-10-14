@@ -57,8 +57,8 @@
 --
 --    > assertExecution  "Send some Ada"
 --    >   (initAda (EntTag "w0") [100] <> initAda (EntTag "w1") [101] <> initAda (EntTag "w2") [102])
---    >   (withContract $ \wl -> do
---    >     EntWallet pkh1 <- lookupWallet wl (EntTag "w1")
+--    >   (withContract $ \ws -> do
+--    >     EntWallet pkh1 <- lookupWallet ws (EntTag "w1")
 --    >     payToPubKey pkh1 (Ada.lovelaceValueOf amt))
 --    >   [shouldSucceed]
 --
@@ -76,9 +76,9 @@
 --    >   [ShowBudgets, ShowTraceButOnlyContext ContractLog Error]
 --    >   "Send some Ada"
 --    >   (initAda (EntTag "pkh0") 100 <> initAda (EntTag "myOwnWallet") 101 <> initAda (EntTag "pkh2") 102)
---    >   (withContractAs "myOwnWallet" $ \wl -> do
---    >     EntWallet pkh0 <- lookupWallet wl (EntTag "pkh0")
---    >     EntWallet pkh2 <- lookupWallet wl (EntTag "pkh2")
+--    >   (withContractAs "myOwnWallet" $ \ws -> do
+--    >     EntWallet pkh0 <- lookupWallet ws (EntTag "pkh0")
+--    >     EntWallet pkh2 <- lookupWallet ws (EntTag "pkh2")
 --    >     payToPubKey pkh2 (Ada.lovelaceValueOf amt))
 --    >   [shouldSucceed]
 --
@@ -99,11 +99,11 @@
 --    >   (initAda (EntTag "w0") [100] <> initAda (EntTag "w1") [101])
 --    >   ( do
 --    >       void $ -- run something prior to the contract which result will be checked
---    >         withContract $ \wl ->
---    >           EntWallet pkh1 <- lookupWallet wl (EntTag "w1")
+--    >         withContract $ \ws ->
+--    >           EntWallet pkh1 <- lookupWallet ws (EntTag "w1")
 --    >           payTo pkh1 10_000_000
---    >       withContractAs "w1" $ \wl -> do  -- run the contract which result will be checked
---    >         EntWallet pkh0 <- lookupWallet wl (EntTag "w0")
+--    >       withContractAs "w1" $ \ws -> do  -- run the contract which result will be checked
+--    >         EntWallet pkh0 <- lookupWallet ws (EntTag "w0")
 --    >         payTo pkh0 10_000_000
 --    >   )
 --    >   [shouldSucceed]

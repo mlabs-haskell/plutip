@@ -110,8 +110,8 @@ test =
       , assertExecution
           "Pay negative amount"
           (initAda (EntTag "w1") [100])
-          ( withContract $ \wl -> do
-              EntWallet pkh1 <- lookupWallet wl (EntTag "w1")
+          ( withContract $ \ws -> do
+              EntWallet pkh1 <- lookupWallet ws (EntTag "w1")
               payTo pkh1 (-10_000_000)
           )
           [shouldFail]
@@ -121,8 +121,8 @@ test =
           ( initAda (EntTag "w1") [100]
               <> initAndAssertAda (EntTag "w2") [100, 13] 123
           )
-          ( withContract $ \wl -> do
-              EntWallet pkh1 <- lookupWallet wl (EntTag "w2")
+          ( withContract $ \ws -> do
+              EntWallet pkh1 <- lookupWallet ws (EntTag "w2")
               payTo pkh1 10_000_000
           )
           [shouldSucceed]
@@ -133,12 +133,12 @@ test =
           )
           ( do
               void $ -- run something prior to the contract which result will be checked
-                withContract $ \wl -> do
-                  addr1 <- lookupAddress wl "w1"
+                withContract $ \ws -> do
+                  addr1 <- lookupAddress ws "w1"
                   payToPubKeyAddress addr1 10_000_000
               withContractAs "w1" $ -- run contract which result will be checked
-                \wl -> do
-                  addr0 <- lookupAddress wl "w0"
+                \ws -> do
+                  addr0 <- lookupAddress ws "w0"
                   payToPubKeyAddress addr0 10_000_000
           )
           [shouldSucceed]
@@ -263,9 +263,9 @@ testValueAssertionsOrderCorrectness =
                 <> initAndAssertLovelace (EntTag "w2") [wallet2] wallet2After
           )
           ( do
-              withContract $ \wl -> do
-                EntWallet w1pkh <- lookupWallet wl (EntTag "w1")
-                EntWallet w2pkh <- lookupWallet wl (EntTag "w2")
+              withContract $ \ws -> do
+                EntWallet w1pkh <- lookupWallet ws (EntTag "w1")
+                EntWallet w2pkh <- lookupWallet ws (EntTag "w2")
                 _ <- payTo w1pkh (toInteger payTo1Amt)
                 _ <- waitNSlots 2
                 payTo w2pkh (toInteger payTo2Amt)
@@ -304,15 +304,15 @@ testValueAssertionsOrderCorrectness =
           )
           ( do
               void $
-                withContractAs "w1" $ \wl -> do
-                  EntWallet w0pkh <- lookupWallet wl (EntTag "w0")
-                  EntWallet w2pkh <- lookupWallet wl (EntTag "w2")
+                withContractAs "w1" $ \ws -> do
+                  EntWallet w0pkh <- lookupWallet ws (EntTag "w0")
+                  EntWallet w2pkh <- lookupWallet ws (EntTag "w2")
                   _ <- payTo w0pkh (toInteger payTo0Amt)
                   _ <- waitNSlots 2
                   payTo w2pkh (toInteger payTo2Amt)
 
-              withContractAs "w2" $ \wl -> do
-                EntWallet w1pkh <- lookupWallet wl (EntTag "w1")
+              withContractAs "w2" $ \ws -> do
+                EntWallet w1pkh <- lookupWallet ws (EntTag "w1")
                 payTo w1pkh (toInteger payTo1Amt)
           )
           [shouldSucceed]
@@ -326,11 +326,11 @@ walletLookupsTest =
         <> initAndAssertAda (BaseTag "b") [11, 22] 33
         <> initAndAssertAda (EntTag "c") [1, 2] 3
     )
-    ( withContract $ \wl -> do
-        BaseWallet pkhb spkhb <- lookupWallet wl (BaseTag "b")
-        EntWallet pkhc <- lookupWallet wl (EntTag "c")
-        addrb <- lookupAddress wl "b"
-        addrc <- lookupAddress wl "c"
+    ( withContract $ \ws -> do
+        BaseWallet pkhb spkhb <- lookupWallet ws (BaseTag "b")
+        EntWallet pkhc <- lookupWallet ws (EntTag "c")
+        addrb <- lookupAddress ws "b"
+        addrc <- lookupAddress ws "c"
 
         case addrb of
           Address (PubKeyCredential pkhb') (Just (StakingHash (PubKeyCredential spkhb'))) ->

@@ -71,8 +71,8 @@ runAdjustTest =
   assertExecution
     "Adjust Unbalanced Tx Contract"
     (initAda (EntTag "w1") [1000] <> initAda (EntTag "w2") [1000])
-    ( withContract $ \wl -> do
-        EntWallet pkh <- lookupWallet wl (EntTag "w2")
+    ( withContract $ \ws -> do
+        EntWallet pkh <- lookupWallet ws (EntTag "w2")
         adjustTx' [pkh]
     )
     [ shouldSucceed

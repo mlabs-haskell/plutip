@@ -78,11 +78,11 @@ makeWalletLookups lookups =
       Map Text WalletInfo ->
       WalletTag t ->
       Contract w s e t
-    lookupTaggedWallet wl (EntTag tag) = case Map.lookup tag wl of
+    lookupTaggedWallet ws (EntTag tag) = case Map.lookup tag ws of
       Nothing -> toError $ badWalletTag tag
       Just (Right res@(EntWallet _)) -> pure res
       Just (Left (BaseWallet _ _)) -> toError expectedEnterpriseWallet
-    lookupTaggedWallet wl (BaseTag tag) = case Map.lookup tag wl of
+    lookupTaggedWallet ws (BaseTag tag) = case Map.lookup tag ws of
       Nothing -> toError $ badWalletTag tag
       Just (Right (EntWallet _)) -> toError expectedWalletWithStakeKeys
       Just (Left res@(BaseWallet _ _)) -> pure res

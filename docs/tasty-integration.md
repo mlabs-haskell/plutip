@@ -11,7 +11,7 @@ test =
     "Basic integration: launch, add wallet, tx from wallet to wallet" -- 2
     $ [ assertExecution "Contract 1" -- 3
           (initAda (EntTag "w0")) [100,200] <> initLovelace (BaseTag "w1") [10_000_000]) -- 3.1
-          (withContract $ \wl -> someContract) -- 3.2
+          (withContract $ \ws -> someContract) -- 3.2
           [ shouldSucceed -- 3.3
           ]
       ]
@@ -21,7 +21,7 @@ test =
 2. Description of test group that will be run on current instance of the network
 3. Test scenario that will be performed on the local network with it's description. Scenario includes:
    1. (3.1.) Initialization of `wallets`. In this case two addresses will be funded: first - enterprise address - will have 2 UTxOs with 100 and 200 Ada, second - base address - single UTxO with 10 Ada.
-   2. (3.2) Execution of "`someContract :: Contract w s e a`". `PaymentPubKeyHash` of *first wallet* will be accessible in `someContract` as "own PaymentPubKeyHash". e.g with `ownFirstPaymentPubKeyHash`. `PaymentPubKeyHash` of *second* initiated wallet is accessible through `wl :: WalletLookups`  (more on that below).
+   2. (3.2) Execution of "`someContract :: Contract w s e a`". `PaymentPubKeyHash` of *first wallet* will be accessible in `someContract` as "own PaymentPubKeyHash". e.g with `ownFirstPaymentPubKeyHash`. `PaymentPubKeyHash` of *second* initiated wallet is accessible through `ws :: WalletLookups`  (more on that below).
    3. (3.3) List of checks or `predicates` which will be performed for the result of `someContract` execution.
 
 It is possible to run several scenarios on single network instance - note that `withConfiguredCluster` accepts list of `assertExecution`'s.
@@ -33,18 +33,18 @@ It is possible to initialize arbitrary number of `wallets` in second argument of
 E.g. if `wallets` initialized like
 
 ```haskell
-(initAda (EntTag "w1") [100] <> initAda (EntTag "w2") [200] <> initAda (BaseTag "w3") [300])
+(initAda (EntTag "w0") [100] <> initAda (EntTag "w1") [200] <> initAda (BaseTag "w2") [300])
 ```
 
 we will get 3 funded addresses represented by 3 corresponding `wallets`:
 
-* `PaymentPubKeyHash` of wallet 0 will be "own" `PaymentPubKeyHash` for contract executed it test case.
-* `PaymentPubKeyHash` of `wallets` 1 and 2 will be available via lambda wallet lookups argument. I.e.:
+* `PaymentPubKeyHash` of wallet `w0` will be "own" `PaymentPubKeyHash` for contract executed it test case.
+* `PaymentPubKeyHash` of `wallets` `w1` and `w2` will be available via lambda wallet lookups argument. I.e.:
 
 ```haskell
-withContract $ \wl -> do
-  EntWallet pkh1 <- lookupWallet wl (EntTag "w1")
-  BaseWallet pkh2 spkh2 <- lookupWallet wl (BaseTag "w2")
+withContract $ \ws -> do
+  EntWallet pkh1 <- lookupWallet ws (EntTag "w1")
+  BaseWallet pkh2 spkh2 <- lookupWallet ws (BaseTag "w2")
   someContract
 ```
 
@@ -76,9 +76,9 @@ Use `mustPayToPubKeyAddress` instead of `mustPayToPubKey` when your address has 
 You can also query for wallet address right away:
 
 ```haskell
-withContract $ \wl -> do
-  addr1 <- lookupAddress wl "w1"
-  addr2 <- lookupAddress wl "w2"
+withContract $ \ws -> do
+  addr1 <- lookupAddress ws "w1"
+  addr2 <- lookupAddress ws "w2"
   someContract
 ```
 
@@ -92,9 +92,9 @@ It is possible to run arbitrary number of contracts in 3d argument of `assertExe
           ( do
               void $
                 withContract $
-                  \wl -> contract1
+                  \ws -> contract1
               withContractAs "w1" $
-                \wl -> contract2
+                \ws -> contract2
           )
           [shouldSucceed]
 ```
@@ -121,16 +121,16 @@ For example, consider the following scenario:
           ( do
               void $
                 withContractAs "b" $ -- running contract with walletB
-                  \wl -> do
-                    wallA <- lookupWallet wl (EntTag "a")
+                  \ws -> do
+                    wallA <- lookupWallet ws (EntTag "a")
                     setupContract1
               void $
                 withContractAs "c" $  -- running contract with walletC
-                  \wl -> do 
-                    wallB <- lookupWallet wl (EntTag "b")
+                  \ws -> do 
+                    wallB <- lookupWallet ws (EntTag "b")
                     setupContract2
               withContract $  -- uses first wallet, walletA
-                \wl -> theContract
+                \ws -> theContract
           )
           [shouldSucceed]
 ```

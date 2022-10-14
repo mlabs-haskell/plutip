@@ -10,7 +10,7 @@ test =
   withConfiguredCluster def -- 1
     "Basic integration: launch, add wallet, tx from wallet to wallet" -- 2
     $ [ assertExecution "Contract 1" -- 3
-          (initAda (EntTag "w0")) [100,200] <> initLovelace (BaseTag "w1") [10_000_000]) -- 3.1
+          (initAda (EntTag "w0") [100,200] <> initLovelace (BaseTag "w1") [10_000_000]) -- 3.1
           (withContract $ \ws -> someContract) -- 3.2
           [ shouldSucceed -- 3.3
           ]
@@ -48,7 +48,7 @@ withContract $ \ws -> do
   someContract
 ```
 
-note that the lookup return type depends on a query tag. Unfortunetely the type hint is needed to avoid cryptic error message.
+Note that the lookup return type depends on a query tag.
 
 * `pkh1` is `PaymentPubKeyHash` of `wallet` `initAda (EntTag "w1") [200]`
 * `pkh2` is `PaymentPubKeyHash` of `wallet` `initAda (BaseTag "w2") [300]` and `spkh2` is its `StakePubKeyHash`
@@ -140,7 +140,7 @@ Instead `withContract` uses the first wallet, first in the order of how the init
 
 ## Assertions
 
-To assert the result of contract execution user specifies list of checks or `predicates` as 4th argument of `assertExecution`. There are several `predicates` provided by the library that could be found in `Test.Plutip.Contract` module. Existing `predicates` allows to make assertions on Contracts state (`w`), error (`e`) and result (`a`) (consider type `Contract w s e a`). 
+To assert the result of contract execution user specifies list of checks or `predicates` as 4th argument of `assertExecution`. There are several `predicates` provided by the library that could be found in `Test.Plutip.Contract` module. Existing `predicates` allows to make assertions on Contracts state (`w`), error (`e`) and result (`a`) (consider type `Contract w s e a`).
 
 There are also predicates for making assertions on scripts execution budgets (e.g. `budgetsFitUnder` or `assertOverallBudget`). But be aware, that budget of script submitted to private network can differ from testnet or mainnet, at least because different amount of input UTxOs could be added during balancing, so this assertions are mostly useful for rough estimation and regression testing.
 

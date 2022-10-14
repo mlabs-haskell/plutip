@@ -28,7 +28,7 @@ import Test.Plutip.LocalCluster
     walletPaymentPkh
   )
 import GHC.Natural (Natural)
-import Test.Plutip.Internal.BotPlutusInterface.Types (WalletTag(EntTag))
+import Test.Plutip.Internal.BotPlutusInterface.Types (WalletTag(EntTag), BpiWallet (bwTag))
 import Data.Text qualified as T
 
 main :: IO ()
@@ -47,7 +47,7 @@ main = do
         waitSeconds 2 -- let wallet Tx finish, it can take more time with bigger slot length
 
         separate
-        liftIO $ forM_ (zip ws [(1 :: Int) ..]) printWallet
+        liftIO $ forM_ ws printWallet
         printNodeRelatedInfo
         separate
 
@@ -73,9 +73,10 @@ main = do
         addSomeWalletDir (EntTag $ T.pack $ show idx) 
           (replicate numUtxos amt)  dirWallets
 
-    printWallet (w, n) = do
-      putStrLn $ "Wallet " ++ show n ++ " PKH: " ++ show (walletPaymentPkh w)
-      putStrLn $ "Wallet " ++ show n ++ " mainnet address: " ++ show (mkMainnetAddress w)
+    printWallet w = do
+      putStrLn $ "Wallet " ++ show (bwTag w) ++ " PKH: " ++ show (walletPaymentPkh w)
+      putStrLn $ "Wallet " ++ show (bwTag w) ++ " mainnet address: " 
+                  ++ show (mkMainnetAddress w)
 
     toAda = (* 1_000_000)
 

@@ -26,11 +26,11 @@ import Ledger.Value qualified as Value
 import Numeric.Positive (Positive)
 import Test.Plutip.Internal.BotPlutusInterface.Keys (KeyPair, StakeKeyPair)
 
--- | Name for the wallet (k) together with information on what we expect the wallet to be.
--- Used in wallet initialization specifies requested wallet's type, used in lookups specifies expected returned wallet type.
+-- | Tag of the wallet that gives wallet name and specifies type of address it will have:
+-- base or enterprise.
+-- Also used in lookups and specifies expected type of returned wallet.
 --
--- Don't use the same name `k` for two wallets, even with different tag constructors.
--- `t` type parameter is the type of wallet that will be accessible from WalletLookups.
+-- `t` type parameter is the type of wallet that will be accessible from `WalletLookups`.
 data WalletTag t where
   -- | Option to create wallet with base address: has both payment and staking keys
   BaseTag :: Text -> WalletTag BaseWallet

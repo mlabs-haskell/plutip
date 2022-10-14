@@ -42,7 +42,7 @@ setup = do
   waitSeconds 2
   pure (env, ownWallet)
 
-addWalletWithAdas :: [Ada] -> ReaderT ClusterEnv IO (BpiWallet k)
+addWalletWithAdas :: [Ada] -> ReaderT ClusterEnv IO BpiWallet
 addWalletWithAdas funds = 
   addSomeWallet
     (EntTag "w1")
@@ -92,7 +92,7 @@ Once you have that, you can simply use `runContract` from `import Test.Plutip.In
 runContract ::
   (ToJSON w, Monoid w, MonadIO m) =>
   ClusterEnv ->
-  BpiWallet k ->
+  BpiWallet ->
   Contract w s e a ->
   m (ExecutionResult w e a)
 ```

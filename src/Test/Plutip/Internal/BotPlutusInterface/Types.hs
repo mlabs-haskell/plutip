@@ -56,7 +56,8 @@ data BpiWallet = BpiWallet
 
 type TestWallets = NonEmpty TestWallet
 
-data TestWallet = forall t. TestWallet
+data TestWallet = forall t.
+  TestWallet
   { twTag :: WalletTag t
   , twDistribution :: [Positive]
   , twExpected :: Maybe (ValueOrdering, Value)

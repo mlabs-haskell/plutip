@@ -52,7 +52,7 @@ main = do
      ask >>= \cEnv -> runContract cEnv wallet contract
      
   (st, _) <- startCluster def $ do
-    w <- addSomeWallet [100_000_000]
+    w <- addSomeWallet (BaseTag "wallet1") [100_000_000]
     waitSeconds 2
     result <- executeContract w someContract
     doSomething result

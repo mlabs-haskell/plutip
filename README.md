@@ -40,6 +40,7 @@ NOTE: This branch launches local network in `Vasil`. It was tested with node `1.
 
 ## Tutorials
 
+* NEW: [Address types](docs/wallet-tags-and-addresses.md)
 * [Running disposable local network and building own runners](./local-cluster/README.md)
 * [Tasty integration](./docs/tasty-integration.md)
 * [Running Contracts is REPL](./docs/interactive-plutip.md)

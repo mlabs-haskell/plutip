@@ -32,9 +32,6 @@ import Test.Plutip.Internal.BotPlutusInterface.Types (
   ValueOrdering (VEq),
   WalletTag,
   mkWallet,
-  twDistribution,
-  twExpected,
-  wsTag,
  )
 import Test.Plutip.Tools (ada)
 
@@ -117,10 +114,10 @@ withCollateral :: TestWallets -> TestWallets
 withCollateral = NonEmpty.map go
   where
     go :: TestWallet -> TestWallet
-    go tw@(TestWallet spec _) =
-      mkWallet
-        (fromInteger defCollateralSize : twDistribution tw)
-        (second (Value.unionWith (+) collateral) <$> twExpected tw)
-        (wsTag spec)
+    go (TestWallet tag dist expected) =
+      TestWallet
+        tag
+        (fromInteger defCollateralSize : dist)
+        (second (Value.unionWith (+) collateral) <$> expected)
 
     collateral = Ada.lovelaceValueOf defCollateralSize

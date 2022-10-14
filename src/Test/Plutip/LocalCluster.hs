@@ -26,8 +26,6 @@ import Test.Plutip.Contract (ClusterTest (ClusterTest), ada)
 import Test.Plutip.Internal.BotPlutusInterface.Types (
   BpiWallet,
   TestWallet (TestWallet),
-  twDistribution,
-  wsTag,
  )
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   addSomeWallet,
@@ -106,8 +104,8 @@ withConfiguredCluster conf name testCases =
 
     getTestWallets (ClusterTest (tws, _)) = tws
 
-    addTestWallet tw@(TestWallet spec _) =
-      addSomeWallet (wsTag spec) (twDistribution tw)
+    addTestWallet (TestWallet tag dist _) =
+      addSomeWallet tag dist
 
 imap :: (Int -> a -> b) -> [a] -> [b]
 imap fn = zipWith fn [0 ..]

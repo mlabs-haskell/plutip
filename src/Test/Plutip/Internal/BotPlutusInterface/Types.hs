@@ -16,10 +16,6 @@ module Test.Plutip.Internal.BotPlutusInterface.Types (
   mkWallet,
   BaseWallet (..),
   EntWallet (..),
-  twExpected,
-  wsTag,
-  twDistribution,
-  WalletSpec,
 ) where
 
 import Data.Data (Typeable)
@@ -60,37 +56,24 @@ data BpiWallet = BpiWallet
 
 type TestWallets = NonEmpty TestWallet
 
-data TestWallet = forall t. TestWallet (WalletSpec t) (Maybe (ValueOrdering, Value))
+data TestWallet = forall t. TestWallet
+  { twTag :: WalletTag t
+  , twDistribution :: [Positive]
+  , twExpected :: Maybe (ValueOrdering, Value)
+  }
 
 -- | Make TestWallet, takes utxo distribution, value assertions and WalletTag as arguments.
 mkWallet :: [Positive] -> Maybe (ValueOrdering, Value) -> WalletTag t -> TestWallet
-mkWallet twInitDistribiution expected tag =
-  TestWallet (WalletSpec twInitDistribiution tag) expected
-
-twExpected :: TestWallet -> Maybe (ValueOrdering, Value)
-twExpected (TestWallet _ expected) = expected
-
-twDistribution :: TestWallet -> [Positive]
-twDistribution (TestWallet (WalletSpec d _) _) = d
+mkWallet initDistribiution expected tag =
+  TestWallet tag initDistribiution expected
 
 getTag :: TestWallet -> Text
-getTag (TestWallet (WalletSpec _ tag) _) = getTag' tag
+getTag (TestWallet tag _ _) = getTag' tag
   where
     getTag' :: WalletTag t -> Text
     getTag' = \case
       BaseTag tag' -> tag'
       EntTag tag' -> tag'
-
--- | Description of wallet to initialize
-data WalletSpec t
-  = WalletSpec
-      [Positive]
-      -- ^ initial distribution
-      (WalletTag t)
-      -- ^ tag
-
-wsTag :: WalletSpec t -> WalletTag t
-wsTag (WalletSpec _ t) = t
 
 data ValueOrdering = VEq | VGt | VLt | VGEq | VLEq
 

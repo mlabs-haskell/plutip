@@ -23,6 +23,7 @@ import Plutus.V2.Ledger.Api (Credential (PubKeyCredential), StakingCredential (S
 import Spec.TestContract.AdjustTx (runAdjustTest)
 import Spec.TestContract.AlwaysFail (lockThenFailToSpend)
 import Spec.TestContract.LockSpendMint (lockThenSpend)
+import Spec.TestContract.MintAndPay (zeroAdaOutTestContract)
 import Spec.TestContract.SimpleContracts (
   getUtxos,
   getUtxosThrowsErr,
@@ -233,8 +234,22 @@ test =
       , walletLookupsTest
       , -- Test `adjustUnbalancedTx`
         runAdjustTest
+      , testBugMintAndPay
       ]
       ++ testValueAssertionsOrderCorrectness
+
+-- https://github.com/mlabs-haskell/plutip/issues/138
+testBugMintAndPay ::ClusterTest
+testBugMintAndPay =
+  assertExecution
+    "Adjustment of outputs with 0 Ada does not fail"
+    (withCollateral $ initAda (EntTag "w0") [1000] <> initAda (EntTag "w1") [1111])
+    (withContract $ \ws -> do
+      EntWallet w1pkh <- lookupWallet ws (EntTag "w1")
+      zeroAdaOutTestContract w1pkh
+    )
+    [ shouldSucceed
+    ]
 
 -- Tests for https://github.com/mlabs-haskell/plutip/issues/84
 testValueAssertionsOrderCorrectness :: [ClusterTest]

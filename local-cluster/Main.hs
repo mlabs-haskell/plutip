@@ -6,10 +6,11 @@
 module Main (main) where
 
 import Control.Applicative (optional, (<**>))
-import Control.Monad (forM_, replicateM, void)
+import Control.Monad (forM_, void)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ReaderT (ReaderT))
 import Data.Default (def)
+import Data.Traversable (for)
 import Numeric.Positive (Positive)
 import Options.Applicative (Parser, helper, info)
 import Options.Applicative qualified as Options
@@ -17,15 +18,18 @@ import Test.Plutip.Config
   ( PlutipConfig (clusterWorkingDir),
     WorkingDirectory (Fixed, Temporary),
   )
-import Test.Plutip.Internal.BotPlutusInterface.Wallet (addSomeWalletDir, walletPkh)
+import Test.Plutip.Internal.BotPlutusInterface.Wallet (addSomeWalletDir)
 import Test.Plutip.Internal.Types (nodeSocket)
 import Test.Plutip.LocalCluster
   ( mkMainnetAddress,
     startCluster,
     stopCluster,
     waitSeconds,
+    walletPaymentPkh
   )
 import GHC.Natural (Natural)
+import Test.Plutip.Internal.BotPlutusInterface.Types (WalletTag(EntTag), BpiWallet (bwTag))
+import Data.Text qualified as T
 
 main :: IO ()
 main = do
@@ -43,7 +47,7 @@ main = do
         waitSeconds 2 -- let wallet Tx finish, it can take more time with bigger slot length
 
         separate
-        liftIO $ forM_ (zip ws [(1 :: Int) ..]) printWallet
+        liftIO $ forM_ ws printWallet
         printNodeRelatedInfo
         separate
 
@@ -65,12 +69,14 @@ main = do
         amt -> Right $ fromInteger . toInteger $ amt
 
     initWallets numWallets numUtxos amt dirWallets = do
-      replicateM (max 0 numWallets) $
-        addSomeWalletDir (replicate numUtxos amt) dirWallets
+      for [0..(max 0 numWallets - 1)] $ \idx ->
+        addSomeWalletDir (EntTag $ T.pack $ show idx) 
+          (replicate numUtxos amt)  dirWallets
 
-    printWallet (w, n) = do
-      putStrLn $ "Wallet " ++ show n ++ " PKH: " ++ show (walletPkh w)
-      putStrLn $ "Wallet " ++ show n ++ " mainnet address: " ++ show (mkMainnetAddress w)
+    printWallet w = do
+      putStrLn $ "Wallet " ++ show (bwTag w) ++ " PKH: " ++ show (walletPaymentPkh w)
+      putStrLn $ "Wallet " ++ show (bwTag w) ++ " mainnet address: " 
+                  ++ show (mkMainnetAddress w)
 
     toAda = (* 1_000_000)
 

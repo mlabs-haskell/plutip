@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Test.Plutip.LocalCluster (
   BpiWallet,
   addSomeWallet,
@@ -5,7 +7,7 @@ module Test.Plutip.LocalCluster (
   waitSeconds,
   mkMainnetAddress,
   cardanoMainnetAddress,
-  ledgerPaymentPkh,
+  walletPaymentPkh,
   withCluster,
   withConfiguredCluster,
   startCluster,
@@ -20,13 +22,16 @@ import Data.Default (def)
 import Data.List.NonEmpty (NonEmpty)
 import Numeric.Natural (Natural)
 import Test.Plutip.Config (PlutipConfig)
-import Test.Plutip.Contract (TestWallet (twInitDistribuition), TestWallets (unTestWallets), ada)
-import Test.Plutip.Internal.BotPlutusInterface.Wallet (
+import Test.Plutip.Contract (ClusterTest (ClusterTest), ada)
+import Test.Plutip.Internal.BotPlutusInterface.Types (
   BpiWallet,
+  TestWallet (TestWallet),
+ )
+import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   addSomeWallet,
   cardanoMainnetAddress,
-  ledgerPaymentPkh,
   mkMainnetAddress,
+  walletPaymentPkh,
  )
 import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)
 import Test.Plutip.Internal.Types (ClusterEnv)
@@ -47,13 +52,13 @@ waitSeconds n = liftIO $ threadDelay (fromEnum n * 1_000_000)
 -- > test =
 -- >   withCluster
 -- >     "Tests with local cluster"
--- >     [ shouldSucceed "Get utxos" (initAda 100) $ const getUtxos
+-- >     [ assertExecution "Get utxos" (initAda (EntTag "w1") 100) (withContract $ const getUtxos) [shouldSucceed]]
 -- >     ...
 --
 -- @since 0.2
 withCluster ::
   String ->
-  [(TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)] ->
+  [ClusterTest] ->
   TestTree
 withCluster = withConfiguredCluster def
 
@@ -67,21 +72,21 @@ withCluster = withConfiguredCluster def
 -- >     let myConfig = PlutipConfig ...
 -- >     withConfiguredCluster myConfig
 -- >     "Tests with local cluster"
--- >     [ shouldSucceed "Get utxos" (initAda 100) $ const getUtxos
+-- >     [ assertExecution "Get utxos" (initAda (EntTag "w1") 100) (withContract $ const getUtxos) [shouldSucceed]]
 -- >     ...
 --
 -- @since 0.2
 withConfiguredCluster ::
   PlutipConfig ->
   String ->
-  [(TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)] ->
+  [ClusterTest] ->
   TestTree
 withConfiguredCluster conf name testCases =
   withResource (startCluster conf setup) (stopCluster . fst) $
     \getResource ->
       testGroup name $
         imap
-          (\idx (_, toTestGroup) -> toTestGroup $ second (!! idx) . snd <$> getResource)
+          (\idx (ClusterTest (_, toTestGroup)) -> toTestGroup $ second (!! idx) . snd <$> getResource)
           testCases
   where
     setup :: ReaderT ClusterEnv IO (ClusterEnv, [NonEmpty BpiWallet])
@@ -90,12 +95,17 @@ withConfiguredCluster conf name testCases =
 
       wallets <-
         traverse
-          (traverse addSomeWallet . fmap twInitDistribuition . unTestWallets . fst)
+          (traverse addTestWallet . getTestWallets)
           testCases
       -- had to bump waiting period here coz of chain-index slowdown,
       -- see https://github.com/mlabs-haskell/plutip/issues/120
       waitSeconds 5 -- wait for transactions to submit
       pure (env, wallets)
+
+    getTestWallets (ClusterTest (tws, _)) = tws
+
+    addTestWallet (TestWallet tag dist _) =
+      addSomeWallet tag dist
 
 imap :: (Int -> a -> b) -> [a] -> [b]
 imap fn = zipWith fn [0 ..]

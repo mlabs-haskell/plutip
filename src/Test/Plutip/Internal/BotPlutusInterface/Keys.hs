@@ -1,43 +1,89 @@
-module Test.Plutip.Internal.BotPlutusInterface.Keys (genKeyPair, genKeyPairs) where
+{-# LANGUAGE OverloadedStrings #-}
 
-import Cardano.Api (AsType (AsPaymentKey), Key (VerificationKey, getVerificationKey, verificationKeyHash), PaymentKey, SigningKey, TextEnvelopeDescr, generateSigningKey, writeFileTextEnvelope)
+module Test.Plutip.Internal.BotPlutusInterface.Keys (
+  KeyPair (sKey, vKey),
+  StakeKeyPair (sSKey, sVKey),
+  genKeyPair,
+  writeKeyPair,
+  genStakeKeyPair,
+  writeStakeKeyPairs,
+  signingKeyFilePathInDir,
+  verificationKeyFilePathInDir,
+  stakingSigningKeyFilePathInDir,
+  stakingVerificationKeyFilePathInDir,
+) where
+
+import Cardano.Api (writeFileTextEnvelope)
+import Cardano.Api qualified as CAPI
+import Data.Text qualified as Text
 import System.FilePath ((<.>), (</>))
 
 data KeyPair = KeyPair
-  { sKey :: SigningKey PaymentKey
-  , vKey :: VerificationKey PaymentKey
+  { sKey :: CAPI.SigningKey CAPI.PaymentKey
+  , vKey :: CAPI.VerificationKey CAPI.PaymentKey
   }
   deriving stock (Show)
 
-genKeyPair :: IO KeyPair
-genKeyPair = do
-  sKey <- generateSigningKey AsPaymentKey
-  return $ KeyPair sKey (getVerificationKey sKey)
+data StakeKeyPair = StakeKeyPair
+  { sSKey :: CAPI.SigningKey CAPI.StakeKey
+  , sVKey :: CAPI.VerificationKey CAPI.StakeKey
+  }
+  deriving stock (Show)
+
+pSKeyDesc, pVKeyDesc, sSKeyDesc, sVKeyDesc :: CAPI.TextEnvelopeDescr
+pSKeyDesc = "Payment Signing Key"
+pVKeyDesc = "Payment Verification Key"
+sSKeyDesc = "Stake Signing Key"
+sVKeyDesc = "Stake Verification Key"
 
 -- | Helper to generate key pairs.
 -- Can be further developed to generate test keys for test wallets
 -- to work with `bot-plutus-interface`
--- >>> genKeyPairs "cluster-data/known_wallets" "signing-key-" "verification-key-"
-genKeyPairs :: FilePath -> String -> String -> IO ()
-genKeyPairs outDir sKeyPrefix vKeyPrefix = do
-  sKey <- generateSigningKey AsPaymentKey
-  let skeyDesc, vkeyDesc :: TextEnvelopeDescr
-      skeyDesc = "Payment Signing Key"
-      vkeyDesc = "Payment Verification Key"
+genKeyPair :: IO KeyPair
+genKeyPair = do
+  sKey <- CAPI.generateSigningKey CAPI.AsPaymentKey
+  return $ KeyPair sKey (CAPI.getVerificationKey sKey)
 
-      vKey = getVerificationKey sKey
-      hash = verificationKeyHash vKey
+writeKeyPair :: FilePath -> KeyPair -> IO [Either (CAPI.FileError ()) ()]
+writeKeyPair outDir keyPair = do
+  let hash = CAPI.verificationKeyHash $ vKey keyPair
 
-      skeyPath = rmQuotes $ outDir </> sKeyPrefix ++ showHash hash <.> "skey"
-      vkeyPath = rmQuotes $ outDir </> vKeyPrefix ++ showHash hash <.> "vkey"
+      skeyPath = signingKeyFilePathInDir outDir hash
+      vkeyPath = verificationKeyFilePathInDir outDir hash
 
-      showHash = rmQuotes . show
-  res <-
-    sequence
-      [ writeFileTextEnvelope skeyPath (Just skeyDesc) sKey
-      , writeFileTextEnvelope vkeyPath (Just vkeyDesc) vKey
-      ]
-  print res
+  sequence
+    [ writeFileTextEnvelope skeyPath (Just pSKeyDesc) (sKey keyPair)
+    , writeFileTextEnvelope vkeyPath (Just pVKeyDesc) (vKey keyPair)
+    ]
 
-rmQuotes :: String -> String
-rmQuotes = filter (/= '"')
+genStakeKeyPair :: IO StakeKeyPair
+genStakeKeyPair = do
+  sKey <- CAPI.generateSigningKey CAPI.AsStakeKey
+  return $ StakeKeyPair sKey (CAPI.getVerificationKey sKey)
+
+writeStakeKeyPairs :: FilePath -> StakeKeyPair -> IO [Either (CAPI.FileError ()) ()]
+writeStakeKeyPairs dir stakeKeyPair = do
+  let hash = CAPI.verificationKeyHash $ sVKey stakeKeyPair
+
+      skeyPath = stakingSigningKeyFilePathInDir dir hash
+      vkeyPath = stakingVerificationKeyFilePathInDir dir hash
+
+  sequence
+    [ writeFileTextEnvelope skeyPath (Just sSKeyDesc) (sSKey stakeKeyPair)
+    , writeFileTextEnvelope vkeyPath (Just sVKeyDesc) (sVKey stakeKeyPair)
+    ]
+
+signingKeyFilePathInDir :: FilePath -> CAPI.Hash CAPI.PaymentKey -> FilePath
+signingKeyFilePathInDir dir vkh = keyFilePathInDir dir "signing-key" vkh "skey"
+
+verificationKeyFilePathInDir :: FilePath -> CAPI.Hash CAPI.PaymentKey -> FilePath
+verificationKeyFilePathInDir dir vkh = keyFilePathInDir dir "verification-key" vkh "vkey"
+
+stakingSigningKeyFilePathInDir :: FilePath -> CAPI.Hash CAPI.StakeKey -> FilePath
+stakingSigningKeyFilePathInDir dir vkh = keyFilePathInDir dir "staking-signing-key" vkh "skey"
+
+stakingVerificationKeyFilePathInDir :: FilePath -> CAPI.Hash CAPI.StakeKey -> FilePath
+stakingVerificationKeyFilePathInDir dir vkh = keyFilePathInDir dir "staking-verification-key" vkh "vkey"
+
+keyFilePathInDir :: forall a. CAPI.SerialiseAsRawBytes (CAPI.Hash a) => FilePath -> String -> CAPI.Hash a -> String -> FilePath
+keyFilePathInDir dir pref h ext = dir </> pref <> "-" <> Text.unpack (CAPI.serialiseToRawBytesHexText h) <.> ext

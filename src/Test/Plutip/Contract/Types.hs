@@ -1,24 +1,22 @@
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE GADTs #-}
 
 module Test.Plutip.Contract.Types (
   TestContractConstraints,
   TestContract (..),
-  TestWallets (TestWallets, unTestWallets),
-  TestWallet (..),
-  compareValuesWith,
-  ValueOrdering (..),
+  WalletTag (..),
 ) where
 
 import Data.Aeson (ToJSON)
 import Data.Bool (bool)
 import Data.Dynamic (Typeable)
 import Data.Kind (Type)
-import Data.List.NonEmpty (NonEmpty)
+import Data.Map (Map)
 import Data.Tagged (Tagged (Tagged))
+import Data.Text (Text)
 import Ledger.Value (Value)
-import Ledger.Value qualified as Value
-import Numeric.Positive (Positive)
 import Plutus.Contract (AsContractError)
+import Test.Plutip.Internal.BotPlutusInterface.Types (WalletTag (BaseTag, EntTag))
 import Test.Plutip.Internal.Types (
   ExecutionResult,
  )
@@ -42,7 +40,7 @@ data TestContract (w :: Type) (e :: Type) (a :: Type)
   = TestContract
       (Predicate w e a)
       -- ^ Info about check to perform and how to report results
-      (IO (ExecutionResult w e (a, NonEmpty Value)))
+      (IO (ExecutionResult w e (a, Map Text Value)))
       -- ^ Result of contract execution
   deriving stock (Typeable)
 
@@ -64,21 +62,3 @@ instance
         (pCheck predicate result)
 
   testOptions = Tagged []
-
-newtype TestWallets = TestWallets {unTestWallets :: NonEmpty TestWallet}
-  deriving newtype (Semigroup)
-
-data TestWallet = TestWallet
-  { twInitDistribuition :: [Positive]
-  , twExpected :: Maybe (ValueOrdering, Value)
-  }
-
-data ValueOrdering = VEq | VGt | VLt | VGEq | VLEq
-
--- | Value doesn't have an Ord instance, so we cannot use `compare`
-compareValuesWith :: ValueOrdering -> Value -> Value -> Bool
-compareValuesWith VEq = (==)
-compareValuesWith VGt = Value.gt
-compareValuesWith VLt = Value.lt
-compareValuesWith VGEq = Value.geq
-compareValuesWith VLEq = Value.leq

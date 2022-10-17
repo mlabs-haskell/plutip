@@ -1,4 +1,5 @@
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE LambdaCase #-}
 
 -- |
@@ -20,6 +21,8 @@
 --  `initLovelace`. In addition, the value in these wallets can be asserted after the contract
 --  execution with `initAdaAssertValue` or `initAndAssertAda`. When `initAdaAssertValue` or `initAndAssertAda` used
 --  to initiate wallets corresponding test case will be added automatically.
+--  A wallet is named with a tag, the tag contstructor specifies what type of wallet is to be initialized.
+--  Don't use the same name `k` for two wallets even with different tag constructors.
 --
 --  Each assertion in assertions list will become separate test case in `TestTree`,
 --  however Contract will be executed only once.
@@ -28,7 +31,7 @@
 --
 --    > assertExecution
 --    >   "Some Contract"                   -- Contract description
---    >   (initAda 100)                     -- wallets and initial funds for them (single wallet in this case)
+--    >   (initAda (EntTag "w1") 100)                     -- wallets and initial funds for them (single wallet in this case)
 --    >   (withContract $ \_ -> myContract) -- contract execution
 --    >   [ shouldSucceed                   -- list of assertions
 --    >   , not $ shouldYield someResult
@@ -37,7 +40,7 @@
 --
 --  To use multiple wallets, you can use the `Semigroup` instance of `TestWallets`. To reference the
 --  wallet inside the contract, the following callback function is used together with `withContract`:
---  @[PaymentPubKeyHash] -> Contract w s e a@.
+--  @WalletLookups k -> Contract w s e a@.
 --
 -- To display information useful for debugging together with test results use `assertExecutionWith`
 -- and provide it with options:
@@ -46,15 +49,16 @@
 --    - ShowTrace, for displaying contract execution trace
 --    - ShowTraceButOnlyContext, like ShowTrace but filter what to show
 --
---  Note that @[PaymentPubKeyHash]@ does not include the contract's own wallet,
+--  Note that @WalletLookups@ don't include the contract's own wallet,
 --  for that you can use `Plutus.Contract.ownPaymentPubKeyHash` inside the Contract monad.
 --
 --  When contract supplied to test with `withContract`,
 --  the 1st initiated wallet will be used as "own" wallet, e.g.:
 --
 --    > assertExecution  "Send some Ada"
---    >   (initAda 100 <> initAda 101 <> initAda 102)
---    >   (withContract $ \[pkh1, pkh2] ->
+--    >   (initAda (EntTag "w0") [100] <> initAda (EntTag "w1") [101] <> initAda (EntTag "w2") [102])
+--    >   (withContract $ \ws -> do
+--    >     EntWallet pkh1 <- lookupWallet ws (EntTag "w1")
 --    >     payToPubKey pkh1 (Ada.lovelaceValueOf amt))
 --    >   [shouldSucceed]
 --
@@ -63,18 +67,19 @@
 --  - 3 wallets will be initialised with 100, 101 and 102 Ada respectively
 --  - wallet with 100 Ada will be used as own wallet to run the contract
 --  - `pkh1` - `PaymentPubKeyHash` of wallet with 101 Ada
---  - `pkh2` - `PaymentPubKeyHash` of wallet with 102 Ada
 --
 --
---  When contract supplied to test with `withContractAs`, wallet with provided index (0 based)
+--  When contract supplied to test with `withContractAs`, wallet with provided name
 --  will be used as "own" wallet, e.g.:
 --
 --    > assertExecutionWith
 --    >   [ShowBudgets, ShowTraceButOnlyContext ContractLog Error]
 --    >   "Send some Ada"
---    >   (initAda 100 <> initAda 101 <> initAda 102)
---    >   (withContractAs 1 $ \[pkh0, pkh2] ->
---    >     payToPubKey pkh1 (Ada.lovelaceValueOf amt))
+--    >   (initAda (EntTag "pkh0") 100 <> initAda (EntTag "myOwnWallet") 101 <> initAda (EntTag "pkh2") 102)
+--    >   (withContractAs "myOwnWallet" $ \ws -> do
+--    >     EntWallet pkh0 <- lookupWallet ws (EntTag "pkh0")
+--    >     EntWallet pkh2 <- lookupWallet ws (EntTag "pkh2")
+--    >     payToPubKey pkh2 (Ada.lovelaceValueOf amt))
 --    >   [shouldSucceed]
 --
 --  Here:
@@ -91,13 +96,15 @@
 --
 --    > assertExecution
 --    >   "Two contracts one after another"
---    >   (initAda 100 <> initAda 101)
+--    >   (initAda (EntTag "w0") [100] <> initAda (EntTag "w1") [101])
 --    >   ( do
 --    >       void $ -- run something prior to the contract which result will be checked
---    >         withContract $
---    >           \[pkh1] -> payTo pkh1 10_000_000
---    >       withContractAs 1 $ -- run the contract which result will be checked
---    >         \[pkh1] -> payTo pkh1 10_000_000
+--    >         withContract $ \ws ->
+--    >           EntWallet pkh1 <- lookupWallet ws (EntTag "w1")
+--    >           payTo pkh1 10_000_000
+--    >       withContractAs "w1" $ \ws -> do  -- run the contract which result will be checked
+--    >         EntWallet pkh0 <- lookupWallet ws (EntTag "w0")
+--    >         payTo pkh0 10_000_000
 --    >   )
 --    >   [shouldSucceed]
 --
@@ -107,8 +114,6 @@ module Test.Plutip.Contract (
   withContract,
   withContractAs,
   -- Wallet initialisation
-  TestWallets (TestWallets, unTestWallets),
-  TestWallet (twInitDistribuition, twExpected),
   initAda,
   withCollateral,
   initAndAssertAda,
@@ -121,12 +126,13 @@ module Test.Plutip.Contract (
   initLovelaceAssertValue,
   initLovelaceAssertValueWith,
   -- Helpers
-  ledgerPaymentPkh,
-  ValueOrdering (VEq, VGt, VLt, VGEq, VLEq),
+  walletPaymentPkh,
   assertValues,
   assertExecution,
   assertExecutionWith,
   ada,
+  TestWallets,
+  ClusterTest (ClusterTest),
   -- Contract runners
   runContract,
   runContractWithLogLvl,
@@ -144,17 +150,19 @@ import Control.Arrow (left)
 import Control.Monad.Reader (MonadIO (liftIO), MonadReader (ask), ReaderT, runReaderT, void)
 import Data.Bool (bool)
 import Data.Kind (Type)
-import Data.List.NonEmpty (NonEmpty)
+import Data.List.NonEmpty (NonEmpty, toList)
 import Data.List.NonEmpty qualified as NonEmpty
+import Data.Map (Map)
+import Data.Map.Strict qualified as Map
 import Data.Maybe (isJust)
 import Data.Row (Row)
 import Data.Tagged (Tagged (Tagged))
+import Data.Text (Text)
 import Data.Text qualified as Text
-import Ledger (PaymentPubKeyHash)
-import Ledger.Address (pubKeyHashAddress)
 import Ledger.Value (Value)
 import Plutus.Contract (Contract, waitNSlots)
 import PlutusPrelude (render)
+import PlutusTx.These (These (That, These, This))
 import Prettyprinter (Doc, Pretty (pretty), vcat, (<+>))
 import Test.Plutip.Contract.Init (
   initAda,
@@ -172,13 +180,24 @@ import Test.Plutip.Contract.Init (
 import Test.Plutip.Contract.Types (
   TestContract (TestContract),
   TestContractConstraints,
-  TestWallet (twExpected, twInitDistribuition),
-  TestWallets (TestWallets, unTestWallets),
-  ValueOrdering (VEq, VGEq, VGt, VLEq, VLt),
  )
 import Test.Plutip.Contract.Values (assertValues, valueAt)
-import Test.Plutip.Internal.BotPlutusInterface.Run (runContract, runContractWithLogLvl)
-import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet, ledgerPaymentPkh)
+import Test.Plutip.Internal.BotPlutusInterface.Lookups (WalletLookups, lookupsMap, makeWalletInfo, makeWalletLookups)
+import Test.Plutip.Internal.BotPlutusInterface.Run (
+  runContract,
+  runContractWithLogLvl,
+ )
+import Test.Plutip.Internal.BotPlutusInterface.Types (
+  BpiWallet (bwTag),
+  TestWallets,
+  WalletInfo,
+  getTag,
+  ownAddress,
+  twExpected,
+ )
+import Test.Plutip.Internal.BotPlutusInterface.Wallet (
+  walletPaymentPkh,
+ )
 import Test.Plutip.Internal.Types (
   ClusterEnv,
   ExecutionResult (contractLogs, outcome),
@@ -193,7 +212,11 @@ import Test.Tasty.HUnit (assertFailure, testCase)
 import Test.Tasty.Providers (IsTest (run, testOptions), TestTree, singleTest, testPassed)
 
 type TestRunner (w :: Type) (e :: Type) (a :: Type) =
-  ReaderT (ClusterEnv, NonEmpty BpiWallet) IO (ExecutionResult w e (a, NonEmpty Value))
+  ReaderT (ClusterEnv, NonEmpty BpiWallet) IO (ExecutionResult w e (a, Map Text Value))
+
+-- | A type for the output of `assertExecution`.
+-- `k` is existentially quantified to allow different key types in every test case.
+newtype ClusterTest = ClusterTest (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
 
 -- | When used with `withCluster`, builds `TestTree` from initial wallets distribution,
 --  Contract and list of assertions (predicates). Each assertion will be run as separate test case,
@@ -201,7 +224,7 @@ type TestRunner (w :: Type) (e :: Type) (a :: Type) =
 --
 -- > assertExecution
 -- >   "Some Contract"                   -- Contract description
--- >   (initAda 100)                     -- wallets and initial funds for them (single wallet in this case)
+-- >   (initAda (EntTag "w0") [100])                     -- wallets and initial funds for them (single wallet in this case)
 -- >   (withContract $ \_ -> myContract) -- contract execution
 -- >   [ shouldSucceed                   -- list of assertions
 -- >   , not $ shouldYield someResult
@@ -216,7 +239,7 @@ assertExecution ::
   TestWallets ->
   TestRunner w e a ->
   [Predicate w e a] ->
-  (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
+  ClusterTest
 assertExecution = assertExecutionWith mempty
 
 -- | Version of assertExecution parametrised with a list of extra TraceOption's.
@@ -232,9 +255,9 @@ assertExecutionWith ::
   TestWallets ->
   TestRunner w e a ->
   [Predicate w e a] ->
-  (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
+  ClusterTest
 assertExecutionWith options tag testWallets testRunner predicates =
-  (testWallets, toTestGroup)
+  ClusterTest (testWallets, toTestGroup)
   where
     toTestGroup :: IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree
     toTestGroup ioEnv =
@@ -247,11 +270,11 @@ assertExecutionWith options tag testWallets testRunner predicates =
               ((toCase ioRes <$> predicates) <> ((`optionToTestTree` ioRes) <$> options))
 
     -- wraps IO with result of contract execution into single test
-    toCase :: IO (ExecutionResult w e (a, NonEmpty Value)) -> Predicate w e a -> TestTree
+    toCase :: IO (ExecutionResult w e (a, Map Text Value)) -> Predicate w e a -> TestTree
     toCase ioRes p =
       singleTest (pTag p) (TestContract p ioRes)
 
-    optionToTestTree :: TraceOption -> IO (ExecutionResult w e (a, NonEmpty Value)) -> TestTree
+    optionToTestTree :: TraceOption -> IO (ExecutionResult w e (a, Map Text Value)) -> TestTree
     optionToTestTree = \case
       ShowBudgets -> singleTest "Budget stats" . StatsReport
       ShowTrace -> singleTest logsName . LogsReport DisplayAllTrace
@@ -265,15 +288,15 @@ assertExecutionWith options tag testWallets testRunner predicates =
 --
 -- @since 0.2
 maybeAddValuesCheck ::
-  Show e =>
-  IO (ExecutionResult w e (a, NonEmpty Value)) ->
+  (Show e) =>
+  IO (ExecutionResult w e (a, Map Text Value)) ->
   TestWallets ->
   [TestTree] ->
   [TestTree]
 maybeAddValuesCheck ioRes tws =
   bool id (valuesCheckCase :) (any isJust expected)
   where
-    expected = twExpected <$> unTestWallets tws
+    expected = Map.fromList $ toList $ (\tw -> (getTag tw, twExpected tw)) <$> tws
 
     valuesCheckCase :: TestTree
     valuesCheckCase =
@@ -288,57 +311,66 @@ maybeAddValuesCheck ioRes tws =
 
     checkValues o =
       left (Text.pack . show) o
-        >>= \(_, vs) -> assertValues expected vs
+        >>= \(_, vs) ->
+          let theseToPair = \case
+                (These b c) -> (b, c)
+                _ -> error "The two maps should have the same keys as both follow from TestWallets."
+              (expecs, vals) = unzip $ Map.elems $ theseToPair <$> zipMaps expected vs
+           in assertValues expecs vals
 
--- | Run a contract using the first wallet as own wallet, and return `ExecutionResult`.
+    zipMaps :: Ord a => Map a b -> Map a c -> Map a (These b c)
+    zipMaps mb mc =
+      let f (This b) (That c) = These b c
+          f _ _ = error "All left are This and all right are That."
+       in Map.unionWith f (This <$> mb) (That <$> mc)
+
+-- | Run a contract using the first wallet (in the order of how initializations are written) as own wallet, and return `ExecutionResult`.
 -- This could be used by itself, or combined with multiple other contracts.
 --
 -- @since 0.2
 withContract ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
   TestContractConstraints w e a =>
-  ([PaymentPubKeyHash] -> Contract w s e a) ->
+  (WalletLookups -> Contract w s e a) ->
   TestRunner w e a
-withContract = withContractAs 0
+withContract toContract = do
+  (_, wallets') <- ask
+  withContractAs (bwTag $ NonEmpty.head wallets') toContract
 
--- | Run a contract using the nth wallet as own wallet, and return `ExecutionResult`.
+-- | Run a contract using wallet with the given tag as own wallet, and return `ExecutionResult`.
 -- This could be used by itself, or combined with multiple other contracts.
 --
 -- @since 0.2
 withContractAs ::
   forall (w :: Type) (s :: Row Type) (e :: Type) (a :: Type).
   TestContractConstraints w e a =>
-  Int ->
-  ([PaymentPubKeyHash] -> Contract w s e a) ->
+  Text ->
+  (WalletLookups -> Contract w s e a) ->
   TestRunner w e a
-withContractAs walletIdx toContract = do
+withContractAs walletName toContract = do
   (cEnv, wallets') <- ask
   let -- pick wallet for Contract's "own PKH", other wallets PKHs will be provided
       -- to the user in `withContractAs`
-      (ownWallet, otherWallets) = separateWallets walletIdx wallets'
+      (ownWallet, otherWallets) = separateWallets walletName $ NonEmpty.toList wallets'
 
-      {- these are `PaymentPubKeyHash`es of all wallets used in test case
-      they stay in list is same order as `TestWallets` defined in test case
-      so collected Values will be in same order as well
-      it is important to preserve this order for Values check with `assertValues`
-      as there is no other mechanism atm to match `TestWallet` with collected `Value`
-      -}
-      collectValuesPkhs :: NonEmpty PaymentPubKeyHash
-      collectValuesPkhs = fmap ledgerPaymentPkh wallets'
+      -- without own wallet
+      otherLookups :: Map Text WalletInfo
+      otherLookups = lookupsMap otherWallets
 
-      -- wallet `PaymentPubKeyHash`es that will be available in
-      -- `withContract` and `withContractAs`
-      otherWalletsPkhs :: [PaymentPubKeyHash]
-      otherWalletsPkhs = fmap ledgerPaymentPkh otherWallets
+      -- to be passed to the user, without own wallet
+      walletLookups = makeWalletLookups otherLookups
+
+      -- these are `PaymentPubKeyHash`es of all wallets used in test case
+      collectValuesAddr = ownAddress <$> Map.insert (bwTag ownWallet) (makeWalletInfo ownWallet) otherLookups
 
       -- contract that gets all the values present at the test wallets.
-      valuesAtWallet :: Contract w s e (NonEmpty Value)
+      valuesAtWallet :: Contract w s e (Map Text Value)
       valuesAtWallet =
         void (waitNSlots 1)
-          >> traverse (valueAt . (`pubKeyHashAddress` Nothing)) collectValuesPkhs
+          >> traverse valueAt collectValuesAddr
 
   -- run the test contract
-  execRes <- liftIO $ runContract cEnv ownWallet (toContract otherWalletsPkhs)
+  execRes <- liftIO $ runContract cEnv ownWallet (toContract walletLookups)
 
   -- get all the values present at the test wallets after the user given contracts has been executed.
   execValues <- liftIO $ runContract cEnv ownWallet valuesAtWallet
@@ -347,12 +379,15 @@ withContractAs walletIdx toContract = do
     Left e -> fail $ "Failed to get values. Error: " ++ show e
     Right values -> return $ execRes {outcome = (,values) <$> outcome execRes}
   where
-    separateWallets :: forall b. Int -> NonEmpty b -> (b, [b])
-    separateWallets i xss
-      | (xs, y : ys) <- NonEmpty.splitAt i xss = (y, xs <> ys)
-      | otherwise = error $ "Should fail: bad wallet index for own wallet: " <> show i
+    separateWallets :: Text -> [BpiWallet] -> (BpiWallet, [BpiWallet])
+    separateWallets tag =
+      let p = (== tag) . bwTag
+          loop ys = \case
+            (a : xs) -> if p a then (a, xs <> ys) else loop (a : ys) xs
+            [] -> error $ "Should fail: bad wallet tag for own wallet: " <> show tag
+       in loop []
 
-newtype StatsReport w e a = StatsReport (IO (ExecutionResult w e (a, NonEmpty Value)))
+newtype StatsReport w e a = StatsReport (IO (ExecutionResult w e (a, Map Text Value)))
 
 instance
   forall (w :: Type) (e :: Type) (a :: Type).
@@ -369,7 +404,7 @@ instance
   testOptions = Tagged []
 
 -- | Test case used internally for logs printing.
-data LogsReport w e a = LogsReport LogsReportOption (IO (ExecutionResult w e (a, NonEmpty Value)))
+data LogsReport w e a = LogsReport LogsReportOption (IO (ExecutionResult w e (a, Map Text Value)))
 
 -- | TraceOption stripped to what LogsReport wants to know.
 data LogsReportOption

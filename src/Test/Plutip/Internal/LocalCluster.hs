@@ -274,7 +274,7 @@ launchChainIndex conf (RunningNode sp _block0 (netParams, _vData) _) dir = do
           & CIC.socketPath .~ nodeSocketFile sp
           & CIC.dbPath .~ dbPath
           & CIC.networkId .~ CAPI.Mainnet
-          & CIC.port .~ maybe (CIC.cicPort ChainIndex.defaultConfig) fromEnum (chainIndexPort conf)
+          & CIC.port .~ port
           & CIC.slotConfig .~ (def {scSlotLength = toMilliseconds slotLen})
 
   void $ async $ void $ ChainIndex.runMainWithLog (const $ return ()) config chainIndexConfig

@@ -24,9 +24,9 @@ module Test.Plutip.Predicate (
 ) where
 
 import BotPlutusInterface.Types (TxBudget (TxBudget), mintBudgets, spendBudgets)
-import Data.List.NonEmpty (NonEmpty)
 import Data.Map (Map)
 import Data.Map qualified as Map
+import Data.Text (Text)
 import Ledger (ExBudget (ExBudget), ExCPU (ExCPU), ExMemory (ExMemory), TxId, Value)
 import PlutusCore.Evaluation.Machine.ExMemory (CostingInteger)
 import Prettyprinter (
@@ -62,10 +62,10 @@ data Predicate w e a = Predicate
     negative :: String
   , -- | some useful debugging info that `Predicate` can print based on contract execution result,
     -- used to print info in case of check failure
-    debugInfo :: ExecutionResult w e (a, NonEmpty Value) -> String
+    debugInfo :: ExecutionResult w e (a, Map Text Value) -> String
   , -- | check that `Predicate` performs on Contract execution result,
     -- if check evaluates to `False` test case considered failure
-    pCheck :: ExecutionResult w e (a, NonEmpty Value) -> Bool
+    pCheck :: ExecutionResult w e (a, Map Text Value) -> Bool
   }
 
 -- | `positive` description of `Predicate` that will be used as test case tag.
@@ -89,7 +89,7 @@ not predicate =
 -- | Check that Contract didn't fail.
 --
 -- @since 0.2
-shouldSucceed :: (Show e, Show a, Show w) => Predicate w e a
+shouldSucceed :: (Show w, Show e, Show a) => Predicate w e a
 shouldSucceed =
   Predicate
     "Contract should succeed"
@@ -98,7 +98,7 @@ shouldSucceed =
     isSuccessful
 
 -- | Pretty print ExecutionResult hiding budget stats and logs.
-prettyExecutionResult :: (Show e, Show w, Show a) => ExecutionResult e w a -> Doc ann
+prettyExecutionResult :: (Show e, Show w, Show a) => ExecutionResult w e a -> Doc ann
 prettyExecutionResult ExecutionResult {outcome, contractState} =
   vsep
     [ "Execution result {"

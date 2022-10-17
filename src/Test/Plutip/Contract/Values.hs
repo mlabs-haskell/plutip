@@ -10,8 +10,6 @@ import Data.Aeson.Extras (encodeByteString)
 import Data.Either (fromRight)
 import Data.Kind (Type)
 import Data.List (find)
-import Data.List.NonEmpty (NonEmpty)
-import Data.List.NonEmpty qualified as NonEmpty
 import Data.Map qualified as Map
 import Data.Row (Row)
 import Data.Text (Text)
@@ -24,7 +22,7 @@ import Ledger.Value qualified as Value
 import Plutus.Contract (AsContractError, Contract, utxosAt)
 import PlutusTx.Builtins (fromBuiltin)
 
-import Test.Plutip.Contract.Types (
+import Test.Plutip.Internal.BotPlutusInterface.Types (
   ValueOrdering (VEq, VGEq, VGt, VLEq, VLt),
   compareValuesWith,
  )
@@ -42,11 +40,11 @@ valueAt addr = do
     utxoValue (PublicKeyChainIndexTxOut _ v _ _) = v
     utxoValue (ScriptChainIndexTxOut _ v _ _ _) = v
 
-assertValues :: NonEmpty (Maybe (ValueOrdering, Value)) -> NonEmpty Value -> Either Text ()
+assertValues :: [Maybe (ValueOrdering, Value)] -> [Value] -> Either Text ()
 assertValues expected values =
   maybe (Right ()) (Left . report) $
     find findFailing $
-      zip3 [0 :: Int ..] (NonEmpty.toList expected) (NonEmpty.toList values)
+      zip3 [0 :: Int ..] expected values
   where
     findFailing (_, Nothing, _) = False
     findFailing (_, Just (ord, v), v') = not (compareValuesWith ord v' v)

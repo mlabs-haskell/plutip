@@ -29,6 +29,7 @@ common common-imports
     , cardano-addresses
     , cardano-api
     , cardano-crypto
+    , cardano-crypto-class
     , cardano-crypto-wrapper
     , cardano-ledger-core
     , cardano-slotting
@@ -47,6 +48,7 @@ common common-imports
     , http-client
     , http-types
     , iohk-monitoring
+    , lens
     , memory
     , mtl
     , openapi3
@@ -145,6 +147,7 @@ library
     Test.Plutip.Contract.Types
     Test.Plutip.Contract.Values
     Test.Plutip.Internal.BotPlutusInterface.Keys
+    Test.Plutip.Internal.BotPlutusInterface.Lookups
     Test.Plutip.Internal.BotPlutusInterface.Run
     Test.Plutip.Internal.BotPlutusInterface.Setup
     Test.Plutip.Internal.BotPlutusInterface.Types
@@ -174,7 +177,6 @@ test-suite plutip-tests
   ghc-options:        -Wall -threaded -rtsopts
   build-depends:
     , base
-    , lens
     , plutip
     , tasty
     , tasty-expected-failure
@@ -247,5 +249,6 @@ executable local-cluster
     , optparse-applicative
     , plutip
     , positive
+    , text
 
   ghc-options:   -Wall -threaded -rtsopts

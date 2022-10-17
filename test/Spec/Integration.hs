@@ -1,20 +1,25 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Spec.Integration (test) where
 
 import BotPlutusInterface.Types (LogContext (ContractLog), LogLevel (Error), LogType (AnyLog))
 import Control.Exception (ErrorCall, Exception (fromException))
 import Control.Monad (void)
 import Data.Default (Default (def))
-import Data.List.NonEmpty (NonEmpty)
+import Data.List.NonEmpty (NonEmpty ((:|)))
 import Data.Map qualified as Map
 import Data.Maybe (isJust)
 import Data.Text (Text, isInfixOf, pack)
+import Ledger (Address (Address), PaymentPubKeyHash (PaymentPubKeyHash), StakePubKeyHash (StakePubKeyHash))
 import Ledger.Ada (lovelaceValueOf)
 import Ledger.Constraints (MkTxError (OwnPubKeyMissing))
 import Plutus.Contract (
   ContractError (ConstraintResolutionContractError),
+  throwError,
   waitNSlots,
  )
 import Plutus.Contract qualified as Contract
+import Plutus.V2.Ledger.Api (Credential (PubKeyCredential), StakingCredential (StakingHash))
 import Spec.TestContract.AdjustTx (runAdjustTest)
 import Spec.TestContract.AlwaysFail (lockThenFailToSpend)
 import Spec.TestContract.LockSpendMint (lockThenSpend)
@@ -26,11 +31,11 @@ import Spec.TestContract.SimpleContracts (
   ownValue,
   ownValueToState,
   payTo,
+  payToPubKeyAddress,
  )
 import Spec.TestContract.ValidateTimeRange (failingTimeContract, successTimeContract)
 import Test.Plutip.Contract (
-  TestWallets,
-  ValueOrdering (VLt),
+  ClusterTest,
   assertExecution,
   assertExecutionWith,
   initAda,
@@ -42,12 +47,14 @@ import Test.Plutip.Contract (
   withContract,
   withContractAs,
  )
+import Test.Plutip.Contract.Types (WalletTag (BaseTag, EntTag))
+import Test.Plutip.Internal.BotPlutusInterface.Lookups (WalletLookups (lookupWallet), lookupAddress)
+import Test.Plutip.Internal.BotPlutusInterface.Types (BaseWallet (BaseWallet), EntWallet (EntWallet), ValueOrdering (VLt))
 import Test.Plutip.Internal.Types (
-  ClusterEnv,
   FailureReason (CaughtException, ContractExecutionError),
   isException,
  )
-import Test.Plutip.LocalCluster (BpiWallet, withConfiguredCluster)
+import Test.Plutip.LocalCluster (withConfiguredCluster)
 import Test.Plutip.Options (TraceOption (ShowBudgets, ShowTraceButOnlyContext))
 import Test.Plutip.Predicate (
   assertOverallBudget,
@@ -77,14 +84,14 @@ test =
         -- Basic Succeed or Failed tests
         assertExecution
           "Contract 1"
-          (initAda (100 : replicate 10 7))
+          (initAda (EntTag "w1") (100 : replicate 10 7))
           (withContract $ const getUtxos)
           [ shouldSucceed
           , Predicate.not shouldFail
           ]
       , assertExecution
           "Contract 2"
-          (initAda [100])
+          (initAda (EntTag "w1") [100])
           (withContract $ const getUtxosThrowsErr)
           [ shouldFail
           , Predicate.not shouldSucceed
@@ -92,7 +99,7 @@ test =
       , assertExecutionWith
           [ShowTraceButOnlyContext ContractLog $ Error [AnyLog]]
           "Contract 3"
-          (initAda [100])
+          (initAda (EntTag "w1") [100])
           ( withContract $
               const $ do
                 Contract.logInfo @Text "Some contract log with Info level."
@@ -103,39 +110,50 @@ test =
           ]
       , assertExecution
           "Pay negative amount"
-          (initAda [100])
-          (withContract $ \[pkh1] -> payTo pkh1 (-10_000_000))
+          (initAda (EntTag "w1") [100])
+          ( withContract $ \ws -> do
+              EntWallet pkh1 <- lookupWallet ws (EntTag "w1")
+              payTo pkh1 (-10_000_000)
+          )
           [shouldFail]
       , -- Tests with wallet's Value assertions
         assertExecution
           "Pay from wallet to wallet"
-          (initAda [100] <> initAndAssertAda [100, 13] 123)
-          (withContract $ \[pkh1] -> payTo pkh1 10_000_000)
+          ( initAda (EntTag "w1") [100]
+              <> initAndAssertAda (EntTag "w2") [100, 13] 123
+          )
+          ( withContract $ \ws -> do
+              EntWallet pkh1 <- lookupWallet ws (EntTag "w2")
+              payTo pkh1 10_000_000
+          )
           [shouldSucceed]
       , assertExecution
           "Two contracts one after another"
-          ( initAndAssertAdaWith [100] VLt 100 -- own wallet (index 0 in wallets list)
-              <> initAndAssertAdaWith [100] VLt 100 -- wallet with index 1 in wallets list
+          ( initAndAssertAdaWith (EntTag "w0") [100] VLt 100 -- own wallet (index 0 in wallets lookups)
+              <> initAndAssertAdaWith (EntTag "w1") [100] VLt 100 -- wallet with index 1 in wallets lookups
           )
           ( do
               void $ -- run something prior to the contract which result will be checked
-                withContract $
-                  \[pkh1] -> payTo pkh1 10_000_000
-              withContractAs 1 $ -- run contract which result will be checked
-                \[pkh1] -> payTo pkh1 10_000_000
+                withContract $ \ws -> do
+                  addr1 <- lookupAddress ws "w1"
+                  payToPubKeyAddress addr1 10_000_000
+              withContractAs "w1" $ -- run contract which result will be checked
+                \ws -> do
+                  addr0 <- lookupAddress ws "w0"
+                  payToPubKeyAddress addr0 10_000_000
           )
           [shouldSucceed]
       , -- Tests with assertions on Contract return value
         assertExecution
           "Initiate wallet and get UTxOs"
-          (initAda [100])
+          (initAda (BaseTag "") [100])
           (withContract $ const getUtxos)
           [ yieldSatisfies "Returns single UTxO" ((== 1) . Map.size)
           ]
       , let initFunds = 10_000_000
          in assertExecution
               "Should yield own initial Ada"
-              (initLovelace [toEnum initFunds])
+              (initLovelace (BaseTag "") [toEnum initFunds])
               (withContract $ const ownValue)
               [ shouldYield (lovelaceValueOf $ toEnum initFunds)
               ]
@@ -143,7 +161,7 @@ test =
         let initFunds = 10_000_000
          in assertExecution
               "Puts own UTxOs Value to state"
-              (initLovelace [toEnum initFunds])
+              (initLovelace (BaseTag "") [toEnum initFunds])
               (withContract $ const ownValueToState)
               [ stateIs [lovelaceValueOf $ toEnum initFunds]
               , Predicate.not $ stateSatisfies "length > 1" ((> 1) . length)
@@ -155,7 +173,7 @@ test =
               _ -> False
          in assertExecution
               ("Contract which throws `" <> show expectedErr <> "`")
-              (initAda [100])
+              (initAda (BaseTag "") [100])
               (withContract $ const getUtxosThrowsErr)
               [ shouldThrow expectedErr
               , errorSatisfies "Throws resolution error" isResolutionError
@@ -166,7 +184,7 @@ test =
               _ -> False
          in assertExecution
               "Contract which throws exception"
-              (initAda [100])
+              (initAda (EntTag "") [100])
               (withContract $ const getUtxosThrowsEx)
               [ shouldFail
               , Predicate.not shouldSucceed
@@ -176,7 +194,7 @@ test =
         assertExecutionWith
           [ShowBudgets] -- this influences displaying the budgets only and is not necessary for budget assertions
           "Lock then spend contract"
-          (initAda (replicate 3 300))
+          (initAda (EntTag "") (replicate 3 300))
           (withContract $ const lockThenSpend)
           [ shouldSucceed
           , budgetsFitUnder
@@ -194,25 +212,26 @@ test =
               _ -> False
          in assertExecution
               "Fails because outside validity interval"
-              (initAda [100])
+              (initAda (EntTag "") [100])
               (withContract $ const failingTimeContract)
               [ shouldFail
               , failReasonSatisfies "Execution error is OutsideValidityIntervalUTxO" isValidityError
               ]
       , assertExecution
           "Passes validation with exact time range checks"
-          (initAda [100])
+          (initAda (EntTag "") [100])
           (withContract $ const successTimeContract)
           [shouldSucceed]
       , -- always fail validation test
         let errCheck e = "I always fail" `isInfixOf` pack (show e)
          in assertExecution
               "Always fails to validate"
-              (initAda [100])
+              (initAda (EntTag "") [100])
               (withContract $ const lockThenFailToSpend)
               [ shouldFail
               , errorSatisfies "Fail validation with 'I always fail'" errCheck
               ]
+      , walletLookupsTest
       , -- Test `adjustUnbalancedTx`
         runAdjustTest
       , testBugMintAndPay
@@ -220,18 +239,20 @@ test =
       ++ testValueAssertionsOrderCorrectness
 
 -- https://github.com/mlabs-haskell/plutip/issues/138
-testBugMintAndPay :: (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
+testBugMintAndPay ::ClusterTest
 testBugMintAndPay =
   assertExecution
     "Adjustment of outputs with 0 Ada does not fail"
-    (withCollateral $ initAda [1000] <> initAda [1111])
-    (withContract $ \[p1] -> zeroAdaOutTestContract p1)
+    (withCollateral $ initAda (EntTag "w0") [1000] <> initAda (EntTag "w1") [1111])
+    (withContract $ \ws -> do
+      EntWallet w1pkh <- lookupWallet ws (EntTag "w1")
+      zeroAdaOutTestContract w1pkh
+    )
     [ shouldSucceed
     ]
 
 -- Tests for https://github.com/mlabs-haskell/plutip/issues/84
-testValueAssertionsOrderCorrectness ::
-  [(TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)]
+testValueAssertionsOrderCorrectness :: [ClusterTest]
 testValueAssertionsOrderCorrectness =
   [ -- withContract case
     let wallet0 = 100_000_000
@@ -252,12 +273,14 @@ testValueAssertionsOrderCorrectness =
      in assertExecution
           "Values asserted in correct order with withContract"
           ( withCollateral $
-              initAndAssertLovelace [wallet0] wallet0After
-                <> initAndAssertLovelace [wallet1] wallet1After
-                <> initAndAssertLovelace [wallet2] wallet2After
+              initAndAssertLovelace (EntTag "w0") [wallet0] wallet0After
+                <> initAndAssertLovelace (EntTag "w1") [wallet1] wallet1After
+                <> initAndAssertLovelace (EntTag "w2") [wallet2] wallet2After
           )
           ( do
-              withContract $ \[w1pkh, w2pkh] -> do
+              withContract $ \ws -> do
+                EntWallet w1pkh <- lookupWallet ws (EntTag "w1")
+                EntWallet w2pkh <- lookupWallet ws (EntTag "w2")
                 _ <- payTo w1pkh (toInteger payTo1Amt)
                 _ <- waitNSlots 2
                 payTo w2pkh (toInteger payTo2Amt)
@@ -290,19 +313,57 @@ testValueAssertionsOrderCorrectness =
      in assertExecution
           "Values asserted in correct order with withContractAs"
           ( withCollateral $ -- Initialize all the wallets with the collateral utxo.
-              initAndAssertLovelace [wallet0] wallet0After
-                <> initAndAssertLovelace [wallet1] wallet1After
-                <> initAndAssertLovelace [wallet2] wallet2After
+              initAndAssertLovelace (EntTag "w0") [wallet0] wallet0After
+                <> initAndAssertLovelace (EntTag "w1") [wallet1] wallet1After
+                <> initAndAssertLovelace (EntTag "w2") [wallet2] wallet2After
           )
           ( do
               void $
-                withContractAs 1 $ \[w0pkh, w2pkh] -> do
+                withContractAs "w1" $ \ws -> do
+                  EntWallet w0pkh <- lookupWallet ws (EntTag "w0")
+                  EntWallet w2pkh <- lookupWallet ws (EntTag "w2")
                   _ <- payTo w0pkh (toInteger payTo0Amt)
                   _ <- waitNSlots 2
                   payTo w2pkh (toInteger payTo2Amt)
 
-              withContractAs 2 $ \[_, w1pkh] -> do
+              withContractAs "w2" $ \ws -> do
+                EntWallet w1pkh <- lookupWallet ws (EntTag "w1")
                 payTo w1pkh (toInteger payTo1Amt)
           )
           [shouldSucceed]
   ]
+
+walletLookupsTest :: ClusterTest
+walletLookupsTest =
+  assertExecution @() @Text
+    "Wallets initilized expectedly."
+    ( initAndAssertAda (BaseTag "a") [10, 20] 30
+        <> initAndAssertAda (BaseTag "b") [11, 22] 33
+        <> initAndAssertAda (EntTag "c") [1, 2] 3
+    )
+    ( withContract $ \ws -> do
+        BaseWallet pkhb spkhb <- lookupWallet ws (BaseTag "b")
+        EntWallet pkhc <- lookupWallet ws (EntTag "c")
+        addrb <- lookupAddress ws "b"
+        addrc <- lookupAddress ws "c"
+
+        case addrb of
+          Address (PubKeyCredential pkhb') (Just (StakingHash (PubKeyCredential spkhb'))) ->
+            if pkhb == PaymentPubKeyHash pkhb' && spkhb == StakePubKeyHash spkhb'
+              then pure ()
+              else throwError "Unexpected key hashes of wallet 'b'."
+          _ -> throwError "Unexpected address of wallet 'b'."
+
+        case addrc of
+          Address (PubKeyCredential pkhc') Nothing ->
+            if pkhc == PaymentPubKeyHash pkhc'
+              then pure ()
+              else throwError "Unexpected key hashes of wallet 'c'."
+          _ -> throwError "Unexpected address of wallet 'c'."
+
+        ourAddr :| _ <- Contract.ownAddresses
+        case ourAddr of
+          Address (PubKeyCredential _) (Just (StakingHash (PubKeyCredential _))) -> pure ()
+          _ -> throwError "Unexpected contract own address."
+    )
+    [shouldSucceed]

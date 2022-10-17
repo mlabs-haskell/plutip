@@ -22,12 +22,13 @@ import System.FilePath (replaceFileName)
 import Test.Plutip.Config (chainIndexPort, relayNodeLogs)
 import Test.Plutip.Internal.BotPlutusInterface.Keys (KeyPair (sKey))
 import Test.Plutip.Internal.BotPlutusInterface.Setup (keysDir)
-import Test.Plutip.Internal.BotPlutusInterface.Types (WalletTag (EntTag), mkWallet)
+import Test.Plutip.Internal.BotPlutusInterface.Types (WalletTag (BaseTag, EntTag))
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet (payKeys), addSomeWallet)
 import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)
 import Test.Plutip.Internal.Types (ClusterEnv (runningNode))
 import Test.Plutip.LocalCluster (waitSeconds)
 import Types (
+  AddressType (Base, Enterprise),
   AppM,
   ClusterStartupFailureReason (
     ClusterIsRunningAlready,
@@ -42,6 +43,7 @@ import Types (
     privateKeys
   ),
   Env (status),
+  Key (addressType, funds),
   Lovelace (unLovelace),
   PrivateKey,
   ServerOptions (ServerOptions, nodeLogs),
@@ -61,8 +63,8 @@ startClusterHandler
   ServerOptions {nodeLogs}
   StartClusterRequest {keysToGenerate} = interpret $ do
     -- Check that lovelace amounts are positive
-    for_ keysToGenerate $ \lovelaceAmounts -> do
-      for_ lovelaceAmounts $ \lovelaces -> do
+    for_ keysToGenerate $ \key -> do
+      for_ (funds key) $ \lovelaces -> do
         unless (unLovelace lovelaces > 0) $ do
           throwError NegativeLovelaces
     statusMVar <- asks status
@@ -88,8 +90,7 @@ startClusterHandler
         env <- ask
         let tags = T.pack . show <$> [0 ..]
         wallets <- do
-          for (zip tags keysToGenerate) $ \(idx, lovelaceAmounts) ->
-            addSomeWallet (EntTag idx) (fromInteger . unLovelace <$> lovelaceAmounts)
+          for (zip tags keysToGenerate) $ \(idx, key) -> addWallet key idx
         waitSeconds 2 -- wait for transactions to submit
         pure (env, wallets)
       getNodeSocketFile (runningNode -> RunningNode conn _ _ _) = nodeSocketFile conn
@@ -99,6 +100,11 @@ startClusterHandler
       getWalletPrivateKey :: BpiWallet -> PrivateKey
       getWalletPrivateKey = Text.decodeUtf8 . Base16.encode . serialiseToCBOR . sKey . payKeys
       interpret = fmap (either ClusterStartupFailure id) . runExceptT
+      addWallet key tag =
+        let funds' = (fromInteger . unLovelace <$> funds key)
+         in case addressType key of
+              Base -> addSomeWallet (BaseTag tag) funds'
+              Enterprise -> addSomeWallet (EntTag tag) funds'
 
 stopClusterHandler :: StopClusterRequest -> AppM StopClusterResponse
 stopClusterHandler StopClusterRequest = do

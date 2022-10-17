@@ -8,6 +8,8 @@ module Types (
   Env (Env, status, options),
   ErrorMessage,
   Lovelace (unLovelace),
+  Key (addressType, funds),
+  AddressType (Base, Enterprise),
   PlutipServerError (PlutipServerError),
   PrivateKey,
   ServerOptions (ServerOptions, nodeLogs, port),
@@ -79,6 +81,19 @@ instance Exception PlutipServerError
 
 type ErrorMessage = Text
 
+data Key = Key
+  { addressType :: AddressType
+  , funds :: [Lovelace]
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (ToJSON, FromJSON)
+
+data AddressType
+  = Base
+  | Enterprise
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (ToJSON, FromJSON)
+
 newtype Lovelace = Lovelace {unLovelace :: Integer}
   deriving stock (Show, Eq, Generic)
   deriving newtype (ToJSON, Num)
@@ -92,7 +107,7 @@ instance FromJSON Lovelace where
 
 newtype StartClusterRequest = StartClusterRequest
   { -- | Lovelace amounts for each UTXO of each wallet
-    keysToGenerate :: [[Lovelace]]
+    keysToGenerate :: [Key]
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)

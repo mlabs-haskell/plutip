@@ -1,12 +1,15 @@
 module Test.Plutip.Config (
   PlutipConfig (..),
   WorkingDirectory (..),
+  -- slotLength,
+  -- epochSize,
 ) where
 
 import Cardano.Api (PaymentKey, SigningKey)
 import Data.Default (Default, def)
 import GHC.Generics (Generic)
 import GHC.Natural (Natural)
+import Test.Plutip.Internal.Cluster.Extra.Types (ExtraConfig)
 
 -- | Configuration for the cluster working directory
 -- This determines where the node database, chain-index database,
@@ -43,8 +46,15 @@ data PlutipConfig = PlutipConfig
   , -- | Any extra pre-determined signers to use.
     --    Either provided by a path to the signing key file, or by the signing key itself.
     extraSigners :: [Either FilePath (SigningKey PaymentKey)]
+  , extraConfig :: ExtraConfig
   }
   deriving stock (Generic, Show)
 
+-- slotLength :: PlutipConfig -> NominalDiffTime
+-- slotLength = ccSlotLenght . clusterConfig
+
+-- epochSize :: PlutipConfig -> EpochSize
+-- epochSize = ccEpochsize . clusterConfig
+
 instance Default PlutipConfig where
-  def = PlutipConfig Nothing Nothing Nothing 1 Temporary []
+  def = PlutipConfig Nothing Nothing Nothing 1 Temporary [] def

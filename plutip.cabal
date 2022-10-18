@@ -81,6 +81,18 @@ common common-imports
     , unliftio
     , unliftio-core
     , uuid
+    , cardano-ledger-shelley
+    , cborg
+    , yaml
+    , bech32
+    , cardano-wallet-test-utils
+    , int-cast
+    , base58-bytestring
+    , bech32-th
+    , cardano-cli
+    , cardano-binary
+    , aeson-qq
+    , generic-lens
 
 common common-language
   default-extensions:
@@ -160,6 +172,9 @@ library
     Test.Plutip.Tools.ChainIndex
     Test.Plutip.Tools.DebugCli
     Test.Plutip.Tools.Format
+    Test.Plutip.Internal.Cluster
+    Test.Plutip.Internal.Cluster.Extra.Types
+    Test.Plutip.Internal.Cluster.Extra.Utils
 
   other-modules:   Paths_plutip
 

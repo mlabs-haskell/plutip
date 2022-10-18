@@ -14,7 +14,8 @@ import Numeric.Positive (Positive)
 import Options.Applicative (Parser, helper, info)
 import Options.Applicative qualified as Options
 import Test.Plutip.Config
-  ( PlutipConfig (clusterWorkingDir),
+  ( PlutipConfig (clusterWorkingDir, clusterConfig),
+    ExtraConfig(ExtraConfig),
     WorkingDirectory (Fixed, Temporary),
   )
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (addSomeWalletDir, walletPkh)
@@ -35,12 +36,16 @@ main = do
     Right amt -> do
       let CWalletConfig {numWallets, dirWallets, numUtxos, workDir} = config
           workingDir = maybe Temporary (`Fixed` False) workDir
-          plutipConfig = def {clusterWorkingDir = workingDir}
+
+          clusterConf = ExtraConfig 2 200
+          plutipConfig = def { clusterWorkingDir = workingDir
+                             , clusterConfig = clusterConf }
 
       putStrLn "Starting cluster..."
       (st, _) <- startCluster plutipConfig $ do
+        pure ()
         ws <- initWallets numWallets numUtxos amt dirWallets
-        waitSeconds 2 -- let wallet Tx finish, it can take more time with bigger slot length
+        waitSeconds 2-- let wallet Tx finish, it can take more time with bigger slot length
 
         separate
         liftIO $ forM_ (zip ws [(1 :: Int) ..]) printWallet

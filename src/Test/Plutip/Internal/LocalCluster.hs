@@ -20,7 +20,9 @@ import Cardano.Launcher.Node (nodeSocketFile)
 import Cardano.Startup (installSignalHandlers, setDefaultFilePermissions, withUtf8Encoding)
 import Cardano.Wallet.Logging (stdoutTextTracer, trMessageText)
 import Cardano.Wallet.Shelley.Launch (TempDirLog, withSystemTempDir)
-import Cardano.Wallet.Shelley.Launch.Cluster (ClusterLog, localClusterConfigFromEnv, testMinSeverityFromEnv, walletMinSeverityFromEnv, withCluster)
+
+-- import Cardano.Wallet.Shelley.Launch.Cluster (ClusterLog, localClusterConfigFromEnv, testMinSeverityFromEnv, walletMinSeverityFromEnv, withCluster)
+
 import Control.Concurrent.Async (async)
 import Control.Monad (unless, void, when)
 import Control.Monad.IO.Class (liftIO)
@@ -50,11 +52,13 @@ import Test.Plutip.Config (
     chainIndexPort,
     clusterDataDir,
     clusterWorkingDir,
+    extraConfig,
     relayNodeLogs
   ),
   WorkingDirectory (Fixed, Temporary),
  )
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BotSetup
+import Test.Plutip.Internal.Cluster (ClusterLog, testMinSeverityFromEnv, walletMinSeverityFromEnv, withCluster)
 import Test.Plutip.Internal.Types (
   ClusterEnv (
     ClusterEnv,
@@ -88,6 +92,7 @@ import Plutus.ChainIndex (Tip (Tip))
 import Plutus.ChainIndex.Client qualified as ChainIndexClient
 import Plutus.ChainIndex.Config qualified as CIC
 import PlutusPrelude ((.~), (^.))
+import Test.Plutip.Internal.Cluster.Extra.Utils (localClusterConfigWithExtraConf)
 
 -- | Starting a cluster with a setup action
 -- We're heavily depending on cardano-wallet local cluster tooling, however they don't allow the
@@ -135,7 +140,7 @@ withPlutusInterface conf action = do
   withLocalClusterSetup conf $ \dir clusterLogs _walletLogs nodeConfigLogHdl -> do
     result <- withLoggingNamed "cluster" clusterLogs $ \(_, (_, trCluster)) -> do
       let tr' = contramap MsgCluster $ trMessageText trCluster
-      clusterCfg <- localClusterConfigFromEnv
+      clusterCfg <- localClusterConfigWithExtraConf (extraConfig conf)
       withRedirectedStdoutHdl nodeConfigLogHdl $ \restoreStdout ->
         withCluster
           tr'

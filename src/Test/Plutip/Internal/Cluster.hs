@@ -21,6 +21,7 @@
 {-# OPTIONS_GHC -Wwarn=missing-import-lists #-}
 {-# OPTIONS_GHC -Wwarn=incomplete-uni-patterns #-}
 {-# OPTIONS_GHC -Wwarn=missing-deriving-strategies #-}
+{-# OPTIONS_GHC -Wwarn=name-shadowing #-}
 
 -- | 
 -- This module is modified copy of https://github.com/input-output-hk/cardano-wallet/blob/1952de13f1cd954514cfa1cb02e628cfc9fde675/lib/shelley/src/Cardano/Wallet/Shelley/Launch/Cluster.hs

@@ -7,6 +7,7 @@ module Test.Plutip.Internal.BotPlutusInterface.Wallet (
   mkMainnetAddress,
   cardanoMainnetAddress,
   ledgerPaymentPkh,
+  showAddress,
 ) where
 
 import Cardano.Api (AddressAny, PaymentKey, SigningKey, VerificationKey)
@@ -137,10 +138,11 @@ cardanoMainnetAddress (BpiWallet _ vk _) =
 
 -- | Get `String` representation of address on mainnet
 mkMainnetAddress :: BpiWallet -> String
-mkMainnetAddress bw =
-  Text.unpack
-    . CAPI.serialiseAddress
-    $ cardanoMainnetAddress bw
+mkMainnetAddress =
+  showAddress . cardanoMainnetAddress
+
+showAddress :: AddressAny -> String
+showAddress = Text.unpack . CAPI.serialiseAddress
 
 ledgerPaymentPkh :: BpiWallet -> PaymentPubKeyHash
 ledgerPaymentPkh = PaymentPubKeyHash . walletPkh

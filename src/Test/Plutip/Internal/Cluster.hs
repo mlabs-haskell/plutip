@@ -33,6 +33,7 @@
 -- Modifications include more capabilities for cluster configuration,
 -- so users can set things like slot length, epoch size, etc.
 -- Alterded types and functions marked with "altered" comment.
+-- Formatting check disabled for this module for more convinisent diffs with original.
 
 module Test.Plutip.Internal.Cluster
     ( -- * Local test cluster launcher

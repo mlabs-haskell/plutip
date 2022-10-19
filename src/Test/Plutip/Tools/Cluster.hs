@@ -1,10 +1,10 @@
-module Test.Plutip.Tools (
+module Test.Plutip.Tools.Cluster (
   waitSeconds,
   ada,
   awaitAddressFunded,
 ) where
 
-import Cardano.Api (UTxO (unUTxO))
+import Cardano.Api (UTxO (UTxO))
 import Cardano.Api qualified as C
 import Control.Concurrent (threadDelay)
 import Control.Monad (unless)
@@ -28,7 +28,7 @@ awaitAddressFunded cEnv delay addr = do
   where
     utxosReceived = \case
       Left _ -> False
-      Right utxo' -> not $ Map.null $ unUTxO utxo'
+      Right (UTxO utxo') -> not $ Map.null utxo'
 
 -- | Library functions works with amounts in `Lovelace`.
 -- This function helps to specify amounts in `Ada` easier.

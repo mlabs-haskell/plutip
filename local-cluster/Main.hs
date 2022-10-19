@@ -36,7 +36,7 @@ import Test.Plutip.LocalCluster (
   startCluster,
   stopCluster,
  )
-import Test.Plutip.Tools (awaitAddressFunded)
+import Test.Plutip.Tools.Cluster (awaitAddressFunded)
 
 main :: IO ()
 main = do

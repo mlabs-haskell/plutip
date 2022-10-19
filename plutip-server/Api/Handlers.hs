@@ -28,7 +28,7 @@ import Test.Plutip.Internal.Cluster (RunningNode (RunningNode))
 import Test.Plutip.Internal.Cluster.Extra.Types (ExtraConfig (ExtraConfig))
 import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)
 import Test.Plutip.Internal.Types (ClusterEnv (runningNode))
-import Test.Plutip.Tools (awaitAddressFunded)
+import Test.Plutip.Tools.Cluster (awaitAddressFunded)
 import Types (
   AppM,
   ClusterStartupFailureReason (

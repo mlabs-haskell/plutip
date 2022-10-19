@@ -44,17 +44,17 @@ main = do
   case totalAmount config of
     Left e -> error e
     Right amt -> do
-      let ClusterConfig {numWallets, dirWallets, numUtxos, workDir, slotLenght, epochSize} = config
+      let ClusterConfig {numWallets, dirWallets, numUtxos, workDir, slotLength, epochSize} = config
           workingDir = maybe Temporary (`Fixed` False) workDir
 
-          exctraCong = ExtraConfig slotLenght epochSize
+          exctraCong = ExtraConfig slotLength epochSize
           plutipConfig = def {clusterWorkingDir = workingDir, extraConfig = exctraCong}
 
       putStrLn "Starting cluster..."
       (st, _) <- startCluster plutipConfig $ do
         ws <- initWallets numWallets numUtxos amt dirWallets
         liftIO $ putStrLn "Waiting for wallets to be funded..."
-        awaitFunds ws (ceiling slotLenght)
+        awaitFunds ws (ceiling slotLength)
 
         separate
         liftIO $ forM_ (zip ws [(1 :: Int) ..]) printWallet
@@ -200,7 +200,7 @@ data ClusterConfig = ClusterConfig
   , lvlAmount :: Natural
   , numUtxos :: Int
   , workDir :: Maybe FilePath
-  , slotLenght :: NominalDiffTime
+  , slotLength :: NominalDiffTime
   , epochSize :: EpochSize
   }
   deriving stock (Show, Eq)

@@ -47,7 +47,12 @@ import Types (
   Lovelace (unLovelace),
   PrivateKey,
   ServerOptions (ServerOptions, nodeLogs),
-  StartClusterRequest (StartClusterRequest, epochSize, keysToGenerate, slotLenght),
+  StartClusterRequest (
+    StartClusterRequest,
+    epochSize,
+    keysToGenerate,
+    slotLength
+  ),
   StartClusterResponse (
     ClusterStartupFailure,
     ClusterStartupSuccess
@@ -59,7 +64,7 @@ import Types (
 startClusterHandler :: ServerOptions -> StartClusterRequest -> AppM StartClusterResponse
 startClusterHandler
   ServerOptions {nodeLogs}
-  StartClusterRequest {slotLenght, epochSize, keysToGenerate} = interpret $ do
+  StartClusterRequest {slotLength, epochSize, keysToGenerate} = interpret $ do
     -- Check that lovelace amounts are positive
     for_ keysToGenerate $ \lovelaceAmounts -> do
       for_ lovelaceAmounts $ \lovelaces -> do
@@ -68,7 +73,7 @@ startClusterHandler
     statusMVar <- asks status
     isClusterDown <- liftIO $ isEmptyMVar statusMVar
     unless isClusterDown $ throwError ClusterIsRunningAlready
-    let extraConf = ExtraConfig slotLenght epochSize
+    let extraConf = ExtraConfig slotLength epochSize
         cfg = def {relayNodeLogs = nodeLogs, chainIndexPort = Nothing, extraConfig = extraConf}
 
     (statusTVar, res@(clusterEnv, _)) <- liftIO $ startCluster cfg setup

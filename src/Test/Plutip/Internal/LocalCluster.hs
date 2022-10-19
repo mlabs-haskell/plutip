@@ -255,7 +255,8 @@ waitForRelayNode trCluster rn =
   liftIO $ do
     recoverAll policy wait
   where
-    policy = constantDelay 500000 <> limitRetries 50
+    -- TODO: move this to config
+    policy = constantDelay 1_000_000 <> limitRetries 60
     getTip = trace >> Tools.queryTip rn
     trace = traceWith trCluster WaitingRelayNode
     wait _ = do
@@ -289,6 +290,7 @@ launchChainIndex conf (RunningNode sp _block0 (netParams, _vData) _) dir = do
     toMilliseconds = floor . (1e3 *) . nominalDiffTimeToSeconds
 
     waitForChainIndex port = do
+      -- TODO: move this to config; ideally, separate chain-index launch from cluster launch
       let policy = constantDelay 1_000_000 <> limitRetries 60
       recoverAll policy $ \_ -> do
         tip <- queryTipWithChIndex port

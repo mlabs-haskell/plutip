@@ -50,11 +50,5 @@ data PlutipConfig = PlutipConfig
   }
   deriving stock (Generic, Show)
 
--- slotLength :: PlutipConfig -> NominalDiffTime
--- slotLength = ccSlotLenght . clusterConfig
-
--- epochSize :: PlutipConfig -> EpochSize
--- epochSize = ccEpochsize . clusterConfig
-
 instance Default PlutipConfig where
   def = PlutipConfig Nothing Nothing Nothing 1 Temporary [] def

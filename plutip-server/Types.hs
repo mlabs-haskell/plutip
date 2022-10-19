@@ -11,7 +11,7 @@ module Types (
   PlutipServerError (PlutipServerError),
   PrivateKey,
   ServerOptions (ServerOptions, nodeLogs, port),
-  StartClusterRequest (StartClusterRequest, keysToGenerate, slotLenght, epochSize),
+  StartClusterRequest (StartClusterRequest, keysToGenerate, slotLength, epochSize),
   StartClusterResponse (
     ClusterStartupSuccess,
     ClusterStartupFailure
@@ -95,7 +95,7 @@ instance FromJSON Lovelace where
       else pure $ Lovelace value
 
 data StartClusterRequest = StartClusterRequest
-  { slotLenght :: NominalDiffTime
+  { slotLength :: NominalDiffTime
   , epochSize :: EpochSize
   , -- | Lovelace amounts for each UTXO of each wallet
     keysToGenerate :: [[Lovelace]]

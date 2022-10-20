@@ -65,4 +65,4 @@ cabalfmt_check: requires_nix_shell
 	cabal-fmt --check $(CABAL_SOURCES)
 
 lint: requires_nix_shell
-	hlint $$(find src/  -iregex ".*.hs") $$(find test/ -iregex ".*.hs")
+	hlint $$(find src/  -iregex ".*.hs"  -not -path "${excluded}") $$(find test/ -iregex ".*.hs")

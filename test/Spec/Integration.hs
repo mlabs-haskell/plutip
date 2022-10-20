@@ -43,7 +43,7 @@ import Test.Plutip.Contract (
   withContract,
   withContractAs,
  )
-import Test.Plutip.Internal.Cluster.Extra.Types (ExtraConfig (ecSlotLength))
+import Test.Plutip.Internal.Cluster.Extra.Types (ExtraConfig (ecSlotLength, ExtraConfig))
 import Test.Plutip.Internal.Types (
   ClusterEnv,
   FailureReason (CaughtException, ContractExecutionError),
@@ -72,7 +72,7 @@ import Test.Tasty (TestTree)
 
 test :: TestTree
 test =
-  let config = def 
+  let config = def {extraConfig = ExtraConfig 1 432000}
       slotLen = ecSlotLength $ extraConfig config
    in withConfiguredCluster
         config

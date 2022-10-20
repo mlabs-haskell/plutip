@@ -858,7 +858,6 @@ data LocalClusterConfig = LocalClusterConfig
     , cfgExtraConfig :: ExtraConfig
     } deriving (Show)
 
-
 -- | Information about a launched node.
 data RunningNode = RunningNode
     CardanoNodeConn

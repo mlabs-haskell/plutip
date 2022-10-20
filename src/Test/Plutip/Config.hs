@@ -1,8 +1,6 @@
 module Test.Plutip.Config (
   PlutipConfig (..),
   WorkingDirectory (..),
-  -- slotLength,
-  -- epochSize,
 ) where
 
 import Cardano.Api (PaymentKey, SigningKey)
@@ -46,7 +44,9 @@ data PlutipConfig = PlutipConfig
   , -- | Any extra pre-determined signers to use.
     --    Either provided by a path to the signing key file, or by the signing key itself.
     extraSigners :: [Either FilePath (SigningKey PaymentKey)]
-  , extraConfig :: ExtraConfig
+  , -- | Extra config to set (at the moment) slot lenght and epoch size
+    --   for local network
+    extraConfig :: ExtraConfig
   }
   deriving stock (Generic, Show)
 

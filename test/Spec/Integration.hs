@@ -28,6 +28,7 @@ import Spec.TestContract.SimpleContracts (
   payTo,
  )
 import Spec.TestContract.ValidateTimeRange (failingTimeContract, successTimeContract)
+import Test.Plutip.Config (PlutipConfig (extraConfig))
 import Test.Plutip.Contract (
   TestWallets,
   ValueOrdering (VLt),
@@ -42,6 +43,7 @@ import Test.Plutip.Contract (
   withContract,
   withContractAs,
  )
+import Test.Plutip.Internal.Cluster.Extra.Types (ExtraConfig (ecSlotLength))
 import Test.Plutip.Internal.Types (
   ClusterEnv,
   FailureReason (CaughtException, ContractExecutionError),
@@ -70,154 +72,156 @@ import Test.Tasty (TestTree)
 
 test :: TestTree
 test =
-  withConfiguredCluster
-    def
-    "Basic integration: launch, add wallet, tx from wallet to wallet"
-    $ [
-        -- Basic Succeed or Failed tests
-        assertExecution
-          "Contract 1"
-          (initAda (100 : replicate 10 7))
-          (withContract $ const getUtxos)
-          [ shouldSucceed
-          , Predicate.not shouldFail
-          ]
-      , assertExecution
-          "Contract 2"
-          (initAda [100])
-          (withContract $ const getUtxosThrowsErr)
-          [ shouldFail
-          , Predicate.not shouldSucceed
-          ]
-      , assertExecutionWith
-          [ShowTraceButOnlyContext ContractLog $ Error [AnyLog]]
-          "Contract 3"
-          (initAda [100])
-          ( withContract $
-              const $ do
-                Contract.logInfo @Text "Some contract log with Info level."
-                Contract.logDebug @Text "Another contract log with debug level." >> getUtxosThrowsEx
-          )
-          [ shouldFail
-          , Predicate.not shouldSucceed
-          ]
-      , assertExecution
-          "Pay negative amount"
-          (initAda [100])
-          (withContract $ \[pkh1] -> payTo pkh1 (-10_000_000))
-          [shouldFail]
-      , -- Tests with wallet's Value assertions
-        assertExecution
-          "Pay from wallet to wallet"
-          (initAda [100] <> initAndAssertAda [100, 13] 123)
-          (withContract $ \[pkh1] -> payTo pkh1 10_000_000)
-          [shouldSucceed]
-      , assertExecution
-          "Two contracts one after another"
-          ( initAndAssertAdaWith [100] VLt 100 -- own wallet (index 0 in wallets list)
-              <> initAndAssertAdaWith [100] VLt 100 -- wallet with index 1 in wallets list
-          )
-          ( do
-              void $ -- run something prior to the contract which result will be checked
-                withContract $
-                  \[pkh1] -> payTo pkh1 10_000_000
-              withContractAs 1 $ -- run contract which result will be checked
-                \[pkh1] -> payTo pkh1 10_000_000
-          )
-          [shouldSucceed]
-      , -- Tests with assertions on Contract return value
-        assertExecution
-          "Initiate wallet and get UTxOs"
-          (initAda [100])
-          (withContract $ const getUtxos)
-          [ yieldSatisfies "Returns single UTxO" ((== 1) . Map.size)
-          ]
-      , let initFunds = 10_000_000
-         in assertExecution
-              "Should yield own initial Ada"
-              (initLovelace [toEnum initFunds])
-              (withContract $ const ownValue)
-              [ shouldYield (lovelaceValueOf $ toEnum initFunds)
+  let config = def 
+      slotLen = ecSlotLength $ extraConfig config
+   in withConfiguredCluster
+        config
+        "Basic integration: launch, add wallet, tx from wallet to wallet"
+        $ [
+            -- Basic Succeed or Failed tests
+            assertExecution
+              "Contract 1"
+              (initAda (100 : replicate 10 7))
+              (withContract $ const getUtxos)
+              [ shouldSucceed
+              , Predicate.not shouldFail
               ]
-      , -- Tests with assertions on state
-        let initFunds = 10_000_000
-         in assertExecution
-              "Puts own UTxOs Value to state"
-              (initLovelace [toEnum initFunds])
-              (withContract $ const ownValueToState)
-              [ stateIs [lovelaceValueOf $ toEnum initFunds]
-              , Predicate.not $ stateSatisfies "length > 1" ((> 1) . length)
-              ]
-      , -- Tests with assertions on failure
-        let expectedErr = ConstraintResolutionContractError OwnPubKeyMissing
-            isResolutionError = \case
-              ConstraintResolutionContractError _ -> True
-              _ -> False
-         in assertExecution
-              ("Contract which throws `" <> show expectedErr <> "`")
+          , assertExecution
+              "Contract 2"
               (initAda [100])
               (withContract $ const getUtxosThrowsErr)
-              [ shouldThrow expectedErr
-              , errorSatisfies "Throws resolution error" isResolutionError
-              , Predicate.not $ failReasonSatisfies "Throws exception" isException
-              ]
-      , let checkException = \case
-              CaughtException e -> isJust @ErrorCall (fromException e)
-              _ -> False
-         in assertExecution
-              "Contract which throws exception"
-              (initAda [100])
-              (withContract $ const getUtxosThrowsEx)
               [ shouldFail
               , Predicate.not shouldSucceed
-              , failReasonSatisfies "Throws ErrorCall" checkException
               ]
-      , -- tests with assertions on execution budget
-        assertExecutionWith
-          [ShowBudgets] -- this influences displaying the budgets only and is not necessary for budget assertions
-          "Lock then spend contract"
-          (initAda (replicate 3 300))
-          (withContract $ const lockThenSpend)
-          [ shouldSucceed
-          , budgetsFitUnder
-              (scriptLimit 406250690 1016102)
-              (policyLimit 405210181 1019024)
-          , assertOverallBudget
-              "Assert CPU == 1106851699 and MEM == 2694968"
-              (== 1106851699)
-              (== 2694968)
-          , overallBudgetFits 1106851699 2694968
+          , assertExecutionWith
+              [ShowTraceButOnlyContext ContractLog $ Error [AnyLog]]
+              "Contract 3"
+              (initAda [100])
+              ( withContract $
+                  const $ do
+                    Contract.logInfo @Text "Some contract log with Info level."
+                    Contract.logDebug @Text "Another contract log with debug level." >> getUtxosThrowsEx
+              )
+              [ shouldFail
+              , Predicate.not shouldSucceed
+              ]
+          , assertExecution
+              "Pay negative amount"
+              (initAda [100])
+              (withContract $ \[pkh1] -> payTo pkh1 (-10_000_000))
+              [shouldFail]
+          , -- Tests with wallet's Value assertions
+            assertExecution
+              "Pay from wallet to wallet"
+              (initAda [100] <> initAndAssertAda [100, 13] 123)
+              (withContract $ \[pkh1] -> payTo pkh1 10_000_000)
+              [shouldSucceed]
+          , assertExecution
+              "Two contracts one after another"
+              ( initAndAssertAdaWith [100] VLt 100 -- own wallet (index 0 in wallets list)
+                  <> initAndAssertAdaWith [100] VLt 100 -- wallet with index 1 in wallets list
+              )
+              ( do
+                  void $ -- run something prior to the contract which result will be checked
+                    withContract $
+                      \[pkh1] -> payTo pkh1 10_000_000
+                  withContractAs 1 $ -- run contract which result will be checked
+                    \[pkh1] -> payTo pkh1 10_000_000
+              )
+              [shouldSucceed]
+          , -- Tests with assertions on Contract return value
+            assertExecution
+              "Initiate wallet and get UTxOs"
+              (initAda [100])
+              (withContract $ const getUtxos)
+              [ yieldSatisfies "Returns single UTxO" ((== 1) . Map.size)
+              ]
+          , let initFunds = 10_000_000
+             in assertExecution
+                  "Should yield own initial Ada"
+                  (initLovelace [toEnum initFunds])
+                  (withContract $ const ownValue)
+                  [ shouldYield (lovelaceValueOf $ toEnum initFunds)
+                  ]
+          , -- Tests with assertions on state
+            let initFunds = 10_000_000
+             in assertExecution
+                  "Puts own UTxOs Value to state"
+                  (initLovelace [toEnum initFunds])
+                  (withContract $ const ownValueToState)
+                  [ stateIs [lovelaceValueOf $ toEnum initFunds]
+                  , Predicate.not $ stateSatisfies "length > 1" ((> 1) . length)
+                  ]
+          , -- Tests with assertions on failure
+            let expectedErr = ConstraintResolutionContractError OwnPubKeyMissing
+                isResolutionError = \case
+                  ConstraintResolutionContractError _ -> True
+                  _ -> False
+             in assertExecution
+                  ("Contract which throws `" <> show expectedErr <> "`")
+                  (initAda [100])
+                  (withContract $ const getUtxosThrowsErr)
+                  [ shouldThrow expectedErr
+                  , errorSatisfies "Throws resolution error" isResolutionError
+                  , Predicate.not $ failReasonSatisfies "Throws exception" isException
+                  ]
+          , let checkException = \case
+                  CaughtException e -> isJust @ErrorCall (fromException e)
+                  _ -> False
+             in assertExecution
+                  "Contract which throws exception"
+                  (initAda [100])
+                  (withContract $ const getUtxosThrowsEx)
+                  [ shouldFail
+                  , Predicate.not shouldSucceed
+                  , failReasonSatisfies "Throws ErrorCall" checkException
+                  ]
+          , -- tests with assertions on execution budget
+            assertExecutionWith
+              [ShowBudgets] -- this influences displaying the budgets only and is not necessary for budget assertions
+              "Lock then spend contract"
+              (initAda (replicate 3 300))
+              (withContract $ const lockThenSpend)
+              [ shouldSucceed
+              , budgetsFitUnder
+                  (scriptLimit 406250690 1016102)
+                  (policyLimit 405210181 1019024)
+              , assertOverallBudget
+                  "Assert CPU == 1106851699 and MEM == 2694968"
+                  (== 1106851699)
+                  (== 2694968)
+              , overallBudgetFits 1106851699 2694968
+              ]
+          , -- regression tests for time <-> slot conversions
+            let isValidityError = \case
+                  ContractExecutionError e -> "OutsideValidityIntervalUTxO" `isInfixOf` e
+                  _ -> False
+             in assertExecution
+                  "Fails because outside validity interval"
+                  (initAda [100])
+                  (withContract $ const (failingTimeContract slotLen))
+                  [ shouldFail
+                  , failReasonSatisfies "Execution error is OutsideValidityIntervalUTxO" isValidityError
+                  ]
+          , assertExecution
+              "Passes validation with exact time range checks"
+              (initAda [100])
+              (withContract $ const (successTimeContract slotLen))
+              [shouldSucceed]
+          , -- always fail validation test
+            let errCheck e = "I always fail" `isInfixOf` pack (show e)
+             in assertExecution
+                  "Always fails to validate"
+                  (initAda [100])
+                  (withContract $ const lockThenFailToSpend)
+                  [ shouldFail
+                  , errorSatisfies "Fail validation with 'I always fail'" errCheck
+                  ]
+          , -- Test `adjustUnbalancedTx`
+            runAdjustTest
+          , testBugMintAndPay
           ]
-      , -- regression tests for time <-> slot conversions
-        let isValidityError = \case
-              ContractExecutionError e -> "OutsideValidityIntervalUTxO" `isInfixOf` e
-              _ -> False
-         in assertExecution
-              "Fails because outside validity interval"
-              (initAda [100])
-              (withContract $ const failingTimeContract)
-              [ shouldFail
-              , failReasonSatisfies "Execution error is OutsideValidityIntervalUTxO" isValidityError
-              ]
-      , assertExecution
-          "Passes validation with exact time range checks"
-          (initAda [100])
-          (withContract $ const successTimeContract)
-          [shouldSucceed]
-      , -- always fail validation test
-        let errCheck e = "I always fail" `isInfixOf` pack (show e)
-         in assertExecution
-              "Always fails to validate"
-              (initAda [100])
-              (withContract $ const lockThenFailToSpend)
-              [ shouldFail
-              , errorSatisfies "Fail validation with 'I always fail'" errCheck
-              ]
-      , -- Test `adjustUnbalancedTx`
-        runAdjustTest
-      , testBugMintAndPay
-      ]
-      ++ testValueAssertionsOrderCorrectness
+          ++ testValueAssertionsOrderCorrectness
 
 -- https://github.com/mlabs-haskell/plutip/issues/138
 testBugMintAndPay :: (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)

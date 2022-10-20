@@ -99,14 +99,16 @@ withConfiguredCluster conf name testCases =
       -- see https://github.com/mlabs-haskell/plutip/issues/120
       let waitDelay = ceiling $ ecSlotLength $ extraConfig conf
       awaitFunds wallets waitDelay
-      waitSeconds 5 -- wait for transactions to submit
+      -- waitSeconds 5 -- wait for transactions to submit
       pure (env, wallets)
 
     -- awaitFunds :: [BpiWallet] -> Int -> ReaderT ClusterEnv IO ()
     awaitFunds ws delay = do
       env <- ask
       let lastWallet = NE.last $ last ws
-      liftIO $ awaitAddressFunded env delay (cardanoMainnetAddress lastWallet)
+      liftIO $ do
+        putStrLn "Waiting till all wallets will be funded to start tests..."
+        awaitAddressFunded env delay (cardanoMainnetAddress lastWallet)
 
 imap :: (Int -> a -> b) -> [a] -> [b]
 imap fn = zipWith fn [0 ..]

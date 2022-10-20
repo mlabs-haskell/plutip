@@ -93,7 +93,9 @@ main = do
     awaitFunds ws delay = do
       env <- ask
       let lastWallet = last ws
-      liftIO $ awaitAddressFunded env delay (cardanoMainnetAddress lastWallet)
+      liftIO $ do
+        putStrLn "Waiting till all wallets will be funded..."
+        awaitAddressFunded env delay (cardanoMainnetAddress lastWallet)
 
 pnumWallets :: Parser Int
 pnumWallets =

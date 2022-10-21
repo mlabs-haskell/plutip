@@ -21,23 +21,32 @@ data-files:
 common common-imports
   build-depends:
     , aeson
+    , aeson-qq
     , ansi-terminal
     , async
     , base
+    , base58-bytestring
+    , bech32
+    , bech32-th
     , bot-plutus-interface
     , bytestring
     , cardano-addresses
     , cardano-api
+    , cardano-binary
+    , cardano-cli
     , cardano-crypto
     , cardano-crypto-class
     , cardano-crypto-wrapper
     , cardano-ledger-core
+    , cardano-ledger-shelley
     , cardano-slotting
     , cardano-wallet
     , cardano-wallet-cli
     , cardano-wallet-core
     , cardano-wallet-core-integration
     , cardano-wallet-launcher
+    , cardano-wallet-test-utils
+    , cborg
     , containers
     , contra-tracer
     , data-default
@@ -45,8 +54,10 @@ common common-imports
     , either
     , exceptions
     , filepath
+    , generic-lens
     , http-client
     , http-types
+    , int-cast
     , iohk-monitoring
     , lens
     , memory
@@ -83,6 +94,7 @@ common common-imports
     , unliftio
     , unliftio-core
     , uuid
+    , yaml
 
 common common-language
   default-extensions:
@@ -152,15 +164,18 @@ library
     Test.Plutip.Internal.BotPlutusInterface.Setup
     Test.Plutip.Internal.BotPlutusInterface.Types
     Test.Plutip.Internal.BotPlutusInterface.Wallet
+    Test.Plutip.Internal.Cluster
+    Test.Plutip.Internal.Cluster.Extra.Types
+    Test.Plutip.Internal.Cluster.Extra.Utils
     Test.Plutip.Internal.LocalCluster
     Test.Plutip.Internal.Types
     Test.Plutip.LocalCluster
     Test.Plutip.Options
     Test.Plutip.Predicate
-    Test.Plutip.Tools
     Test.Plutip.Tools.Address
     Test.Plutip.Tools.CardanoApi
     Test.Plutip.Tools.ChainIndex
+    Test.Plutip.Tools.Cluster
     Test.Plutip.Tools.DebugCli
     Test.Plutip.Tools.Format
 
@@ -212,6 +227,7 @@ executable plutip-server
     , base16-bytestring
     , bytestring
     , cardano-api
+    , cardano-ledger-core
     , cardano-wallet
     , cardano-wallet-launcher
     , data-default
@@ -227,6 +243,7 @@ executable plutip-server
     , servant-server
     , stm
     , text
+    , time
     , unliftio
     , wai
     , wai-cors
@@ -244,11 +261,13 @@ executable local-cluster
   main-is:       local-cluster/Main.hs
   build-depends:
     , base
+    , cardano-ledger-core
     , data-default
     , mtl
     , optparse-applicative
     , plutip
     , positive
     , text
+    , time
 
   ghc-options:   -Wall -threaded -rtsopts

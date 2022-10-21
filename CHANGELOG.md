@@ -4,9 +4,15 @@ This format is based on [Keep A Changelog](https://keepachangelog.com/en/1.0.0).
 
 ## Unreleased
 
+- Wallets with Base Address support
+- Lookups for wallets in tasty integration
+
+## [1.2.0] - 2022-10-21
+
 ### Added
 
 - `Plutip` configuration
+  - Ability to set slot length and epoch size
   - Ability to add custom keys constant across runs, e.g. to use them as extra signers
   - Ability to set custom file where relay node log can be saved after tests run
   - Ability to set to set custom port for `chain-idex`

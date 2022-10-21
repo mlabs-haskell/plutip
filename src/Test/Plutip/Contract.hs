@@ -131,11 +131,20 @@ module Test.Plutip.Contract (
   assertExecution,
   assertExecutionWith,
   ada,
-  TestWallets,
-  ClusterTest (ClusterTest),
+  lookupWallet,
+  lookupAddress,
+  isException,
   -- Contract runners
   runContract,
   runContractWithLogLvl,
+  -- Types
+  ClusterTest (..),
+  ExecutionResult,
+  EntWallet (EntWallet),
+  BaseWallet (BaseWallet),
+  WalletTag (EntTag, BaseTag),
+  FailureReason (..),
+  ValueOrdering (..),
 ) where
 
 import BotPlutusInterface.Types (
@@ -147,7 +156,13 @@ import BotPlutusInterface.Types (
  )
 
 import Control.Arrow (left)
-import Control.Monad.Reader (MonadIO (liftIO), MonadReader (ask), ReaderT, runReaderT, void)
+import Control.Monad.Reader (
+  MonadIO (liftIO),
+  MonadReader (ask),
+  ReaderT,
+  runReaderT,
+  void,
+ )
 import Data.Bool (bool)
 import Data.Kind (Type)
 import Data.List.NonEmpty (NonEmpty, toList)
@@ -182,15 +197,24 @@ import Test.Plutip.Contract.Types (
   TestContractConstraints,
  )
 import Test.Plutip.Contract.Values (assertValues, valueAt)
-import Test.Plutip.Internal.BotPlutusInterface.Lookups (WalletLookups, lookupsMap, makeWalletInfo, makeWalletLookups)
+import Test.Plutip.Internal.BotPlutusInterface.Lookups (
+  WalletLookups (lookupAddress, lookupWallet),
+  lookupsMap,
+  makeWalletInfo,
+  makeWalletLookups,
+ )
 import Test.Plutip.Internal.BotPlutusInterface.Run (
   runContract,
   runContractWithLogLvl,
  )
 import Test.Plutip.Internal.BotPlutusInterface.Types (
+  BaseWallet (BaseWallet),
   BpiWallet (bwTag),
+  EntWallet (EntWallet),
   TestWallets,
+  ValueOrdering (VEq, VGEq, VGt, VLEq, VLt),
   WalletInfo,
+  WalletTag (BaseTag, EntTag),
   getTag,
   ownAddress,
   twExpected,
@@ -201,15 +225,24 @@ import Test.Plutip.Internal.BotPlutusInterface.Wallet (
 import Test.Plutip.Internal.Types (
   ClusterEnv,
   ExecutionResult (contractLogs, outcome),
+  FailureReason (CaughtException, ContractExecutionError),
   budgets,
+  isException,
  )
-import Test.Plutip.Options (TraceOption (ShowBudgets, ShowTrace, ShowTraceButOnlyContext))
+import Test.Plutip.Options (
+  TraceOption (ShowBudgets, ShowTrace, ShowTraceButOnlyContext),
+ )
 import Test.Plutip.Predicate (Predicate, noBudgetsMessage, pTag)
-import Test.Plutip.Tools (ada)
+import Test.Plutip.Tools.Cluster (ada)
 import Test.Plutip.Tools.Format (fmtTxBudgets)
 import Test.Tasty (testGroup, withResource)
 import Test.Tasty.HUnit (assertFailure, testCase)
-import Test.Tasty.Providers (IsTest (run, testOptions), TestTree, singleTest, testPassed)
+import Test.Tasty.Providers (
+  IsTest (run, testOptions),
+  TestTree,
+  singleTest,
+  testPassed,
+ )
 
 type TestRunner (w :: Type) (e :: Type) (a :: Type) =
   ReaderT (ClusterEnv, NonEmpty BpiWallet) IO (ExecutionResult w e (a, Map Text Value))

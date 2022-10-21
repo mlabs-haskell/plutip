@@ -38,6 +38,8 @@ Full | Short | Description
 --lovelace AMOUNT | -l AMOUNT | Puts `AMOUNT` Lovelace into each UTxO in every wallet created, in addition to the amount specified by the `--ada` argument. Note that if you don't specify the amount of ADA to add, the total amount will be 10,000 ADA + `AMOUNT` lovelace. <br /> Note that both `--ada` and `--lovelace` can not be 0 at the same time.
 --utxos NUM | -u NUM | Create `NUM` UTxOs in each wallet created. Note that each UTxO created has the amount of ADA determined by the `--ada` and `--lovelace` arguments.
 --working-dir /path/ | -w /path/ | This determines where the node database, chain-index database, and bot-plutus-interface files will be stored for a running cluster. If specified, this will store cluster data in the provided path (can be relative or absolute), the files will be deleted on cluster shutdown by default. Otherwise, the cluster data is stored in a temporary directory and will be deleted on cluster shutdown.
+--slot-len SECONDS | -s SECONDS | Sets slot length of created network, is seconds. E.g. `--slot-len 1s`, `-s 0.2s`. <br /> Addition of `s` is important for correct parsing of this option.
+--epoch-size NUM | -s NUM | Sets epoch size of created network, is slots.
 
 ## Making own local network launcher
 

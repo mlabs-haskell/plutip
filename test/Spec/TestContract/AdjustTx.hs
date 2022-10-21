@@ -26,12 +26,13 @@ import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
 import Test.Plutip.Contract (
   ClusterTest,
+  EntWallet (EntWallet),
+  WalletTag (EntTag),
   assertExecution,
   initAda,
+  lookupWallet,
   withContract,
  )
-import Test.Plutip.Internal.BotPlutusInterface.Lookups (WalletLookups (lookupWallet))
-import Test.Plutip.Internal.BotPlutusInterface.Types (EntWallet (EntWallet), WalletTag (EntTag))
 import Test.Plutip.Predicate (
   shouldSucceed,
   yieldSatisfies,

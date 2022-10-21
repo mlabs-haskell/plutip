@@ -50,3 +50,7 @@ NOTE: This branch launches local network in `Vasil`. It was tested with node `1.
 
 * [Tweaking local network](./docs/tweaking-network.md)
 * [Regenerating network configs](./docs/regenerate-network-configs.md)
+
+## Maintenance
+
+* [Important notes on updating `cardano-wallet` dependency](./docs/cardano-wallet-update.md)

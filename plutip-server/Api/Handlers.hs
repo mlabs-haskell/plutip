@@ -5,7 +5,9 @@ module Api.Handlers (
 
 import Cardano.Api (serialiseToCBOR)
 import Cardano.Launcher.Node (nodeSocketFile)
-import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (RunningNode))
+
+-- import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (RunningNode))
+
 import Control.Concurrent.MVar (isEmptyMVar, putMVar, takeMVar)
 import Control.Monad (unless)
 import Control.Monad.Except (runExceptT, throwError)
@@ -19,12 +21,14 @@ import Data.Text.Encoding qualified as Text
 import Data.Traversable (for)
 import System.Directory (doesFileExist)
 import System.FilePath (replaceFileName)
-import Test.Plutip.Config (chainIndexPort, relayNodeLogs)
+import Test.Plutip.Config (PlutipConfig (extraConfig), chainIndexPort, relayNodeLogs)
 import Test.Plutip.Internal.BotPlutusInterface.Setup (keysDir)
-import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet (signKey), addSomeWallet)
+import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet (signKey), addSomeWallet, cardanoMainnetAddress)
+import Test.Plutip.Internal.Cluster (RunningNode (RunningNode))
+import Test.Plutip.Internal.Cluster.Extra.Types (ExtraConfig (ExtraConfig))
 import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)
 import Test.Plutip.Internal.Types (ClusterEnv (runningNode))
-import Test.Plutip.LocalCluster (waitSeconds)
+import Test.Plutip.Tools.Cluster (awaitAddressFunded)
 import Types (
   AppM,
   ClusterStartupFailureReason (
@@ -43,7 +47,12 @@ import Types (
   Lovelace (unLovelace),
   PrivateKey,
   ServerOptions (ServerOptions, nodeLogs),
-  StartClusterRequest (StartClusterRequest, keysToGenerate),
+  StartClusterRequest (
+    StartClusterRequest,
+    epochSize,
+    keysToGenerate,
+    slotLength
+  ),
   StartClusterResponse (
     ClusterStartupFailure,
     ClusterStartupSuccess
@@ -55,7 +64,7 @@ import Types (
 startClusterHandler :: ServerOptions -> StartClusterRequest -> AppM StartClusterResponse
 startClusterHandler
   ServerOptions {nodeLogs}
-  StartClusterRequest {keysToGenerate} = interpret $ do
+  StartClusterRequest {slotLength, epochSize, keysToGenerate} = interpret $ do
     -- Check that lovelace amounts are positive
     for_ keysToGenerate $ \lovelaceAmounts -> do
       for_ lovelaceAmounts $ \lovelaces -> do
@@ -64,7 +73,9 @@ startClusterHandler
     statusMVar <- asks status
     isClusterDown <- liftIO $ isEmptyMVar statusMVar
     unless isClusterDown $ throwError ClusterIsRunningAlready
-    let cfg = def {relayNodeLogs = nodeLogs, chainIndexPort = Nothing}
+    let extraConf = ExtraConfig slotLength epochSize
+        cfg = def {relayNodeLogs = nodeLogs, chainIndexPort = Nothing, extraConfig = extraConf}
+
     (statusTVar, res@(clusterEnv, _)) <- liftIO $ startCluster cfg setup
     liftIO $ putMVar statusMVar statusTVar
     let nodeConfigPath = getNodeConfigFile clusterEnv
@@ -85,7 +96,8 @@ startClusterHandler
         wallets <- do
           for keysToGenerate $ \lovelaceAmounts -> do
             addSomeWallet (fromInteger . unLovelace <$> lovelaceAmounts)
-        waitSeconds 2 -- wait for transactions to submit
+        liftIO $ putStrLn "Waiting for wallets to be funded..."
+        awaitFunds wallets 2
         pure (env, wallets)
       getNodeSocketFile (runningNode -> RunningNode conn _ _ _) = nodeSocketFile conn
       getNodeConfigFile =
@@ -94,6 +106,15 @@ startClusterHandler
       getWalletPrivateKey :: BpiWallet -> PrivateKey
       getWalletPrivateKey = Text.decodeUtf8 . Base16.encode . serialiseToCBOR . signKey
       interpret = fmap (either ClusterStartupFailure id) . runExceptT
+
+      -- waits for the last wallet to be funded
+      awaitFunds :: [BpiWallet] -> Int -> ReaderT ClusterEnv IO ()
+      awaitFunds ws delay = do
+        env <- ask
+        let lastWallet = last ws
+        liftIO $ do
+          putStrLn $ "Waiting till all wallets will be funded..."
+          awaitAddressFunded env delay (cardanoMainnetAddress lastWallet)
 
 stopClusterHandler :: StopClusterRequest -> AppM StopClusterResponse
 stopClusterHandler StopClusterRequest = do

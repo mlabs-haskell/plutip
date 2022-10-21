@@ -30,7 +30,7 @@ import Test.Plutip.Contract.Types (
   ValueOrdering (VEq),
  )
 import Test.Plutip.Internal.BotPlutusInterface.Run (defCollateralSize)
-import Test.Plutip.Tools (ada)
+import Test.Plutip.Tools.Cluster (ada)
 
 -- | Create a wallet with the given amounts of lovelace.
 --  Each amount will be sent to address as separate UTXO.

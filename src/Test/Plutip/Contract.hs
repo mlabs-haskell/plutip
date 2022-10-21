@@ -186,7 +186,7 @@ import Test.Plutip.Internal.Types (
  )
 import Test.Plutip.Options (TraceOption (ShowBudgets, ShowTrace, ShowTraceButOnlyContext))
 import Test.Plutip.Predicate (Predicate, noBudgetsMessage, pTag)
-import Test.Plutip.Tools (ada)
+import Test.Plutip.Tools.Cluster (ada)
 import Test.Plutip.Tools.Format (fmtTxBudgets)
 import Test.Tasty (testGroup, withResource)
 import Test.Tasty.HUnit (assertFailure, testCase)

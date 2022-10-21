@@ -18,8 +18,9 @@ import Control.Monad.Reader (ReaderT, ask)
 import Data.Bifunctor (second)
 import Data.Default (def)
 import Data.List.NonEmpty (NonEmpty)
+import Data.List.NonEmpty qualified as NE
 import Numeric.Natural (Natural)
-import Test.Plutip.Config (PlutipConfig)
+import Test.Plutip.Config (PlutipConfig (extraConfig))
 import Test.Plutip.Contract (TestWallet (twInitDistribuition), TestWallets (unTestWallets), ada)
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   BpiWallet,
@@ -28,8 +29,10 @@ import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   ledgerPaymentPkh,
   mkMainnetAddress,
  )
+import Test.Plutip.Internal.Cluster.Extra.Types (ecSlotLength)
 import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)
 import Test.Plutip.Internal.Types (ClusterEnv)
+import Test.Plutip.Tools.Cluster (awaitAddressFunded)
 import Test.Tasty (testGroup, withResource)
 import Test.Tasty.Providers (TestTree)
 
@@ -94,8 +97,18 @@ withConfiguredCluster conf name testCases =
           testCases
       -- had to bump waiting period here coz of chain-index slowdown,
       -- see https://github.com/mlabs-haskell/plutip/issues/120
-      waitSeconds 5 -- wait for transactions to submit
+      let waitDelay = ceiling $ ecSlotLength $ extraConfig conf
+      awaitFunds wallets waitDelay
+      -- waitSeconds 5 -- wait for transactions to submit
       pure (env, wallets)
+
+    -- awaitFunds :: [BpiWallet] -> Int -> ReaderT ClusterEnv IO ()
+    awaitFunds ws delay = do
+      env <- ask
+      let lastWallet = NE.last $ last ws
+      liftIO $ do
+        putStrLn "Waiting till all wallets will be funded to start tests..."
+        awaitAddressFunded env delay (cardanoMainnetAddress lastWallet)
 
 imap :: (Int -> a -> b) -> [a] -> [b]
 imap fn = zipWith fn [0 ..]

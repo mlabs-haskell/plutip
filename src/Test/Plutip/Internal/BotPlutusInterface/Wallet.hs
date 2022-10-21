@@ -9,6 +9,7 @@ module Test.Plutip.Internal.BotPlutusInterface.Wallet (
   mkMainnetAddress,
   cardanoMainnetAddress,
   walletPaymentPkh,
+  showAddress,
   walletStakePkh,
 ) where
 
@@ -19,9 +20,14 @@ import Cardano.BM.Data.Tracer (nullTracer)
 import Cardano.Ledger.BaseTypes as Shelley (Network (Mainnet))
 import Cardano.Ledger.Credential qualified as Shelley
 import Cardano.Wallet.Primitive.Types.Coin (Coin (Coin))
-import Cardano.Wallet.Shelley.Launch.Cluster (
+
+-- import Cardano.Wallet.Shelley.Launch.Cluster (
+--   sendFaucetFundsTo,
+--  )
+import Test.Plutip.Internal.Cluster (
   sendFaucetFundsTo,
  )
+
 import Control.Arrow (ArrowChoice (left))
 import Control.Monad (void)
 import Control.Monad.IO.Class (MonadIO, liftIO)
@@ -147,10 +153,11 @@ cardanoMainnetAddress (BpiWallet pay stake _) =
 
 -- | Get `String` representation of address on mainnet
 mkMainnetAddress :: BpiWallet -> String
-mkMainnetAddress bw =
-  Text.unpack
-    . CAPI.serialiseAddress
-    $ cardanoMainnetAddress bw
+mkMainnetAddress =
+  showAddress . cardanoMainnetAddress
+
+showAddress :: AddressAny -> String
+showAddress = Text.unpack . CAPI.serialiseAddress
 
 walletPaymentPkh :: BpiWallet -> PaymentPubKeyHash
 walletPaymentPkh = PaymentPubKeyHash . PubKeyHash . toBuiltin . CAPI.serialiseToRawBytes . CAPI.verificationKeyHash . vKey . payKeys

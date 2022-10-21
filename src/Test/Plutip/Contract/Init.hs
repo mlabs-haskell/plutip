@@ -33,7 +33,7 @@ import Test.Plutip.Internal.BotPlutusInterface.Types (
   WalletTag,
   mkWallet,
  )
-import Test.Plutip.Tools (ada)
+import Test.Plutip.Tools.Cluster (ada)
 
 -- | Create a wallet with the given amounts of lovelace.
 --  Each amount will be sent to address as separate UTXO.

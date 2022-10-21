@@ -5,10 +5,11 @@
 
 module Main (main) where
 
+import Cardano.Ledger.Slot (EpochSize (EpochSize))
 import Control.Applicative (optional, (<**>))
 import Control.Monad (forM_, void)
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Reader (ReaderT (ReaderT))
+import Control.Monad.Reader (ReaderT (ReaderT), ask)
 import Data.Default (def)
 import Data.Traversable (for)
 import Numeric.Positive (Positive)
@@ -30,6 +31,32 @@ import Test.Plutip.LocalCluster
 import GHC.Natural (Natural)
 import Test.Plutip.Internal.BotPlutusInterface.Types (WalletTag(EntTag), BpiWallet (bwTag))
 import Data.Text qualified as T
+import Data.Time (NominalDiffTime)
+import GHC.Natural (Natural)
+import GHC.Word (Word64)
+import Numeric.Positive (Positive)
+import Options.Applicative (Parser, helper, info)
+import Options.Applicative qualified as Options
+import Test.Plutip.Config (
+  PlutipConfig (clusterWorkingDir, extraConfig),
+  WorkingDirectory (Fixed, Temporary),
+ )
+import Test.Plutip.Internal.BotPlutusInterface.Wallet (
+  addSomeWalletDir,
+  cardanoMainnetAddress,
+  walletPkh,
+ )
+import Test.Plutip.Internal.Cluster.Extra.Types (
+  ExtraConfig (ExtraConfig),
+ )
+import Test.Plutip.Internal.Types (ClusterEnv, nodeSocket)
+import Test.Plutip.LocalCluster (
+  BpiWallet,
+  mkMainnetAddress,
+  startCluster,
+  stopCluster,
+ )
+import Test.Plutip.Tools.Cluster (awaitAddressFunded)
 
 main :: IO ()
 main = do
@@ -37,14 +64,17 @@ main = do
   case totalAmount config of
     Left e -> error e
     Right amt -> do
-      let CWalletConfig {numWallets, dirWallets, numUtxos, workDir} = config
+      let ClusterConfig {numWallets, dirWallets, numUtxos, workDir, slotLength, epochSize} = config
           workingDir = maybe Temporary (`Fixed` False) workDir
-          plutipConfig = def {clusterWorkingDir = workingDir}
+
+          exctraCong = ExtraConfig slotLength epochSize
+          plutipConfig = def {clusterWorkingDir = workingDir, extraConfig = exctraCong}
 
       putStrLn "Starting cluster..."
       (st, _) <- startCluster plutipConfig $ do
         ws <- initWallets numWallets numUtxos amt dirWallets
-        waitSeconds 2 -- let wallet Tx finish, it can take more time with bigger slot length
+        liftIO $ putStrLn "Waiting for wallets to be funded..."
+        awaitFunds ws (ceiling slotLength)
 
         separate
         liftIO $ forM_ ws printWallet
@@ -62,7 +92,7 @@ main = do
 
     separate = liftIO $ putStrLn "\n------------\n"
 
-    totalAmount :: CWalletConfig -> Either String Positive
+    totalAmount :: ClusterConfig -> Either String Positive
     totalAmount cwc =
       case toAda (adaAmount cwc) + lvlAmount cwc of
         0 -> Left "One of --ada or --lovelace arguments should not be 0"
@@ -79,6 +109,15 @@ main = do
                   ++ show (mkMainnetAddress w)
 
     toAda = (* 1_000_000)
+
+    -- waits for the last wallet to be funded
+    awaitFunds :: [BpiWallet] -> Int -> ReaderT ClusterEnv IO ()
+    awaitFunds ws delay = do
+      env <- ask
+      let lastWallet = last ws
+      liftIO $ do
+        putStrLn "Waiting till all wallets will be funded..."
+        awaitAddressFunded env delay (cardanoMainnetAddress lastWallet)
 
 pnumWallets :: Parser Int
 pnumWallets =
@@ -140,24 +179,52 @@ pWorkDir =
           <> Options.metavar "FILEPATH"
       )
 
-pClusterConfig :: Parser CWalletConfig
+pSlotLen :: Parser NominalDiffTime
+pSlotLen =
+  Options.option
+    Options.auto
+    ( Options.long "slot-len"
+        <> Options.short 's'
+        <> Options.metavar "SLOT_LEN"
+        <> Options.value 0.2
+    )
+
+pEpochSize :: Parser EpochSize
+pEpochSize =
+  EpochSize <$> wordParser
+  where
+    wordParser :: Parser Word64
+    wordParser =
+      Options.option
+        Options.auto
+        ( Options.long "epoch-size"
+            <> Options.short 'e'
+            <> Options.metavar "EPOCH_SIZE"
+            <> Options.value 160
+        )
+
+pClusterConfig :: Parser ClusterConfig
 pClusterConfig =
-  CWalletConfig
+  ClusterConfig
     <$> pnumWallets
     <*> pdirWallets
     <*> padaAmount
     <*> plvlAmount
     <*> pnumUtxos
     <*> pWorkDir
+    <*> pSlotLen
+    <*> pEpochSize
 
 -- | Basic info about the cluster, to
 -- be used by the command-line
-data CWalletConfig = CWalletConfig
-  { numWallets :: Int,
-    dirWallets :: Maybe FilePath,
-    adaAmount :: Natural,
-    lvlAmount :: Natural,
-    numUtxos :: Int,
-    workDir :: Maybe FilePath
+data ClusterConfig = ClusterConfig
+  { numWallets :: Int
+  , dirWallets :: Maybe FilePath
+  , adaAmount :: Natural
+  , lvlAmount :: Natural
+  , numUtxos :: Int
+  , workDir :: Maybe FilePath
+  , slotLength :: NominalDiffTime
+  , epochSize :: EpochSize
   }
   deriving stock (Show, Eq)

@@ -9,6 +9,7 @@ import Control.Monad (void)
 import Data.Map qualified as Map
 import Data.Text (Text)
 import Data.Text qualified as Text
+import Data.Time (NominalDiffTime)
 import Ledger (
   Address,
   Extended (Finite),
@@ -30,6 +31,7 @@ import Ledger (
  )
 import Ledger.Ada qualified as Ada
 import Ledger.Constraints qualified as Constraints
+import Ledger.TimeSlot (nominalDiffTimeToPOSIXTime)
 import Ledger.Typed.Scripts (mkUntypedValidator)
 import Plutus.Contract (Contract)
 import Plutus.Contract qualified as Contract
@@ -119,13 +121,19 @@ validatorAddr :: Address
 validatorAddr = mkValidatorAddress validator
 
 ------------------------------------------
-failingTimeContract :: Contract () EmptySchema Text Hask.String
-failingTimeContract = do
+{- Number of slots to wait was picked empirically.
+  With dafeult Plutip's slot length 0.2 waiting less slots behaves buggy,
+  could be because Tx stays in node mempool longer than set validation period.
+-}
+slotsTowait :: Integer
+slotsTowait = 20
+
+failingTimeContract :: NominalDiffTime -> Contract () EmptySchema Text Hask.String
+failingTimeContract slotLen = do
   startTime <- Contract.currentTime
-  -- amount of seconds was picked empirically
-  -- it is relatively small, but big enough so Tx won't be silently dropped
-  -- from the node mempool coz it stayed there longer than validation range
-  let timeDiff = POSIXTime 5_000
+  let timeDiff =
+        let (POSIXTime t) = nominalDiffTimeToPOSIXTime slotLen
+         in (POSIXTime $ t * slotsTowait)
       endTime = startTime + timeDiff
 
       validInterval = Interval (lowerBound startTime) (strictUpperBound endTime)
@@ -134,13 +142,13 @@ failingTimeContract = do
         Constraints.mustPayToOtherScript (validatorHash validator) unitDatum (Ada.adaValueOf 4)
           <> Constraints.mustValidateIn validInterval
 
-  void $ Contract.awaitTime (endTime - POSIXTime 1_000)
+  void $ Contract.awaitTime endTime
   tx <- Contract.submitTx constr
   Contract.awaitTxConfirmed $ getCardanoTxId tx
   pure "Light debug done"
 
-successTimeContract :: Contract () EmptySchema Text ()
-successTimeContract = lockAtScript >> unlockWithTimeCheck
+successTimeContract :: NominalDiffTime -> Contract () EmptySchema Text ()
+successTimeContract slotLen = lockAtScript >> unlockWithTimeCheck slotLen
 
 lockAtScript :: Contract () EmptySchema Text ()
 lockAtScript = do
@@ -152,12 +160,15 @@ lockAtScript = do
   tx <- Contract.submitTx constr
   Contract.awaitTxConfirmed $ getCardanoTxId tx
 
-unlockWithTimeCheck :: Contract () EmptySchema Text ()
-unlockWithTimeCheck = do
+unlockWithTimeCheck :: NominalDiffTime -> Contract () EmptySchema Text ()
+unlockWithTimeCheck slotLen = do
   startTime <- Contract.currentTime
-  let timeDiff = POSIXTime 5_000
+  let timeDiff =
+        let (POSIXTime t) = nominalDiffTimeToPOSIXTime slotLen
+         in (POSIXTime $ t * slotsTowait)
       endTime = startTime + timeDiff
 
+  -- Hask.error $ "Time: " <> Hask.show timeDiff
   utxos <- Map.toList <$> Contract.utxosAt validatorAddr
   case utxos of
     [(oref, _)] -> do

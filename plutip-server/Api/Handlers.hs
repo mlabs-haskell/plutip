@@ -6,8 +6,6 @@ module Api.Handlers (
 import Cardano.Api (serialiseToCBOR)
 import Cardano.Launcher.Node (nodeSocketFile)
 
--- import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (RunningNode))
-
 import Control.Concurrent.MVar (isEmptyMVar, putMVar, takeMVar)
 import Control.Monad (unless)
 import Control.Monad.Except (runExceptT, throwError)
@@ -21,11 +19,11 @@ import Data.Text.Encoding qualified as Text
 import Data.Traversable (for)
 import System.Directory (doesFileExist)
 import System.FilePath (replaceFileName)
-import Test.Plutip.Config (chainIndexPort, relayNodeLogs)
-import Test.Plutip.Internal.BotPlutusInterface.Setup (keysDir)
-import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet (signKey), addSomeWallet)
-import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)
-import Test.Plutip.Internal.Types (ClusterEnv (runningNode))
+import Test.Plutip.Config (
+  PlutipConfig (extraConfig),
+  chainIndexPort,
+  relayNodeLogs,
+ )
 import Test.Plutip.Tools.Cluster (awaitAddressFunded)
 import Types (
   AddressType (Base, Enterprise),
@@ -62,6 +60,25 @@ import Types (
  )
 
 import Data.Text qualified as T
+import Test.Plutip.Internal.BotPlutusInterface.Keys (sKey)
+import Test.Plutip.Internal.BotPlutusInterface.Setup (keysDir)
+import Test.Plutip.Internal.BotPlutusInterface.Types (
+  BpiWallet (payKeys),
+  WalletTag (BaseTag, EntTag),
+ )
+import Test.Plutip.Internal.BotPlutusInterface.Wallet (
+  addSomeWallet,
+  cardanoMainnetAddress,
+ )
+import Test.Plutip.Internal.Cluster.Extra.Types (
+  ExtraConfig (ExtraConfig),
+ )
+import Test.Plutip.Internal.LocalCluster (
+  startCluster,
+  stopCluster,
+ )
+import Test.Plutip.Internal.Types (ClusterEnv (runningNode))
+import Test.Plutip.LocalCluster (RunningNode (RunningNode))
 
 startClusterHandler :: ServerOptions -> StartClusterRequest -> AppM StartClusterResponse
 startClusterHandler
@@ -106,7 +123,13 @@ startClusterHandler
         -- assumption is that node.config lies in the same directory as node.socket
         flip replaceFileName "node.config" . getNodeSocketFile
       getWalletPrivateKey :: BpiWallet -> PrivateKey
-      getWalletPrivateKey = Text.decodeUtf8 . Base16.encode . serialiseToCBOR . sKey . payKeys
+      getWalletPrivateKey =
+        Text.decodeUtf8
+          . Base16.encode
+          . serialiseToCBOR
+          . sKey
+          . payKeys
+
       interpret = fmap (either ClusterStartupFailure id) . runExceptT
       addWallet key tag =
         let funds' = (fromInteger . unLovelace <$> funds key)
@@ -120,7 +143,7 @@ startClusterHandler
         env <- ask
         let lastWallet = last ws
         liftIO $ do
-          putStrLn $ "Waiting till all wallets will be funded..."
+          putStrLn "Waiting till all wallets will be funded..."
           awaitAddressFunded env delay (cardanoMainnetAddress lastWallet)
 
 stopClusterHandler :: StopClusterRequest -> AppM StopClusterResponse

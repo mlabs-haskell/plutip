@@ -3,7 +3,7 @@
 module Test.Plutip.LocalCluster (
   BpiWallet,
   addSomeWallet,
-  ada,
+  addSomeWalletDir,
   waitSeconds,
   mkMainnetAddress,
   cardanoMainnetAddress,
@@ -12,6 +12,18 @@ module Test.Plutip.LocalCluster (
   withConfiguredCluster,
   startCluster,
   stopCluster,
+  nodeSocket,
+  bwTag,
+  keysDir,
+  sKey,
+  payKeys,
+  ecSlotLength,
+  ClusterTest (ClusterTest),
+  TestWallet (TestWallet),
+  ClusterEnv,
+  ExtraConfig (ExtraConfig),
+  RunningNode (RunningNode),
+  runningNode,
 ) where
 
 import Control.Concurrent (threadDelay)
@@ -22,24 +34,32 @@ import Data.Default (def)
 import Data.List.NonEmpty (NonEmpty)
 import Data.List.NonEmpty qualified as NE
 import Numeric.Natural (Natural)
-import Test.Plutip.Config (PlutipConfig)
-import Test.Plutip.Contract (ClusterTest (ClusterTest), ada)
-import Test.Plutip.Internal.BotPlutusInterface.Types (
 import Test.Plutip.Config (PlutipConfig (extraConfig))
-import Test.Plutip.Contract (TestWallet (twInitDistribuition), TestWallets (unTestWallets), ada)
-import Test.Plutip.Internal.BotPlutusInterface.Wallet (
-  BpiWallet,
+
+import Test.Plutip.Contract (ClusterTest (ClusterTest))
+import Test.Plutip.Internal.BotPlutusInterface.Keys (sKey)
+import Test.Plutip.Internal.BotPlutusInterface.Setup (keysDir)
+import Test.Plutip.Internal.BotPlutusInterface.Types (
+  BpiWallet (bwTag, payKeys),
   TestWallet (TestWallet),
  )
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   addSomeWallet,
+  addSomeWalletDir,
   cardanoMainnetAddress,
   mkMainnetAddress,
   walletPaymentPkh,
  )
-import Test.Plutip.Internal.Cluster.Extra.Types (ecSlotLength)
+import Test.Plutip.Internal.Cluster.Extra.Types (
+  ExtraConfig (ExtraConfig),
+  ecSlotLength,
+ )
 import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)
-import Test.Plutip.Internal.Types (ClusterEnv)
+import Test.Plutip.Internal.Types (
+  ClusterEnv (runningNode),
+  RunningNode (RunningNode),
+  nodeSocket,
+ )
 import Test.Plutip.Tools.Cluster (awaitAddressFunded)
 import Test.Tasty (testGroup, withResource)
 import Test.Tasty.Providers (TestTree)
@@ -114,7 +134,7 @@ withConfiguredCluster conf name testCases =
 
     addTestWallet (TestWallet tag dist _) =
       addSomeWallet tag dist
-      
+
     awaitFunds ws delay = do
       env <- ask
       let lastWallet = NE.last $ last ws

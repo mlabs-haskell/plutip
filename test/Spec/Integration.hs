@@ -33,10 +33,17 @@ import Spec.TestContract.SimpleContracts (
   payTo,
   payToPubKeyAddress,
  )
-import Spec.TestContract.ValidateTimeRange (failingTimeContract, successTimeContract)
+import Spec.TestContract.ValidateTimeRange (
+  failingTimeContract,
+  successTimeContract,
+ )
 import Test.Plutip.Config (PlutipConfig (extraConfig))
 import Test.Plutip.Contract (
+  BaseWallet (BaseWallet),
   ClusterTest,
+  EntWallet (EntWallet),
+  FailureReason (CaughtException, ContractExecutionError),
+  ValueOrdering (VLt),
   assertExecution,
   assertExecutionWith,
   initAda,
@@ -44,19 +51,18 @@ import Test.Plutip.Contract (
   initAndAssertAdaWith,
   initAndAssertLovelace,
   initLovelace,
+  isException,
+  lookupAddress,
+  lookupWallet,
   withCollateral,
   withContract,
   withContractAs,
  )
 import Test.Plutip.Contract.Types (WalletTag (BaseTag, EntTag))
-import Test.Plutip.Internal.BotPlutusInterface.Lookups (WalletLookups (lookupWallet), lookupAddress)
-import Test.Plutip.Internal.BotPlutusInterface.Types (BaseWallet (BaseWallet), EntWallet (EntWallet), ValueOrdering (VLt))
-import Test.Plutip.Internal.Cluster.Extra.Types (ExtraConfig (ecSlotLength))
-import Test.Plutip.Internal.Types (
-  FailureReason (CaughtException, ContractExecutionError),
-  isException,
+import Test.Plutip.LocalCluster (
+  ExtraConfig (ecSlotLength),
+  withConfiguredCluster,
  )
-import Test.Plutip.LocalCluster (withConfiguredCluster)
 import Test.Plutip.Options (TraceOption (ShowBudgets, ShowTraceButOnlyContext))
 import Test.Plutip.Predicate (
   assertOverallBudget,
@@ -116,20 +122,20 @@ test =
               "Pay negative amount"
               (initAda (EntTag "w1") [100])
               ( withContract $ \ws -> do
-              EntWallet pkh1 <- lookupWallet ws (EntTag "w1")
-              payTo pkh1 (-10_000_000)
-          )
+                  EntWallet pkh1 <- lookupWallet ws (EntTag "w1")
+                  payTo pkh1 (-10_000_000)
+              )
               [shouldFail]
           , -- Tests with wallet's Value assertions
             assertExecution
               "Pay from wallet to wallet"
               ( initAda (EntTag "w1") [100]
-              <> initAndAssertAda (EntTag "w2") [100, 13] 123
-          )
+                  <> initAndAssertAda (EntTag "w2") [100, 13] 123
+              )
               ( withContract $ \ws -> do
-              EntWallet pkh1 <- lookupWallet ws (EntTag "w2")
-              payTo pkh1 10_000_000
-          )
+                  EntWallet pkh1 <- lookupWallet ws (EntTag "w2")
+                  payTo pkh1 10_000_000
+              )
               [shouldSucceed]
           , assertExecution
               "Two contracts one after another"
@@ -140,11 +146,11 @@ test =
                   void $ -- run something prior to the contract which result will be checked
                     withContract $ \ws -> do
                       addr1 <- lookupAddress ws "w1"
-                  payToPubKeyAddress addr1 10_000_000
+                      payToPubKeyAddress addr1 10_000_000
                   withContractAs "w1" $ -- run contract which result will be checked
                     \ws -> do
-                  addr0 <- lookupAddress ws "w0"
-                  payToPubKeyAddress addr0 10_000_000
+                      addr0 <- lookupAddress ws "w0"
+                      payToPubKeyAddress addr0 10_000_000
               )
               [shouldSucceed]
           , -- Tests with assertions on Contract return value
@@ -235,7 +241,7 @@ test =
                   [ shouldFail
                   , errorSatisfies "Fail validation with 'I always fail'" errCheck
                   ]
-      , walletLookupsTest
+          , walletLookupsTest
           , -- Test `adjustUnbalancedTx`
             runAdjustTest
           , testBugMintAndPay
@@ -243,14 +249,14 @@ test =
           ++ testValueAssertionsOrderCorrectness
 
 -- https://github.com/mlabs-haskell/plutip/issues/138
-testBugMintAndPay ::ClusterTest
+testBugMintAndPay :: ClusterTest
 testBugMintAndPay =
   assertExecution
     "Adjustment of outputs with 0 Ada does not fail"
     (withCollateral $ initAda (EntTag "w0") [1000] <> initAda (EntTag "w1") [1111])
-    (withContract $ \ws -> do
-      EntWallet w1pkh <- lookupWallet ws (EntTag "w1")
-      zeroAdaOutTestContract w1pkh
+    ( withContract $ \ws -> do
+        EntWallet w1pkh <- lookupWallet ws (EntTag "w1")
+        zeroAdaOutTestContract w1pkh
     )
     [ shouldSucceed
     ]

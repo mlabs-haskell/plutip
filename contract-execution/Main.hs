@@ -4,7 +4,6 @@
 
 module Main (main) where
 
-import Control.Concurrent (threadDelay)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ReaderT (ReaderT), ask)
 import Data.Default (def)
@@ -18,7 +17,6 @@ import Test.Plutip.Contract (runContract)
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   BpiWallet,
   addSomeWallet,
-  cardanoMainnetAddress,
   mkMainnetAddress,
   walletPkh,
  )
@@ -34,7 +32,7 @@ import Test.Plutip.Internal.Types (
   ExecutionResult (contractState, outcome),
   nodeSocket,
  )
-import Test.Plutip.Tools.Cluster (awaitGodDamnedChindexSeesWalletFunded)
+import Test.Plutip.Tools.Cluster (awaitWalletFunded)
 import Text.Pretty.Simple (pShow)
 
 main :: IO ()
@@ -47,7 +45,7 @@ main = do
   (st, _) <- startCluster plutipConfig $ do
     w <- addSomeWallet [toAda 10]
     liftIO $ putStrLn "Waiting for wallets to be funded..."
-    awaitGodDamnedChindexSeesWalletFunded w (ceiling slotLen)
+    awaitWalletFunded w (ceiling slotLen)
 
     separate
     printWallet (w, 1)

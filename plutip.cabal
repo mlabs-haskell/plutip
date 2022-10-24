@@ -270,29 +270,27 @@ executable local-cluster
   ghc-options:   -Wall -threaded -rtsopts
 
 executable contract-execution
-  import:           common-language
-  import:           common-ghc-options
-  hs-source-dirs:   contract-execution
-  main-is:          Main.hs
+  import:         common-language
+  import:         common-ghc-options
+  hs-source-dirs: contract-execution
+  main-is:        Main.hs
   build-depends:
     , base
     , cardano-ledger-core
+    , containers
     , data-default
+    , lens
     , mtl
     , optparse-applicative
     , plutip
-    , positive
-    , time
     , plutus-contract
     , plutus-ledger
-    , containers
-    , lens
-    , text
     , plutus-ledger-constraints
     , plutus-pab
+    , positive
     , pretty-simple
+    , text
+    , time
 
-  other-modules:
-    ExampleContracts
-
-  ghc-options:   -Wall -threaded -rtsopts
+  other-modules:  ExampleContracts
+  ghc-options:    -Wall -threaded -rtsopts

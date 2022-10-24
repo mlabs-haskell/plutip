@@ -47,8 +47,8 @@ main = do
       let ClusterConfig {numWallets, dirWallets, numUtxos, workDir, slotLength, epochSize} = config
           workingDir = maybe Temporary (`Fixed` False) workDir
 
-          exctraCong = ExtraConfig slotLength epochSize
-          plutipConfig = def {clusterWorkingDir = workingDir, extraConfig = exctraCong}
+          extraConf = ExtraConfig slotLength epochSize
+          plutipConfig = def {clusterWorkingDir = workingDir, extraConfig = extraConf}
 
       putStrLn "Starting cluster..."
       (st, _) <- startCluster plutipConfig $ do

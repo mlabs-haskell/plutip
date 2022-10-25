@@ -45,6 +45,10 @@ NOTE: This branch launches local network in `Vasil`. It was tested with node `1.
 * [Running Contracts is REPL](./docs/interactive-plutip.md)
 * [Providing constant keys](./docs/constant-keys.md)
 
+## Examples
+
+* [Starting private network from Haskell and executing contract](./contract-execution/Main.hs)
+
 ## Advanced network setup
 
 * [Tweaking local network](./docs/tweaking-network.md)

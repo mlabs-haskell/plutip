@@ -172,7 +172,6 @@ library
     Test.Plutip.Tools.Address
     Test.Plutip.Tools.CardanoApi
     Test.Plutip.Tools.ChainIndex
-    Test.Plutip.Tools.Cluster
     Test.Plutip.Tools.DebugCli
     Test.Plutip.Tools.Format
 
@@ -268,3 +267,29 @@ executable local-cluster
     , time
 
   ghc-options:   -Wall -threaded -rtsopts
+
+executable contract-execution
+  import:         common-language
+  import:         common-ghc-options
+  hs-source-dirs: contract-execution
+  main-is:        Main.hs
+  build-depends:
+    , base
+    , cardano-ledger-core
+    , containers
+    , data-default
+    , lens
+    , mtl
+    , optparse-applicative
+    , plutip
+    , plutus-contract
+    , plutus-ledger
+    , plutus-ledger-constraints
+    , plutus-pab
+    , positive
+    , pretty-simple
+    , text
+    , time
+
+  other-modules:  ExampleContracts
+  ghc-options:    -Wall -threaded -rtsopts

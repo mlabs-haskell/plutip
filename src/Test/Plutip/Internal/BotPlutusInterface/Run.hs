@@ -108,7 +108,13 @@ runContractWithLogLvl logLvl cEnv bpiWallet contract = do
     fromRight (error "Could not read protocol parameters file.")
       <$> liftIO (eitherDecodeFileStrict' (BIS.pParamsFile cEnv))
 
-  contactEnv <- liftIO $ mkEnv (mkPabConfig pparams)
+  chIndexUrl <-
+    maybe
+      (error "Chain must be launched to perofrm `utxosAtPkh` request")
+      pure
+      (chainIndexUrl cEnv)
+
+  contactEnv <- liftIO $ mkEnv (mkPabConfig pparams chIndexUrl) 
 
   runContract' contactEnv
   where
@@ -121,10 +127,10 @@ runContractWithLogLvl logLvl cEnv bpiWallet contract = do
         <*> newTVarIO mempty
         <*> (Bpi.CollateralVar <$> newTVarIO Nothing)
 
-    mkPabConfig pparams =
+    mkPabConfig pparams chIndexUrl =
       PABConfig
         { pcCliLocation = Local
-        , pcChainIndexUrl = chainIndexUrl cEnv
+        , pcChainIndexUrl = chIndexUrl
         , pcNetwork = networkId cEnv
         , pcProtocolParams = pparams
         , pcScriptFileDir = Text.pack $ BIS.scriptsDir cEnv

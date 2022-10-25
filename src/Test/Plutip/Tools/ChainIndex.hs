@@ -28,8 +28,13 @@ utxosAtPkh ::
   ReaderT ClusterEnv m (Either ClientError UtxosResponse)
 utxosAtPkh pkh = do
   cEnv <- ask
+  chIndexUrl <-
+    maybe
+      (throwString "Chain must be launched to perofrm `utxosAtPkh` request")
+      pure
+      (chainIndexUrl cEnv)
   manager <- newManager defaultManagerSettings
-  liftIO $ runClientM client $ mkClientEnv manager (chainIndexUrl cEnv)
+  liftIO $ runClientM client $ mkClientEnv manager chIndexUrl
   where
     client = ChainIndexClient.getUtxoSetAtAddress req
     req = UtxoAtAddressRequest (Just def) (PubKeyCredential pkh)

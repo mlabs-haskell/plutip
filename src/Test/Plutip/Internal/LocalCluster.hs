@@ -49,7 +49,7 @@ import System.FilePath ((</>))
 import System.IO (IOMode (WriteMode), hClose, openFile, stdout)
 import Test.Plutip.Config (
   PlutipConfig (
-    chainIndexPort,
+    chainIndexMode,
     clusterDataDir,
     clusterWorkingDir,
     extraConfig,
@@ -93,6 +93,7 @@ import Plutus.ChainIndex.Client qualified as ChainIndexClient
 import Plutus.ChainIndex.Config qualified as CIC
 import PlutusPrelude ((.~), (^.))
 import Test.Plutip.Internal.Cluster.Extra.Utils (localClusterConfigWithExtraConf)
+import Test.Plutip.Internal.ChainIndex (withChainIndexHandling)
 
 -- | Starting a cluster with a setup action
 -- We're heavily depending on cardano-wallet local cluster tooling, however they don't allow the
@@ -142,25 +143,21 @@ withPlutusInterface conf action = do
       let tr' = contramap MsgCluster $ trMessageText trCluster
       clusterCfg <- localClusterConfigWithExtraConf (extraConfig conf)
       withRedirectedStdoutHdl nodeConfigLogHdl $ \restoreStdout ->
-        withCluster
-          tr'
-          dir
-          clusterCfg
-          mempty
-          (\rn -> restoreStdout $ runActionWthSetup rn dir trCluster action)
+        withCluster tr' dir clusterCfg mempty $ \rn -> do
+          withChainIndexHandling (chainIndexMode conf) rn dir $ \ maybePort -> 
+            restoreStdout $ runActionWthSetup rn dir trCluster action maybePort
     handleLogs dir conf
     return result
   where
-    runActionWthSetup rn dir trCluster userActon = do
+    runActionWthSetup rn dir trCluster userActon maybePort = do
       let tracer' = trMessageText trCluster
       waitForRelayNode tracer' rn
       -- launch chain index in separate thread
-      ciPort <- launchChainIndex conf rn dir
       traceWith tracer' (ChaiIndexStartedAt ciPort)
       let cEnv =
             ClusterEnv
               { runningNode = rn
-              , chainIndexUrl = BaseUrl Http "localhost" ciPort mempty
+              , chainIndexUrl = (\port -> BaseUrl Http "localhost" port mempty <$> maybePort
               , networkId = CAPI.Mainnet
               , supportDir = dir
               , tracer = trCluster
@@ -169,6 +166,9 @@ withPlutusInterface conf action = do
 
       BotSetup.runSetup cEnv -- run preparations to use `bot-plutus-interface`
       userActon cEnv -- executing user action on cluster
+
+-- mkCindexUrl = \case
+--     DefaultPort ->
 
 -- Redirect stdout to a provided handle providing mask to temporarily revert back to initial stdout.
 withRedirectedStdoutHdl :: Handle -> ((forall b. IO b -> IO b) -> IO a) -> IO a
@@ -265,45 +265,6 @@ waitForRelayNode trCluster rn =
         ChainTip (SlotNo _) _ _ -> pure ()
         a -> throwString $ "Timeout waiting for node to start. Last 'tip' response:\n" <> show a
       pure ()
-
--- | Launch the chain index in a separate thread.
-launchChainIndex :: PlutipConfig -> RunningNode -> FilePath -> IO Int
-launchChainIndex conf (RunningNode sp _block0 (netParams, _vData) _) dir = do
-  let (NetworkParameters _ (SlottingParameters (SlotLength slotLen) _ _ _) _) = netParams
-
-  config <- defaultConfig
-  CM.setMinSeverity config Severity.Notice
-  let dbPath = dir </> "chain-index.db"
-      port = maybe (CIC.cicPort ChainIndex.defaultConfig) fromEnum (chainIndexPort conf)
-      chainIndexConfig =
-        CIC.defaultConfig
-          & CIC.socketPath .~ nodeSocketFile sp
-          & CIC.dbPath .~ dbPath
-          & CIC.networkId .~ CAPI.Mainnet
-          & CIC.port .~ maybe (CIC.cicPort ChainIndex.defaultConfig) fromEnum (chainIndexPort conf)
-          & CIC.slotConfig .~ (def {scSlotLength = toMilliseconds slotLen})
-
-  void $ async $ void $ ChainIndex.runMainWithLog (const $ return ()) config chainIndexConfig
-  waitForChainIndex port
-  return $ chainIndexConfig ^. CIC.port
-  where
-    toMilliseconds = floor . (1e3 *) . nominalDiffTimeToSeconds
-
-    waitForChainIndex port = do
-      -- TODO: move this to config; ideally, separate chain-index launch from cluster launch
-      let policy = constantDelay 1_000_000 <> limitRetries 60
-      recoverAll policy $ \_ -> do
-        tip <- queryTipWithChIndex port
-        case tip of
-          Right (Tip (Slot _) _ _) -> pure ()
-          a ->
-            throwString $
-              "Timeout waiting for chain-index to start indexing. Last response:\n"
-                <> either show show a
-
-    queryTipWithChIndex port = do
-      manager' <- newManager defaultManagerSettings
-      runClientM ChainIndexClient.getTip $ mkClientEnv manager' (BaseUrl Http "localhost" port "")
 
 handleLogs :: HasCallStack => FilePath -> PlutipConfig -> IO ()
 handleLogs clusterDir conf =

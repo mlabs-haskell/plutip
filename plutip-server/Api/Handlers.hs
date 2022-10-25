@@ -29,9 +29,9 @@ import Test.Plutip.Internal.BotPlutusInterface.Setup (keysDir)
 import Test.Plutip.Internal.BotPlutusInterface.Wallet
     ( BpiWallet(signKey), addSomeWallet, cardanoMainnetAddress )
 import Test.Plutip.Internal.Cluster (RunningNode (RunningNode))
-import Test.Plutip.Internal.Cluster.Extra.Types (ExtraConfig (ExtraConfig))
+import Test.Plutip.Internal.Cluster.Extra.Types (ExtraConfig (ExtraConfig, ecSlotLength))
 import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)
-import Test.Plutip.Internal.Types (ClusterEnv (runningNode))
+import Test.Plutip.Internal.Types (ClusterEnv (runningNode, plutipConf))
 import Types (
   AppM,
   ClusterStartupFailureReason (
@@ -100,7 +100,7 @@ startClusterHandler
           for keysToGenerate $ \lovelaceAmounts -> do
             addSomeWallet (fromInteger . unLovelace <$> lovelaceAmounts)
         liftIO $ putStrLn "Waiting for wallets to be funded..."
-        awaitFunds wallets 2
+        awaitFunds wallets (ecSlotLength $ extraConfig $ plutipConf env)
         pure (env, wallets)
       getNodeSocketFile (runningNode -> RunningNode conn _ _ _) = nodeSocketFile conn
       getNodeConfigFile =

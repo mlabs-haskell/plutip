@@ -12,18 +12,15 @@ module Test.Plutip.Internal.LocalCluster (
 
 import Cardano.Api (ChainTip (ChainTip), SlotNo (SlotNo))
 import Cardano.Api qualified as CAPI
-import Cardano.BM.Configuration.Model qualified as CM
 import Cardano.BM.Data.Severity qualified as Severity
 import Cardano.BM.Data.Tracer (HasPrivacyAnnotation, HasSeverityAnnotation (getSeverityAnnotation))
 import Cardano.CLI (LogOutput (LogToFile), withLoggingNamed)
-import Cardano.Launcher.Node (nodeSocketFile)
 import Cardano.Startup (installSignalHandlers, setDefaultFilePermissions, withUtf8Encoding)
 import Cardano.Wallet.Logging (stdoutTextTracer, trMessageText)
 import Cardano.Wallet.Shelley.Launch (TempDirLog, withSystemTempDir)
 
 -- import Cardano.Wallet.Shelley.Launch.Cluster (ClusterLog, localClusterConfigFromEnv, testMinSeverityFromEnv, walletMinSeverityFromEnv, withCluster)
 
-import Control.Concurrent.Async (async)
 import Control.Monad (unless, void, when)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.IO.Unlift (MonadUnliftIO)
@@ -38,10 +35,7 @@ import Data.Text.Class (ToText (toText))
 import GHC.IO.Handle (Handle, hDuplicate, hDuplicateTo, hFlush)
 import GHC.Stack.Types (HasCallStack)
 import Paths_plutip (getDataFileName)
-import Plutus.ChainIndex.App qualified as ChainIndex
-import Plutus.ChainIndex.Config qualified as ChainIndex
-import Plutus.ChainIndex.Logging (defaultConfig)
-import Servant.Client (BaseUrl (BaseUrl), Scheme (Http), mkClientEnv, runClientM)
+import Servant.Client (BaseUrl (BaseUrl), Scheme (Http))
 import System.Directory (canonicalizePath, copyFile, createDirectoryIfMissing, doesPathExist, findExecutable, removeDirectoryRecursive)
 import System.Environment (setEnv)
 import System.Exit (die)
@@ -58,7 +52,7 @@ import Test.Plutip.Config (
   WorkingDirectory (Fixed, Temporary),
  )
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BotSetup
-import Test.Plutip.Internal.Cluster (ClusterLog, testMinSeverityFromEnv, walletMinSeverityFromEnv, withCluster)
+import Test.Plutip.Internal.Cluster (ClusterLog, testMinSeverityFromEnv, walletMinSeverityFromEnv, withCluster, RunningNode)
 import Test.Plutip.Internal.Types (
   ClusterEnv (
     ClusterEnv,
@@ -69,7 +63,6 @@ import Test.Plutip.Internal.Types (
     supportDir,
     tracer
   ),
-  RunningNode (RunningNode),
  )
 import Test.Plutip.Tools.CardanoApi qualified as Tools
 import Text.Printf (printf)
@@ -77,23 +70,8 @@ import UnliftIO.Concurrent (forkFinally, myThreadId, throwTo)
 import UnliftIO.Exception (bracket, catchIO, finally, throwString)
 import UnliftIO.STM (TVar, atomically, newTVarIO, readTVar, retrySTM, writeTVar)
 
-import Cardano.Wallet.Primitive.Types (
-  NetworkParameters (NetworkParameters),
-  SlotLength (SlotLength),
-  SlottingParameters (SlottingParameters),
- )
-import Data.Default (Default (def))
-import Data.Function ((&))
-import Data.Time (nominalDiffTimeToSeconds)
-import Ledger (Slot (Slot))
-import Ledger.TimeSlot (SlotConfig (scSlotLength))
-import Network.HTTP.Client (defaultManagerSettings, newManager)
-import Plutus.ChainIndex (Tip (Tip))
-import Plutus.ChainIndex.Client qualified as ChainIndexClient
-import Plutus.ChainIndex.Config qualified as CIC
-import PlutusPrelude ((.~), (^.))
 import Test.Plutip.Internal.Cluster.Extra.Utils (localClusterConfigWithExtraConf)
-import Test.Plutip.Internal.ChainIndex (withChainIndexHandling)
+import Test.Plutip.Internal.ChainIndex (handleChainIndexLaunch)
 
 -- | Starting a cluster with a setup action
 -- We're heavily depending on cardano-wallet local cluster tooling, however they don't allow the
@@ -144,23 +122,22 @@ withPlutusInterface conf action = do
       clusterCfg <- localClusterConfigWithExtraConf (extraConfig conf)
       withRedirectedStdoutHdl nodeConfigLogHdl $ \restoreStdout ->
         withCluster tr' dir clusterCfg mempty $ \rn -> do
-          withChainIndexHandling (chainIndexMode conf) rn dir $ \ maybePort -> 
-            restoreStdout $ runActionWthSetup rn dir trCluster action maybePort
+            restoreStdout $ runActionWthSetup rn dir trCluster action
     handleLogs dir conf
     return result
   where
-    runActionWthSetup rn dir trCluster userActon maybePort = do
+    runActionWthSetup rn dir trCluster userActon = do
       let tracer' = trMessageText trCluster
       waitForRelayNode tracer' rn
-      -- launch chain index in separate thread
-      traceWith tracer' (ChaiIndexStartedAt ciPort)
+      maybePort <- handleChainIndexLaunch (chainIndexMode conf) rn dir
+      -- traceWith tracer' (ChaiIndexStartedAt ciPort)
       let cEnv =
             ClusterEnv
               { runningNode = rn
-              , chainIndexUrl = (\port -> BaseUrl Http "localhost" port mempty <$> maybePort
+              , chainIndexUrl = (\p -> BaseUrl Http "localhost" p mempty) <$> maybePort
               , networkId = CAPI.Mainnet
               , supportDir = dir
-              , tracer = trCluster
+              , tracer = trCluster -- TODO: do we really need it?
               , plutipConf = conf
               }
 

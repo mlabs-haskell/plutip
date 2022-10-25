@@ -1,5 +1,5 @@
 module Test.Plutip.Internal.ChainIndex (
-  withChainIndexHandling,
+  handleChainIndexLaunch,
 ) where
 
 import Cardano.Api qualified as CAPI
@@ -19,13 +19,6 @@ import Servant.Client (BaseUrl (BaseUrl), Scheme (Http), mkClientEnv, runClientM
 import System.FilePath ((</>))
 import Test.Plutip.Config (
   ChainIndexMode (CustomPort, DefaultPort, NotNeeded),
-  PlutipConfig (
-    chainIndexMode,
-    clusterDataDir,
-    clusterWorkingDir,
-    extraConfig,
-    relayNodeLogs
-  ),
  )
 import Test.Plutip.Internal.Types (
   RunningNode (RunningNode),
@@ -46,23 +39,29 @@ import Network.HTTP.Client (defaultManagerSettings, newManager)
 import Plutus.ChainIndex (Tip (Tip))
 import Plutus.ChainIndex.Client qualified as ChainIndexClient
 import Plutus.ChainIndex.Config qualified as CIC
-import PlutusPrelude (Natural, (.~), (^.))
+import PlutusPrelude ((.~), (^.))
 
 type ChainIndexPort = Int
-withChainIndexHandling ::
+
+handleChainIndexLaunch ::
   ChainIndexMode ->
   RunningNode ->
   FilePath ->
-  (Maybe ChainIndexPort -> IO a) ->
-  IO a
-withChainIndexHandling mode rn dir action = do
-  maybePort <- case mode of
-    DefaultPort -> do
-      Just <$> launchChainIndex (CIC.cicPort ChainIndex.defaultConfig) rn dir
-    CustomPort port' -> do
-      Just <$> launchChainIndex (fromEnum port') rn dir
-    NotNeeded -> pure Nothing
-  action maybePort
+  IO (Maybe ChainIndexPort)
+handleChainIndexLaunch mode rn dir = do
+  maybePort <- 
+    case mode of
+      DefaultPort -> do
+        Just <$> launchChainIndex (CIC.cicPort ChainIndex.defaultConfig) rn dir
+      CustomPort port' -> do
+        Just <$> launchChainIndex (fromEnum port') rn dir
+      NotNeeded -> pure Nothing
+  reportLaunch maybePort
+  pure maybePort
+  where
+    reportLaunch = \case
+      Just p -> putStrLn $ "Chain index started at port " <> show p
+      _ -> pure ()
 
 -- | Launch the chain index in a separate thread.
 launchChainIndex :: Int -> RunningNode -> FilePath -> IO Int
@@ -81,16 +80,16 @@ launchChainIndex port (RunningNode sp _block0 (netParams, _vData) _) dir = do
           & CIC.slotConfig .~ (def {scSlotLength = toMilliseconds slotLen})
 
   void $ async $ void $ ChainIndex.runMainWithLog (const $ return ()) config chainIndexConfig
-  waitForChainIndex port
+  waitForChainIndex
   return $ chainIndexConfig ^. CIC.port
   where
     toMilliseconds = floor . (1e3 *) . nominalDiffTimeToSeconds
 
-    waitForChainIndex port = do
+    waitForChainIndex = do
       -- TODO: move this to config; ideally, separate chain-index launch from cluster launch
       let policy = constantDelay 1_000_000 <> limitRetries 60
       recoverAll policy $ \_ -> do
-        tip <- queryTipWithChIndex port
+        tip <- queryTipWithChIndex
         case tip of
           Right (Tip (Slot _) _ _) -> pure ()
           a ->
@@ -98,6 +97,6 @@ launchChainIndex port (RunningNode sp _block0 (netParams, _vData) _) dir = do
               "Timeout waiting for chain-index to start indexing. Last response:\n"
                 <> either show show a
 
-    queryTipWithChIndex port = do
+    queryTipWithChIndex = do
       manager' <- newManager defaultManagerSettings
       runClientM ChainIndexClient.getTip $ mkClientEnv manager' (BaseUrl Http "localhost" port "")

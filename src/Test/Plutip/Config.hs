@@ -55,7 +55,7 @@ data ChainIndexMode
   = DefaultPort
   | CustomPort Natural
   | NotNeeded
-  deriving stock (Generic, Show)
+  deriving stock (Generic, Eq, Show)
 
 instance Default PlutipConfig where
   def = PlutipConfig Nothing Nothing DefaultPort 1 Temporary [] def

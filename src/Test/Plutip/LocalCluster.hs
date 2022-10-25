@@ -1,5 +1,6 @@
 module Test.Plutip.LocalCluster (
   BpiWallet,
+  RetryDelay,
   addSomeWallet,
   ada,
   waitSeconds,
@@ -10,19 +11,23 @@ module Test.Plutip.LocalCluster (
   withConfiguredCluster,
   startCluster,
   stopCluster,
-  awaitWalletFunded,
 ) where
 
 import Control.Concurrent (threadDelay)
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Reader (ReaderT, ask)
+import Control.Monad.Reader (MonadReader (ask), ReaderT, ask)
 import Data.Bifunctor (second)
 import Data.Default (def)
 import Data.List.NonEmpty (NonEmpty)
 import Data.List.NonEmpty qualified as NE
 import Numeric.Natural (Natural)
+import Numeric.Positive (Positive)
 import Test.Plutip.Config (PlutipConfig (extraConfig))
-import Test.Plutip.Contract (TestWallet (twInitDistribuition), TestWallets (unTestWallets), ada)
+import Test.Plutip.Contract.Init (ada)
+import Test.Plutip.Contract.Types (
+  TestWallet (twInitDistribuition),
+  TestWallets (unTestWallets),
+ )
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   BpiWallet,
   addSomeWallet,
@@ -33,7 +38,7 @@ import Test.Plutip.Internal.BotPlutusInterface.Wallet (
 import Test.Plutip.Internal.Cluster.Extra.Types (ecSlotLength)
 import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)
 import Test.Plutip.Internal.Types (ClusterEnv)
-import Test.Plutip.Tools.Cluster (awaitWalletFunded)
+import Test.Plutip.Tools.ChainIndex qualified as CI
 import Test.Tasty (testGroup, withResource)
 import Test.Tasty.Providers (TestTree)
 
@@ -91,23 +96,20 @@ withConfiguredCluster conf name testCases =
     setup :: ReaderT ClusterEnv IO (ClusterEnv, [NonEmpty BpiWallet])
     setup = do
       env <- ask
-
       wallets <-
         traverse
           (traverse addSomeWallet . fmap twInitDistribuition . unTestWallets . fst)
           testCases
-      -- had to bump waiting period here coz of chain-index slowdown,
-      -- see https://github.com/mlabs-haskell/plutip/issues/120
-      let waitDelay = ceiling $ ecSlotLength $ extraConfig conf
+      let waitDelay = ecSlotLength $ extraConfig conf
       awaitFunds wallets waitDelay
-      -- waitSeconds 5 -- wait for transactions to submit
       pure (env, wallets)
 
-    -- awaitFunds :: [BpiWallet] -> Int -> ReaderT ClusterEnv IO ()
     awaitFunds ws delay = do
       let lastWallet = NE.last $ last ws
       liftIO $ putStrLn "Waiting till all wallets will be funded to start tests..."
-      awaitWalletFunded lastWallet delay
+      CI.awaitWalletFunded lastWallet delay
+
+type RetryDelay = Positive
 
 imap :: (Int -> a -> b) -> [a] -> [b]
 imap fn = zipWith fn [0 ..]

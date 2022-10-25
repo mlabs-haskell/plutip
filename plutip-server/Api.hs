@@ -65,7 +65,7 @@ server serverOptions =
     :<|> stopClusterHandler
 
 appServer :: Env -> Server Api
-appServer env@(Env {options}) =
+appServer env@Env {options} =
   hoistServer api appHandler (server options)
   where
     appHandler :: forall (a :: Type). AppM a -> Handler a

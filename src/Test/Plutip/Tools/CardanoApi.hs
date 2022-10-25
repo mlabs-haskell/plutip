@@ -4,21 +4,28 @@ module Test.Plutip.Tools.CardanoApi (
   utxosAtAddress,
   queryProtocolParams,
   queryTip,
+  awaitAddressFunded,
 ) where
 
 import Cardano.Api qualified as C
-import Cardano.Api.Shelley (ProtocolParameters)
+import Cardano.Api.Shelley (ProtocolParameters, UTxO (UTxO))
 import Cardano.Launcher.Node (nodeSocketFile)
 import Cardano.Slotting.Slot (WithOrigin)
 import Test.Plutip.Internal.Cluster (RunningNode (RunningNode))
 
--- import Cardano.Wallet.Shelley.Launch.Cluster ( RunningNode(RunningNode) )
 import Control.Exception (Exception)
+import Control.Monad.Catch (MonadMask)
+import Control.Monad.IO.Class (MonadIO (liftIO))
+import Control.Monad.Reader (MonadReader (ask), ReaderT)
+import Control.Retry (constantDelay, limitRetries, recoverAll)
+import Data.Map qualified as Map
 import Data.Set qualified as Set
 import GHC.Generics (Generic)
 import Ouroboros.Consensus.HardFork.Combinator.AcrossEras (EraMismatch)
 import Ouroboros.Network.Protocol.LocalStateQuery.Type (AcquireFailure)
 import Test.Plutip.Internal.Types (ClusterEnv (runningNode))
+import UnliftIO (throwString)
+import Data.Time (NominalDiffTime, nominalDiffTimeToSeconds)
 
 newtype CardanoApiError
   = SomeError String
@@ -73,3 +80,29 @@ flattenQueryResult ::
 flattenQueryResult = \case
   Right (Right res) -> Right res
   err -> Left $ SomeError (show err)
+
+-- | Waits till specified address is funded using `CardanoApi` query.
+-- Performs 60 tries with `retryDelay` seconds between tries.
+awaitAddressFunded ::
+  (MonadIO m, MonadMask m) =>
+  C.AddressAny ->
+  NominalDiffTime ->
+  ReaderT ClusterEnv m ()
+awaitAddressFunded addr retryDelay = do
+  cEnv <- ask
+  recoverAll policy $ \_ -> do
+    utxo <- liftIO $ utxosAtAddress cEnv addr
+    checkUtxo utxo
+  where
+    delay = truncate $ nominalDiffTimeToSeconds retryDelay * 1000000
+    policy = constantDelay delay <> limitRetries 60
+
+    checkUtxo = \case
+      Left e ->
+        throwString $
+          "Failed to get UTxO from address via cardano API query: "
+            <> show e
+      Right (UTxO utxo')
+        | Map.null utxo' ->
+          throwString "No UTxOs returned by cardano API query for address"
+      _ -> pure ()

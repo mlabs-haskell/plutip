@@ -9,7 +9,7 @@ import Cardano.Ledger.Slot (EpochSize (EpochSize))
 import Control.Applicative (optional, (<**>))
 import Control.Monad (forM_, replicateM, void)
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Reader (ReaderT (ReaderT), ask)
+import Control.Monad.Reader (ReaderT (ReaderT))
 import Data.Default (def)
 import Data.Time (NominalDiffTime)
 import GHC.Natural (Natural)
@@ -29,14 +29,13 @@ import Test.Plutip.Internal.BotPlutusInterface.Wallet (
 import Test.Plutip.Internal.Cluster.Extra.Types (
   ExtraConfig (ExtraConfig),
  )
-import Test.Plutip.Internal.Types (ClusterEnv, nodeSocket)
+import Test.Plutip.Internal.Types (nodeSocket)
 import Test.Plutip.LocalCluster (
-  BpiWallet,
   mkMainnetAddress,
   startCluster,
   stopCluster,
  )
-import Test.Plutip.Tools.Cluster (awaitAddressFunded)
+import Test.Plutip.Tools.CardanoApi (awaitAddressFunded)
 
 main :: IO ()
 main = do
@@ -54,7 +53,7 @@ main = do
       (st, _) <- startCluster plutipConfig $ do
         ws <- initWallets numWallets numUtxos amt dirWallets
         liftIO $ putStrLn "Waiting for wallets to be funded..."
-        awaitFunds ws (ceiling slotLength)
+        awaitFunds ws slotLength
 
         separate
         liftIO $ forM_ (zip ws [(1 :: Int) ..]) printWallet
@@ -89,13 +88,10 @@ main = do
     toAda = (* 1_000_000)
 
     -- waits for the last wallet to be funded
-    awaitFunds :: [BpiWallet] -> Int -> ReaderT ClusterEnv IO ()
     awaitFunds ws delay = do
-      env <- ask
       let lastWallet = last ws
-      liftIO $ do
-        putStrLn "Waiting till all wallets will be funded..."
-        awaitAddressFunded env delay (cardanoMainnetAddress lastWallet)
+      liftIO $ putStrLn "Waiting till all wallets will be funded..."
+      awaitAddressFunded (cardanoMainnetAddress lastWallet) delay
 
 pnumWallets :: Parser Int
 pnumWallets =

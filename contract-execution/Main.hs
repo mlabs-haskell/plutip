@@ -32,8 +32,8 @@ import Test.Plutip.Internal.Types (
   ExecutionResult (contractState, outcome),
   nodeSocket,
  )
-import Test.Plutip.Tools.Cluster (awaitWalletFunded)
 import Text.Pretty.Simple (pShow)
+import Test.Plutip.Tools.ChainIndex qualified as CI
 
 main :: IO ()
 main = do
@@ -45,7 +45,7 @@ main = do
   (st, _) <- startCluster plutipConfig $ do
     w <- addSomeWallet [toAda 10]
     liftIO $ putStrLn "Waiting for wallets to be funded..."
-    awaitWalletFunded w (ceiling slotLen)
+    CI.awaitWalletFunded w slotLen
 
     separate
     printWallet (w, 1)

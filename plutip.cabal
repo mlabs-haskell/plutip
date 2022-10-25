@@ -172,7 +172,6 @@ library
     Test.Plutip.Tools.Address
     Test.Plutip.Tools.CardanoApi
     Test.Plutip.Tools.ChainIndex
-    Test.Plutip.Tools.Cluster
     Test.Plutip.Tools.DebugCli
     Test.Plutip.Tools.Format
 

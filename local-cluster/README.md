@@ -55,8 +55,10 @@ main = do
      
   (st, _) <- startCluster def $ do
     w <- addSomeWallet [100_000_000]
-    waitSeconds 2
+    awaitWalletFunded w 1
     result <- executeContract w someContract
     doSomething result
   stopCluster st
 ```
+
+For working example see [contract-execution](../contract-execution/Main.hs).

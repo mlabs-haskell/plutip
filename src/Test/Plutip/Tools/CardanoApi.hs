@@ -20,12 +20,12 @@ import Control.Monad.Reader (MonadReader (ask), ReaderT)
 import Control.Retry (constantDelay, limitRetries, recoverAll)
 import Data.Map qualified as Map
 import Data.Set qualified as Set
+import Data.Time (NominalDiffTime, nominalDiffTimeToSeconds)
 import GHC.Generics (Generic)
 import Ouroboros.Consensus.HardFork.Combinator.AcrossEras (EraMismatch)
 import Ouroboros.Network.Protocol.LocalStateQuery.Type (AcquireFailure)
 import Test.Plutip.Internal.Types (ClusterEnv (runningNode))
 import UnliftIO (throwString)
-import Data.Time (NominalDiffTime, nominalDiffTimeToSeconds)
 
 newtype CardanoApiError
   = SomeError String

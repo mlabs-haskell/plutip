@@ -6,6 +6,7 @@ import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Reader (MonadReader (ask), ReaderT, ask)
 import Control.Retry (constantDelay, limitRetries, recoverAll)
 import Data.Default (Default (def), def)
+import Data.Time (NominalDiffTime, nominalDiffTimeToSeconds)
 import Ledger (PubKeyHash)
 import Network.HTTP.Client (defaultManagerSettings)
 import Plutus.ChainIndex (Page (Page))
@@ -20,7 +21,6 @@ import Servant.Client (
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet (walletPkh))
 import Test.Plutip.Internal.Types (ClusterEnv (chainIndexUrl))
 import UnliftIO (throwString)
-import Data.Time (NominalDiffTime, nominalDiffTimeToSeconds)
 
 utxosAtPkh ::
   MonadIO m =>

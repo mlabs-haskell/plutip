@@ -32,8 +32,8 @@ import Test.Plutip.Internal.Types (
   ExecutionResult (contractState, outcome),
   nodeSocket,
  )
-import Text.Pretty.Simple (pShow)
 import Test.Plutip.Tools.ChainIndex qualified as CI
+import Text.Pretty.Simple (pShow)
 
 main :: IO ()
 main = do

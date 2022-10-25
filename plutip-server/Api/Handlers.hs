@@ -26,12 +26,15 @@ import Test.Plutip.Config (
   relayNodeLogs,
  )
 import Test.Plutip.Internal.BotPlutusInterface.Setup (keysDir)
-import Test.Plutip.Internal.BotPlutusInterface.Wallet
-    ( BpiWallet(signKey), addSomeWallet, cardanoMainnetAddress )
+import Test.Plutip.Internal.BotPlutusInterface.Wallet (
+  BpiWallet (signKey),
+  addSomeWallet,
+  cardanoMainnetAddress,
+ )
 import Test.Plutip.Internal.Cluster (RunningNode (RunningNode))
 import Test.Plutip.Internal.Cluster.Extra.Types (ExtraConfig (ExtraConfig, ecSlotLength))
 import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)
-import Test.Plutip.Internal.Types (ClusterEnv (runningNode, plutipConf))
+import Test.Plutip.Internal.Types (ClusterEnv (plutipConf, runningNode))
 import Types (
   AppM,
   ClusterStartupFailureReason (

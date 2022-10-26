@@ -12,18 +12,15 @@ module Test.Plutip.Internal.LocalCluster (
 
 import Cardano.Api (ChainTip (ChainTip), SlotNo (SlotNo))
 import Cardano.Api qualified as CAPI
-import Cardano.BM.Configuration.Model qualified as CM
 import Cardano.BM.Data.Severity qualified as Severity
 import Cardano.BM.Data.Tracer (HasPrivacyAnnotation, HasSeverityAnnotation (getSeverityAnnotation))
 import Cardano.CLI (LogOutput (LogToFile), withLoggingNamed)
-import Cardano.Launcher.Node (nodeSocketFile)
 import Cardano.Startup (installSignalHandlers, setDefaultFilePermissions, withUtf8Encoding)
 import Cardano.Wallet.Logging (stdoutTextTracer, trMessageText)
 import Cardano.Wallet.Shelley.Launch (TempDirLog, withSystemTempDir)
 
 -- import Cardano.Wallet.Shelley.Launch.Cluster (ClusterLog, localClusterConfigFromEnv, testMinSeverityFromEnv, walletMinSeverityFromEnv, withCluster)
 
-import Control.Concurrent.Async (async)
 import Control.Monad (unless, void, when)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.IO.Unlift (MonadUnliftIO)
@@ -33,23 +30,27 @@ import Control.Tracer (Tracer, contramap, traceWith)
 import Data.Foldable (for_)
 import Data.Kind (Type)
 import Data.Maybe (catMaybes, fromMaybe, isJust)
-import Data.Text (Text, pack)
+import Data.Text (Text)
 import Data.Text.Class (ToText (toText))
 import GHC.IO.Handle (Handle, hDuplicate, hDuplicateTo, hFlush)
 import GHC.Stack.Types (HasCallStack)
 import Paths_plutip (getDataFileName)
-import Plutus.ChainIndex.App qualified as ChainIndex
-import Plutus.ChainIndex.Config qualified as ChainIndex
-import Plutus.ChainIndex.Logging (defaultConfig)
-import Servant.Client (BaseUrl (BaseUrl), Scheme (Http), mkClientEnv, runClientM)
-import System.Directory (canonicalizePath, copyFile, createDirectoryIfMissing, doesPathExist, findExecutable, removeDirectoryRecursive)
+import Servant.Client (BaseUrl (BaseUrl), Scheme (Http))
+import System.Directory (
+  canonicalizePath,
+  copyFile,
+  createDirectoryIfMissing,
+  doesPathExist,
+  findExecutable,
+  removeDirectoryRecursive,
+ )
 import System.Environment (setEnv)
 import System.Exit (die)
 import System.FilePath ((</>))
 import System.IO (IOMode (WriteMode), hClose, openFile, stdout)
 import Test.Plutip.Config (
   PlutipConfig (
-    chainIndexPort,
+    chainIndexMode,
     clusterDataDir,
     clusterWorkingDir,
     extraConfig,
@@ -58,7 +59,13 @@ import Test.Plutip.Config (
   WorkingDirectory (Fixed, Temporary),
  )
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BotSetup
-import Test.Plutip.Internal.Cluster (ClusterLog, testMinSeverityFromEnv, walletMinSeverityFromEnv, withCluster)
+import Test.Plutip.Internal.Cluster (
+  ClusterLog,
+  RunningNode,
+  testMinSeverityFromEnv,
+  walletMinSeverityFromEnv,
+  withCluster,
+ )
 import Test.Plutip.Internal.Types (
   ClusterEnv (
     ClusterEnv,
@@ -69,7 +76,6 @@ import Test.Plutip.Internal.Types (
     supportDir,
     tracer
   ),
-  RunningNode (RunningNode),
  )
 import Test.Plutip.Tools.CardanoApi qualified as Tools
 import Text.Printf (printf)
@@ -77,21 +83,7 @@ import UnliftIO.Concurrent (forkFinally, myThreadId, throwTo)
 import UnliftIO.Exception (bracket, catchIO, finally, throwString)
 import UnliftIO.STM (TVar, atomically, newTVarIO, readTVar, retrySTM, writeTVar)
 
-import Cardano.Wallet.Primitive.Types (
-  NetworkParameters (NetworkParameters),
-  SlotLength (SlotLength),
-  SlottingParameters (SlottingParameters),
- )
-import Data.Default (Default (def))
-import Data.Function ((&))
-import Data.Time (nominalDiffTimeToSeconds)
-import Ledger (Slot (Slot))
-import Ledger.TimeSlot (SlotConfig (scSlotLength))
-import Network.HTTP.Client (defaultManagerSettings, newManager)
-import Plutus.ChainIndex (Tip (Tip))
-import Plutus.ChainIndex.Client qualified as ChainIndexClient
-import Plutus.ChainIndex.Config qualified as CIC
-import PlutusPrelude ((.~), (^.))
+import Test.Plutip.Internal.ChainIndex (handleChainIndexLaunch)
 import Test.Plutip.Internal.Cluster.Extra.Utils (localClusterConfigWithExtraConf)
 
 -- | Starting a cluster with a setup action
@@ -142,28 +134,22 @@ withPlutusInterface conf action = do
       let tr' = contramap MsgCluster $ trMessageText trCluster
       clusterCfg <- localClusterConfigWithExtraConf (extraConfig conf)
       withRedirectedStdoutHdl nodeConfigLogHdl $ \restoreStdout ->
-        withCluster
-          tr'
-          dir
-          clusterCfg
-          mempty
-          (\rn -> restoreStdout $ runActionWthSetup rn dir trCluster action)
+        withCluster tr' dir clusterCfg mempty $ \rn -> do
+          restoreStdout $ runActionWthSetup rn dir trCluster action
     handleLogs dir conf
     return result
   where
     runActionWthSetup rn dir trCluster userActon = do
       let tracer' = trMessageText trCluster
       waitForRelayNode tracer' rn
-      -- launch chain index in separate thread
-      ciPort <- launchChainIndex conf rn dir
-      traceWith tracer' (ChaiIndexStartedAt ciPort)
+      maybePort <- handleChainIndexLaunch (chainIndexMode conf) rn dir
       let cEnv =
             ClusterEnv
               { runningNode = rn
-              , chainIndexUrl = BaseUrl Http "localhost" ciPort mempty
+              , chainIndexUrl = (\p -> BaseUrl Http "localhost" p mempty) <$> maybePort
               , networkId = CAPI.Mainnet
               , supportDir = dir
-              , tracer = trCluster
+              , tracer = trCluster -- TODO: do we really need it?
               , plutipConf = conf
               }
 
@@ -266,45 +252,6 @@ waitForRelayNode trCluster rn =
         a -> throwString $ "Timeout waiting for node to start. Last 'tip' response:\n" <> show a
       pure ()
 
--- | Launch the chain index in a separate thread.
-launchChainIndex :: PlutipConfig -> RunningNode -> FilePath -> IO Int
-launchChainIndex conf (RunningNode sp _block0 (netParams, _vData) _) dir = do
-  let (NetworkParameters _ (SlottingParameters (SlotLength slotLen) _ _ _) _) = netParams
-
-  config <- defaultConfig
-  CM.setMinSeverity config Severity.Notice
-  let dbPath = dir </> "chain-index.db"
-      port = maybe (CIC.cicPort ChainIndex.defaultConfig) fromEnum (chainIndexPort conf)
-      chainIndexConfig =
-        CIC.defaultConfig
-          & CIC.socketPath .~ nodeSocketFile sp
-          & CIC.dbPath .~ dbPath
-          & CIC.networkId .~ CAPI.Mainnet
-          & CIC.port .~ maybe (CIC.cicPort ChainIndex.defaultConfig) fromEnum (chainIndexPort conf)
-          & CIC.slotConfig .~ (def {scSlotLength = toMilliseconds slotLen})
-
-  void $ async $ void $ ChainIndex.runMainWithLog (const $ return ()) config chainIndexConfig
-  waitForChainIndex port
-  return $ chainIndexConfig ^. CIC.port
-  where
-    toMilliseconds = floor . (1e3 *) . nominalDiffTimeToSeconds
-
-    waitForChainIndex port = do
-      -- TODO: move this to config; ideally, separate chain-index launch from cluster launch
-      let policy = constantDelay 1_000_000 <> limitRetries 60
-      recoverAll policy $ \_ -> do
-        tip <- queryTipWithChIndex port
-        case tip of
-          Right (Tip (Slot _) _ _) -> pure ()
-          a ->
-            throwString $
-              "Timeout waiting for chain-index to start indexing. Last response:\n"
-                <> either show show a
-
-    queryTipWithChIndex port = do
-      manager' <- newManager defaultManagerSettings
-      runClientM ChainIndexClient.getTip $ mkClientEnv manager' (BaseUrl Http "localhost" port "")
-
 handleLogs :: HasCallStack => FilePath -> PlutipConfig -> IO ()
 handleLogs clusterDir conf =
   copyRelayLog `catchIO` (error . printf "Failed to save relay node log: %s" . show)
@@ -331,7 +278,6 @@ data TestsLog
   | MsgSettingUpFaucet
   | MsgCluster ClusterLog
   | WaitingRelayNode
-  | ChaiIndexStartedAt Int
   deriving stock (Show)
 
 instance ToText TestsLog where
@@ -348,7 +294,6 @@ instance ToText TestsLog where
     MsgSettingUpFaucet -> "Setting up faucet..."
     MsgCluster msg -> toText msg
     WaitingRelayNode -> "Waiting for relay node up and running"
-    ChaiIndexStartedAt ciPort -> "Chain-index started at port " <> pack (show ciPort)
 
 instance HasPrivacyAnnotation TestsLog
 
@@ -358,4 +303,3 @@ instance HasSeverityAnnotation TestsLog where
     MsgBaseUrl {} -> Severity.Notice
     MsgCluster msg -> getSeverityAnnotation msg
     WaitingRelayNode -> Severity.Notice
-    ChaiIndexStartedAt {} -> Severity.Notice

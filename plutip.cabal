@@ -161,6 +161,7 @@ library
     Test.Plutip.Internal.BotPlutusInterface.Setup
     Test.Plutip.Internal.BotPlutusInterface.Types
     Test.Plutip.Internal.BotPlutusInterface.Wallet
+    Test.Plutip.Internal.ChainIndex
     Test.Plutip.Internal.Cluster
     Test.Plutip.Internal.Cluster.Extra.Types
     Test.Plutip.Internal.Cluster.Extra.Utils

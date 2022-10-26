@@ -29,7 +29,7 @@ import Test.Plutip.Internal.Cluster (RunningNode (RunningNode))
 -- | Environment for actions that use local cluster
 data ClusterEnv = ClusterEnv
   { runningNode :: RunningNode
-  , chainIndexUrl :: !BaseUrl
+  , chainIndexUrl :: !(Maybe BaseUrl)
   , networkId :: !NetworkId
   , -- | this directory atm used to store all node related files,
     -- files created by `cardano-cli`, `chain-index` and `bot-plutus-interface`

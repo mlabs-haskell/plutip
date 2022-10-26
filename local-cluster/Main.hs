@@ -6,7 +6,7 @@
 module Main (main) where
 
 import Cardano.Ledger.Slot (EpochSize (EpochSize))
-import Control.Applicative (optional, (<**>))
+import Control.Applicative (optional, (<**>), (<|>))
 import Control.Monad (forM_, replicateM, void)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ReaderT (ReaderT))
@@ -18,7 +18,8 @@ import Numeric.Positive (Positive)
 import Options.Applicative (Parser, helper, info)
 import Options.Applicative qualified as Options
 import Test.Plutip.Config (
-  PlutipConfig (clusterWorkingDir, extraConfig),
+  ChainIndexMode (CustomPort, DefaultPort, NotNeeded),
+  PlutipConfig (chainIndexMode, clusterWorkingDir, extraConfig),
   WorkingDirectory (Fixed, Temporary),
  )
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (
@@ -43,11 +44,11 @@ main = do
   case totalAmount config of
     Left e -> error e
     Right amt -> do
-      let ClusterConfig {numWallets, dirWallets, numUtxos, workDir, slotLength, epochSize} = config
+      let ClusterConfig {numWallets, dirWallets, numUtxos, workDir, slotLength, epochSize, cIndexMode} = config
           workingDir = maybe Temporary (`Fixed` False) workDir
 
           extraConf = ExtraConfig slotLength epochSize
-          plutipConfig = def {clusterWorkingDir = workingDir, extraConfig = extraConf}
+          plutipConfig = def {clusterWorkingDir = workingDir, extraConfig = extraConf, chainIndexMode = cIndexMode}
 
       putStrLn "Starting cluster..."
       (st, _) <- startCluster plutipConfig $ do
@@ -177,6 +178,26 @@ pEpochSize =
             <> Options.value 160
         )
 
+pChainIndexMode :: Parser ChainIndexMode
+pChainIndexMode =
+  withIndex <|> withIndexPort <|> pure NotNeeded
+  where
+    withIndex =
+      Options.flag'
+        DefaultPort
+        ( Options.long "with-index"
+            <> Options.help "Start cluster with chain-index on default port"
+        )
+    withIndexPort = CustomPort <$> portParser
+
+    portParser =
+      Options.option
+        Options.auto
+        ( Options.long "with-index-port"
+            <> Options.metavar "PORT"
+            <> Options.help "Start cluster with chain-index on custom port"
+        )
+
 pClusterConfig :: Parser ClusterConfig
 pClusterConfig =
   ClusterConfig
@@ -188,6 +209,7 @@ pClusterConfig =
     <*> pWorkDir
     <*> pSlotLen
     <*> pEpochSize
+    <*> pChainIndexMode
 
 -- | Basic info about the cluster, to
 -- be used by the command-line
@@ -200,5 +222,6 @@ data ClusterConfig = ClusterConfig
   , workDir :: Maybe FilePath
   , slotLength :: NominalDiffTime
   , epochSize :: EpochSize
+  , cIndexMode :: ChainIndexMode
   }
   deriving stock (Show, Eq)

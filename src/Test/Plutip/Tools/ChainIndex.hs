@@ -22,14 +22,24 @@ import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet (walletPkh))
 import Test.Plutip.Internal.Types (ClusterEnv (chainIndexUrl))
 import UnliftIO (throwString)
 
+-- | Request UTxOs at a given `PubKeyHash` using `chain-index` REST client.
 utxosAtPkh ::
   MonadIO m =>
   PubKeyHash ->
   ReaderT ClusterEnv m (Either ClientError UtxosResponse)
 utxosAtPkh pkh = do
   cEnv <- ask
+  chIndexUrl <-
+    maybe
+      ( throwString
+          "To perform `utxosAtPkh` request Chain Index must be launched,\
+          \ but it seems to be off. \
+          \ Check `ChainIndexMode` in `PlutipConfig`"
+      )
+      pure
+      (chainIndexUrl cEnv)
   manager <- newManager defaultManagerSettings
-  liftIO $ runClientM client $ mkClientEnv manager (chainIndexUrl cEnv)
+  liftIO $ runClientM client $ mkClientEnv manager chIndexUrl
   where
     client = ChainIndexClient.getUtxoSetAtAddress req
     req = UtxoAtAddressRequest (Just def) (PubKeyCredential pkh)

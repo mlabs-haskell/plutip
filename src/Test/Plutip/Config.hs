@@ -1,6 +1,7 @@
 module Test.Plutip.Config (
   PlutipConfig (..),
   WorkingDirectory (..),
+  ChainIndexMode (..),
 ) where
 
 import Cardano.Api (PaymentKey, SigningKey)
@@ -35,8 +36,9 @@ data PlutipConfig = PlutipConfig
     clusterDataDir :: Maybe FilePath
   , -- | in case of `Just path` relay node log will be saved to specified file
     relayNodeLogs :: Maybe FilePath
-  , -- | in case of `Nothing` port from `Plutus.ChainIndex.Config.defaultConfig` is used
-    chainIndexPort :: Maybe Natural
+  , -- | the way of how `chain-index` is launched (default port, custom port, not launched),
+    --   default mode - default port
+    chainIndexMode :: ChainIndexMode
   , -- | Multiplier on all BPI transaction budgets
     budgetMultiplier :: Rational
   , -- | cluster file location override, when provided, includes a `shouldKeep`
@@ -50,5 +52,16 @@ data PlutipConfig = PlutipConfig
   }
   deriving stock (Generic, Show)
 
+-- | The way to launch `chain-index`.
+-- It is possible to not launch it at all.
+data ChainIndexMode
+  = -- | launch on default port `9083`
+    DefaultPort
+  | -- | launch on custom port
+    CustomPort Natural
+  | -- | do not launch at all
+    NotNeeded
+  deriving stock (Generic, Eq, Show)
+
 instance Default PlutipConfig where
-  def = PlutipConfig Nothing Nothing Nothing 1 Temporary [] def
+  def = PlutipConfig Nothing Nothing DefaultPort 1 Temporary [] def

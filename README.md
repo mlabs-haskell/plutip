@@ -41,6 +41,7 @@ NOTE: This branch launches local network in `Vasil`. It was tested with node `1.
 ## Tutorials
 
 * [Running disposable local network and building own runners](./local-cluster/README.md)
+* [Running chain-index](./docs/running-chain-index.md)
 * [Tasty integration](./docs/tasty-integration.md)
 * [Running Contracts is REPL](./docs/interactive-plutip.md)
 * [Providing constant keys](./docs/constant-keys.md)

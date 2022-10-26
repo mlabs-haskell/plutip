@@ -180,12 +180,12 @@ pEpochSize =
 
 pChainIndexMode :: Parser ChainIndexMode
 pChainIndexMode =
-  withIndex <|> withIndexPort <|> pure NotNeeded
+  noIndex <|> withIndexPort <|> pure DefaultPort
   where
-    withIndex =
+    noIndex =
       Options.flag'
-        DefaultPort
-        ( Options.long "with-index"
+        NotNeeded
+        ( Options.long "no-index"
             <> Options.help "Start cluster with chain-index on default port"
         )
     withIndexPort = CustomPort <$> portParser
@@ -193,7 +193,7 @@ pChainIndexMode =
     portParser =
       Options.option
         Options.auto
-        ( Options.long "with-index-port"
+        ( Options.long "chain-index-port"
             <> Options.metavar "PORT"
             <> Options.help "Start cluster with chain-index on custom port"
         )

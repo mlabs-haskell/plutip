@@ -291,6 +291,12 @@ executable contract-execution
     , pretty-simple
     , text
     , time
+    , plutus-script-utils
+    , plutus-tx
+    , aeson
+    , playground-common
+    , plutus-ledger-api
+    , plutus-tx-plugin
 
-  other-modules:  ExampleContracts
+  other-modules:  ExampleContracts Currency
   ghc-options:    -Wall -threaded -rtsopts

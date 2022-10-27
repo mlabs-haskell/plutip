@@ -39,8 +39,7 @@ Full | Short | Description
 --utxos NUM | -u NUM | Create `NUM` UTxOs in each wallet created. Note that each UTxO created has the amount of ADA determined by the `--ada` and `--lovelace` arguments.
 --working-dir /path/ | -w /path/ | This determines where the node database, chain-index database, and bot-plutus-interface files will be stored for a running cluster. If specified, this will store cluster data in the provided path (can be relative or absolute), the files will be deleted on cluster shutdown by default. Otherwise, the cluster data is stored in a temporary directory and will be deleted on cluster shutdown.
 --slot-len SECONDS | -s SECONDS | Sets slot length of created network, is seconds. E.g. `--slot-len 1s`, `-s 0.2s`. <br /> Addition of `s` is important for correct parsing of this option.
---epoch-size NUM | -s NUM | Sets epoch size of created network, is slots.
---slot-len SECONDS | -s SECONDS | Sets slot length of created network, is seconds. E.g. `--slot-len 1s`, `-s 0.2s`. <br /> Addition of `s` is important for correct parsing of this option.
+--epoch-size NUM | -e NUM | Sets epoch size of created network, is slots.
 --chain-index-port PORT<br />or<br />--no-index| - | With `--chain-index-port` and `PORT` specified `chain-index` will be launched on specified port together with private network.<br /> With `--no-index` only private network will be launched without `chain-index`.<br /> When nothing specified `chain-index` will be launched on default port `9083`.<br />
 
 ## Making own local network launcher

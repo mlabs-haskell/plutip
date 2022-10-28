@@ -7,12 +7,11 @@ module Main (main) where
 
 import Cardano.Ledger.Slot (EpochSize (EpochSize))
 import Control.Applicative (optional, (<**>), (<|>))
-import Control.Monad (forM_, void)
+import Control.Monad (forM, forM_, void)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ReaderT (ReaderT))
 import Data.Default (def)
 import Data.Time (NominalDiffTime)
-import Data.Traversable (for)
 import GHC.Natural (Natural)
 import GHC.Word (Word64)
 import Numeric.Positive (Positive)
@@ -26,19 +25,13 @@ import Test.Plutip.Config (
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   addSomeWalletDir,
   cardanoMainnetAddress,
-  walletPkh,
  )
 import Test.Plutip.Internal.Cluster.Extra.Types (
   ExtraConfig (ExtraConfig),
  )
 import Test.Plutip.Internal.Types (nodeSocket)
 import Test.Plutip.LocalCluster (
-  ClusterEnv,
-  ExtraConfig (ExtraConfig),
-  addSomeWalletDir,
-  cardanoMainnetAddress,
   mkMainnetAddress,
-  nodeSocket,
   startCluster,
   stopCluster,
   walletPaymentPkh,
@@ -66,7 +59,7 @@ main = do
         awaitFunds ws slotLength
 
         separate
-        for (zip [0 ..] ws) printWallet
+        forM_ (zip [0 ..] ws) printWallet
         printNodeRelatedInfo
         separate
 
@@ -88,12 +81,12 @@ main = do
         amt -> Right $ fromInteger . toInteger $ amt
 
     initWallets numWallets numUtxos amt dirWallets = do
-      for [0 .. (max 0 numWallets - 1)] $ \_ ->
+      forM [0 .. (max 0 numWallets - 1)] $ \_ ->
         addSomeWalletDir
           Enterprise
           (replicate numUtxos amt)
           dirWallets
-    -- FIXME: wallet indexes
+
     printWallet (i, w) = liftIO $ do
       putStrLn $ "Wallet " <> show i <> " PKH: " ++ show (walletPaymentPkh w)
       putStrLn $

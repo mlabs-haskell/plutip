@@ -83,9 +83,12 @@ instance Exception PlutipServerError
 
 type ErrorMessage = Text
 
+-- | Description of wallet represented by keys
 data Key = Key
-  { addressType :: AddressType
-  , funds :: [Lovelace]
+  { -- | Type of address for wallet
+    addressType :: AddressType
+  , -- | Lovelace amounts for each UTXO of each wallet
+    funds :: [Lovelace]
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToJSON, FromJSON)
@@ -104,8 +107,7 @@ instance FromJSON Lovelace where
 data StartClusterRequest = StartClusterRequest
   { slotLength :: NominalDiffTime
   , epochSize :: EpochSize
-  , -- | Lovelace amounts for each UTXO of each wallet
-    keysToGenerate :: [Key]
+  , keysToGenerate :: [Key]
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)

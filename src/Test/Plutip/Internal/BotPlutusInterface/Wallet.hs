@@ -1,5 +1,3 @@
-{-# LANGUAGE TupleSections #-}
-
 module Test.Plutip.Internal.BotPlutusInterface.Wallet (
   BpiWallet (..),
   addSomeWallet,

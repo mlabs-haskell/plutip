@@ -33,7 +33,7 @@ data AddressType
     -- (with verification and staking keys)
     Base
   | -- | Option to create wallet with Enterprise Address
-    -- (with verification keys only keys)
+    -- (with verification keys only)
     Enterprise
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToJSON, FromJSON)

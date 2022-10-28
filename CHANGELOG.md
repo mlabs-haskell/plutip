@@ -2,10 +2,10 @@
 
 This format is based on [Keep A Changelog](https://keepachangelog.com/en/1.0.0).
 
-## Unreleased
+## [2.0.0] - 2022-10-28
 
-- Wallets with Base Address support
-- Lookups for wallets in tasty integration
+- Support for wallets with Base Address (with verification and staking keys)
+- Lookups for wallets in tasty integration via `WalletLookups`
 
 ## [1.3.0] - 2022-10-26
 
@@ -72,8 +72,6 @@ This format is based on [Keep A Changelog](https://keepachangelog.com/en/1.0.0).
     - `initLovelaceAssertValue`
     - `initLovelaceAssertValueWith`
     - `withCollateral`
-  - Initialising wallets with staking keys.
-  - Access to initialised wallets via `WalletLookups`
 
 ## 0.1 -- 2022-02-14
 

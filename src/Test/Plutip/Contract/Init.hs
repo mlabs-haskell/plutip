@@ -11,6 +11,7 @@ module Test.Plutip.Contract.Init (
   initAndAssertAdaWith,
   initAndAssertAda,
   withCollateral,
+  ada,
 ) where
 
 import Data.List.NonEmpty (NonEmpty ((:|)))
@@ -30,7 +31,6 @@ import Test.Plutip.Internal.BotPlutusInterface.Types (
   WalletSpec (WalletSpec),
   WalletTag,
  )
-import Test.Plutip.Tools.Cluster (ada)
 
 -- | Create a wallet with the given amounts of lovelace.
 --  Each amount will be sent to address as separate UTXO.
@@ -118,3 +118,8 @@ withCollateral = NonEmpty.map go
         (second (Value.unionWith (+) collateral) <$> expected)
 
     collateral = Ada.lovelaceValueOf defCollateralSize
+
+-- | Library functions works with amounts in `Lovelace`.
+-- This function helps to specify amounts in `Ada` easier.
+ada :: Positive -> Positive
+ada = (* 1_000_000)

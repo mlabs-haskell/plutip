@@ -3,6 +3,7 @@
 
 module Test.Plutip.LocalCluster (
   BpiWallet,
+  RetryDelay,
   addSomeWallet,
   addSomeWalletDir,
   waitSeconds,
@@ -28,12 +29,13 @@ module Test.Plutip.LocalCluster (
 
 import Control.Concurrent (threadDelay)
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Reader (ReaderT, ask)
+import Control.Monad.Reader (MonadReader (ask), ReaderT, ask)
 import Data.Bifunctor (second)
 import Data.Default (def)
 import Data.List.NonEmpty (NonEmpty)
 import Data.List.NonEmpty qualified as NE
 import Numeric.Natural (Natural)
+import Numeric.Positive (Positive)
 import Test.Plutip.Config (PlutipConfig (extraConfig))
 
 import Test.Plutip.Contract (ClusterTest (ClusterTest), WalletTag (BaseTag, EntTag))
@@ -54,15 +56,25 @@ import Test.Plutip.Internal.BotPlutusInterface.Wallet (
  )
 import Test.Plutip.Internal.Cluster.Extra.Types (
   ExtraConfig (ExtraConfig),
-  ecSlotLength,
+  ecSlotLength)
+import Test.Plutip.Contract.Types (
+  TestWallet (twInitDistribuition),
+  TestWallets (unTestWallets),
+ )
+import Test.Plutip.Internal.BotPlutusInterface.Wallet (
+  BpiWallet,
+  addSomeWallet,
+  cardanoMainnetAddress,
+  ledgerPaymentPkh,
+  mkMainnetAddress,
  )
 import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)
-import Test.Plutip.Internal.Types (
-  ClusterEnv (runningNode),
-  RunningNode (RunningNode),
-  nodeSocket,
- )
-import Test.Plutip.Tools.Cluster (awaitAddressFunded)
+import Test.Plutip.Internal.Types
+    ( ClusterEnv(runningNode),
+      RunningNode(RunningNode),
+      nodeSocket,
+      ClusterEnv )
+import Test.Plutip.Tools.ChainIndex qualified as CI
 import Test.Tasty (testGroup, withResource)
 import Test.Tasty.Providers (TestTree)
 
@@ -120,7 +132,6 @@ withConfiguredCluster conf name testCases =
     setup :: ReaderT ClusterEnv IO (ClusterEnv, [NonEmpty TestWallet])
     setup = do
       env <- ask
-
       wallets <-
         traverse
           (traverse addTestWallet . getTestWallets)
@@ -141,11 +152,11 @@ withConfiguredCluster conf name testCases =
       BaseTag _ -> Base
 
     awaitFunds ws delay = do
-      env <- ask
-      let lastWallet = getWallet $ NE.last $ last ws
-      liftIO $ do
-        putStrLn "Waiting till all wallets will be funded to start tests..."
-        awaitAddressFunded env delay (cardanoMainnetAddress lastWallet)
+      let lastWallet = NE.last $ last ws
+      liftIO $ putStrLn "Waiting till all wallets will be funded to start tests..."
+      CI.awaitWalletFunded lastWallet delay
+
+type RetryDelay = Positive
 
 imap :: (Int -> a -> b) -> [a] -> [b]
 imap fn = zipWith fn [0 ..]

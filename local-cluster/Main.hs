@@ -6,10 +6,10 @@
 module Main (main) where
 
 import Cardano.Ledger.Slot (EpochSize (EpochSize))
-import Control.Applicative (optional, (<**>))
+import Control.Applicative (optional, (<**>), (<|>))
 import Control.Monad (forM_, void)
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Reader (ReaderT (ReaderT), ask)
+import Control.Monad.Reader (ReaderT (ReaderT))
 import Data.Default (def)
 import Data.Time (NominalDiffTime)
 import Data.Traversable (for)
@@ -19,11 +19,20 @@ import Numeric.Positive (Positive)
 import Options.Applicative (Parser, helper, info)
 import Options.Applicative qualified as Options
 import Test.Plutip.Config (
-  PlutipConfig (clusterWorkingDir, extraConfig),
+  ChainIndexMode (CustomPort, DefaultPort, NotNeeded),
+  PlutipConfig (chainIndexMode, clusterWorkingDir, extraConfig),
   WorkingDirectory (Fixed, Temporary),
  )
+import Test.Plutip.Internal.BotPlutusInterface.Wallet (
+  addSomeWalletDir,
+  cardanoMainnetAddress,
+  walletPkh,
+ )
+import Test.Plutip.Internal.Cluster.Extra.Types (
+  ExtraConfig (ExtraConfig),
+ )
+import Test.Plutip.Internal.Types (nodeSocket)
 import Test.Plutip.LocalCluster (
-  BpiWallet,
   ClusterEnv,
   ExtraConfig (ExtraConfig),
   addSomeWalletDir,
@@ -36,7 +45,7 @@ import Test.Plutip.LocalCluster (
  )
 
 import Test.Plutip.Internal.BotPlutusInterface.Types (AddressType (Enterprise))
-import Test.Plutip.Tools.Cluster (awaitAddressFunded)
+import Test.Plutip.Tools.CardanoApi (awaitAddressFunded)
 
 main :: IO ()
 main = do
@@ -44,17 +53,17 @@ main = do
   case totalAmount config of
     Left e -> error e
     Right amt -> do
-      let ClusterConfig {numWallets, dirWallets, numUtxos, workDir, slotLength, epochSize} = config
+      let ClusterConfig {numWallets, dirWallets, numUtxos, workDir, slotLength, epochSize, cIndexMode} = config
           workingDir = maybe Temporary (`Fixed` False) workDir
 
-          exctraCong = ExtraConfig slotLength epochSize
-          plutipConfig = def {clusterWorkingDir = workingDir, extraConfig = exctraCong}
+          extraConf = ExtraConfig slotLength epochSize
+          plutipConfig = def {clusterWorkingDir = workingDir, extraConfig = extraConf, chainIndexMode = cIndexMode}
 
       putStrLn "Starting cluster..."
       (st, _) <- startCluster plutipConfig $ do
         ws <- initWallets numWallets numUtxos amt dirWallets
         liftIO $ putStrLn "Waiting for wallets to be funded..."
-        awaitFunds ws (ceiling slotLength)
+        awaitFunds ws slotLength
 
         separate
         for (zip [0..] ws) printWallet 
@@ -95,13 +104,10 @@ main = do
     toAda = (* 1_000_000)
 
     -- waits for the last wallet to be funded
-    awaitFunds :: [BpiWallet] -> Int -> ReaderT ClusterEnv IO ()
     awaitFunds ws delay = do
-      env <- ask
       let lastWallet = last ws
-      liftIO $ do
-        putStrLn "Waiting till all wallets will be funded..."
-        awaitAddressFunded env delay (cardanoMainnetAddress lastWallet)
+      liftIO $ putStrLn "Waiting till all wallets will be funded..."
+      awaitAddressFunded (cardanoMainnetAddress lastWallet) delay
 
 pnumWallets :: Parser Int
 pnumWallets =
@@ -187,6 +193,26 @@ pEpochSize =
             <> Options.value 160
         )
 
+pChainIndexMode :: Parser ChainIndexMode
+pChainIndexMode =
+  noIndex <|> withIndexPort <|> pure DefaultPort
+  where
+    noIndex =
+      Options.flag'
+        NotNeeded
+        ( Options.long "no-index"
+            <> Options.help "Start cluster with chain-index on default port"
+        )
+    withIndexPort = CustomPort <$> portParser
+
+    portParser =
+      Options.option
+        Options.auto
+        ( Options.long "chain-index-port"
+            <> Options.metavar "PORT"
+            <> Options.help "Start cluster with chain-index on custom port"
+        )
+
 pClusterConfig :: Parser ClusterConfig
 pClusterConfig =
   ClusterConfig
@@ -198,6 +224,7 @@ pClusterConfig =
     <*> pWorkDir
     <*> pSlotLen
     <*> pEpochSize
+    <*> pChainIndexMode
 
 -- | Basic info about the cluster, to
 -- be used by the command-line
@@ -210,5 +237,6 @@ data ClusterConfig = ClusterConfig
   , workDir :: Maybe FilePath
   , slotLength :: NominalDiffTime
   , epochSize :: EpochSize
+  , cIndexMode :: ChainIndexMode
   }
   deriving stock (Show, Eq)

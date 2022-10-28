@@ -5,6 +5,7 @@ module Api.Handlers (
 
 import Cardano.Api (serialiseToCBOR)
 import Cardano.Launcher.Node (nodeSocketFile)
+import Test.Plutip.Tools.CardanoApi qualified as Tools
 
 import Control.Concurrent.MVar (isEmptyMVar, putMVar, takeMVar)
 import Control.Monad (unless)
@@ -20,11 +21,21 @@ import Data.Traversable (for)
 import System.Directory (doesFileExist)
 import System.FilePath (replaceFileName)
 import Test.Plutip.Config (
+  ChainIndexMode (NotNeeded),
   PlutipConfig (extraConfig),
-  chainIndexPort,
+  chainIndexMode,
   relayNodeLogs,
  )
-import Test.Plutip.Tools.Cluster (awaitAddressFunded)
+import Test.Plutip.Internal.BotPlutusInterface.Setup (keysDir)
+import Test.Plutip.Internal.BotPlutusInterface.Wallet (
+  BpiWallet (signKey),
+  addSomeWallet,
+  cardanoMainnetAddress,
+ )
+import Test.Plutip.Internal.Cluster (RunningNode (RunningNode))
+import Test.Plutip.Internal.Cluster.Extra.Types (ExtraConfig (ExtraConfig, ecSlotLength))
+import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)
+import Test.Plutip.Internal.Types (ClusterEnv (plutipConf, runningNode))
 import Types (
   AppM,
   ClusterStartupFailureReason (
@@ -90,7 +101,7 @@ startClusterHandler
     isClusterDown <- liftIO $ isEmptyMVar statusMVar
     unless isClusterDown $ throwError ClusterIsRunningAlready
     let extraConf = ExtraConfig slotLength epochSize
-        cfg = def {relayNodeLogs = nodeLogs, chainIndexPort = Nothing, extraConfig = extraConf}
+        cfg = def {relayNodeLogs = nodeLogs, chainIndexMode = NotNeeded, extraConfig = extraConf}
 
     (statusTVar, res@(clusterEnv, _)) <- liftIO $ startCluster cfg setup
     liftIO $ putMVar statusMVar statusTVar
@@ -112,7 +123,7 @@ startClusterHandler
         wallets <- do
           for keysToGenerate $ \key -> addWallet key
         liftIO $ putStrLn "Waiting for wallets to be funded..."
-        awaitFunds wallets 2
+        awaitFunds wallets (ecSlotLength $ extraConfig $ plutipConf env)
         pure (env, wallets)
       getNodeSocketFile (runningNode -> RunningNode conn _ _ _) = nodeSocketFile conn
       getNodeConfigFile =
@@ -132,13 +143,10 @@ startClusterHandler
          in addSomeWallet (addressType key) funds'
 
       -- waits for the last wallet to be funded
-      awaitFunds :: [BpiWallet] -> Int -> ReaderT ClusterEnv IO ()
       awaitFunds ws delay = do
-        env <- ask
-        let lastWallet = last ws
-        liftIO $ do
-          putStrLn "Waiting till all wallets will be funded..."
-          awaitAddressFunded env delay (cardanoMainnetAddress lastWallet)
+        let lastWalletPkh = cardanoMainnetAddress $ last ws
+        liftIO $ putStrLn "Waiting till all wallets will be funded..."
+        Tools.awaitAddressFunded lastWalletPkh delay
 
 stopClusterHandler :: StopClusterRequest -> AppM StopClusterResponse
 stopClusterHandler StopClusterRequest = do

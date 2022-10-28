@@ -42,6 +42,7 @@ NOTE: This branch launches local network in `Vasil`. It was tested with node `1.
 
 * NEW: [Address types](docs/wallet-tags-and-addresses.md)
 * [Running disposable local network and building own runners](./local-cluster/README.md)
+* [Running chain-index](./docs/running-chain-index.md)
 * [Tasty integration](./docs/tasty-integration.md)
 * [Running Contracts is REPL](./docs/interactive-plutip.md)
 * [Providing constant keys](./docs/constant-keys.md)
@@ -50,6 +51,11 @@ NOTE: This branch launches local network in `Vasil`. It was tested with node `1.
 
 * [Tweaking local network](./docs/tweaking-network.md)
 * [Regenerating network configs](./docs/regenerate-network-configs.md)
+
+## Examples
+
+* [Starting private network from Haskell and executing contract](./contract-execution/Main.hs)
+* [Template for setting a Nix flake that includes Plutip](https://github.com/MitchyCola/plutip-flake). Kudos to @MitchyCola
 
 ## Maintenance
 

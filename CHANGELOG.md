@@ -7,6 +7,24 @@ This format is based on [Keep A Changelog](https://keepachangelog.com/en/1.0.0).
 - Wallets with Base Address support
 - Lookups for wallets in tasty integration
 
+## [1.3.0] - 2022-10-26
+
+### Added
+
+- control on `chain-index` launch
+  - `chainIndexPort` in `PlutipConfig` replaced with `chainIndexMode :: ChainIndexMode`
+  - `local-cluster` options added: `--chain-index-port`, `--no-index`
+
+## [1.2.1] - 2022-10-25
+
+### Fixed
+
+- eDSL function to await till wallet is funded `awaitWalletFunded`
+
+### Added
+
+- package with example of how to execute arbitrary contract on private network from Haskell
+
 ## [1.2.0] - 2022-10-21
 
 ### Added

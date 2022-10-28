@@ -5,6 +5,8 @@ module Test.Plutip.Contract.Types (
   TestContractConstraints,
   TestContract (..),
   WalletTag (..),
+  TestWallet (..),
+  getTwTag,
 ) where
 
 import Data.Aeson (ToJSON)
@@ -16,12 +18,23 @@ import Data.Tagged (Tagged (Tagged))
 import Data.Text (Text)
 import Ledger.Value (Value)
 import Plutus.Contract (AsContractError)
-import Test.Plutip.Internal.BotPlutusInterface.Types (WalletTag (BaseTag, EntTag))
+import Test.Plutip.Internal.BotPlutusInterface.Types (BpiWallet, WalletTag (BaseTag, EntTag))
 import Test.Plutip.Internal.Types (
   ExecutionResult,
  )
 import Test.Plutip.Predicate (Predicate, debugInfo, pCheck)
 import Test.Tasty.Providers (IsTest (run, testOptions), testFailed, testPassed)
+
+data TestWallet = forall t. TestWallet {twTag :: WalletTag t, getWallet :: BpiWallet}
+
+getTwTag :: TestWallet -> Text
+getTwTag (TestWallet tag _) =
+  getTag' tag
+  where
+    getTag' :: WalletTag t -> Text
+    getTag' = \case
+      BaseTag tag' -> tag'
+      EntTag tag' -> tag'
 
 type TestContractConstraints (w :: Type) (e :: Type) (a :: Type) =
   ( ToJSON w

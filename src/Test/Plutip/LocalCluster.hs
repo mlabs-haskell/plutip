@@ -1,3 +1,4 @@
+{-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Test.Plutip.LocalCluster (
@@ -13,13 +14,12 @@ module Test.Plutip.LocalCluster (
   startCluster,
   stopCluster,
   nodeSocket,
-  bwTag,
   keysDir,
   sKey,
   payKeys,
   ecSlotLength,
   ClusterTest (ClusterTest),
-  TestWallet (TestWallet),
+  WalletSpec (WalletSpec),
   ClusterEnv,
   ExtraConfig (ExtraConfig),
   RunningNode (RunningNode),
@@ -36,12 +36,14 @@ import Data.List.NonEmpty qualified as NE
 import Numeric.Natural (Natural)
 import Test.Plutip.Config (PlutipConfig (extraConfig))
 
-import Test.Plutip.Contract (ClusterTest (ClusterTest))
+import Test.Plutip.Contract (ClusterTest (ClusterTest), WalletTag (BaseTag, EntTag))
+import Test.Plutip.Contract.Types (TestWallet (TestWallet, getWallet))
 import Test.Plutip.Internal.BotPlutusInterface.Keys (sKey)
 import Test.Plutip.Internal.BotPlutusInterface.Setup (keysDir)
 import Test.Plutip.Internal.BotPlutusInterface.Types (
-  BpiWallet (bwTag, payKeys),
-  TestWallet (TestWallet),
+  AddressType (Base, Enterprise),
+  BpiWallet (payKeys),
+  WalletSpec (WalletSpec),
  )
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   addSomeWallet,
@@ -115,7 +117,7 @@ withConfiguredCluster conf name testCases =
           (\idx (ClusterTest (_, toTestGroup)) -> toTestGroup $ second (!! idx) . snd <$> getResource)
           testCases
   where
-    setup :: ReaderT ClusterEnv IO (ClusterEnv, [NonEmpty BpiWallet])
+    setup :: ReaderT ClusterEnv IO (ClusterEnv, [NonEmpty TestWallet])
     setup = do
       env <- ask
 
@@ -123,21 +125,24 @@ withConfiguredCluster conf name testCases =
         traverse
           (traverse addTestWallet . getTestWallets)
           testCases
-      -- had to bump waiting period here coz of chain-index slowdown,
-      -- see https://github.com/mlabs-haskell/plutip/issues/120
       let waitDelay = ceiling $ ecSlotLength $ extraConfig conf
       awaitFunds wallets waitDelay
-      -- waitSeconds 5 -- wait for transactions to submit
       pure (env, wallets)
 
     getTestWallets (ClusterTest (tws, _)) = tws
 
-    addTestWallet (TestWallet tag dist _) =
-      addSomeWallet tag dist
+    addTestWallet (WalletSpec tag dist _) = do
+      bpiW <- addSomeWallet (toAddressType tag) dist
+      pure $ TestWallet tag bpiW
+
+    toAddressType :: WalletTag t -> AddressType
+    toAddressType = \case
+      EntTag _ -> Enterprise
+      BaseTag _ -> Base
 
     awaitFunds ws delay = do
       env <- ask
-      let lastWallet = NE.last $ last ws
+      let lastWallet = getWallet $ NE.last $ last ws
       liftIO $ do
         putStrLn "Waiting till all wallets will be funded to start tests..."
         awaitAddressFunded env delay (cardanoMainnetAddress lastWallet)

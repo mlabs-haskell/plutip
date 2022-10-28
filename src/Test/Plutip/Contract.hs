@@ -14,10 +14,10 @@
 --    - contract to be tested (passed to `withContract`, more on this later)
 --    - list of assertions to run against Contract return result, observable state and/or error
 --
---  At least one TestWallet is required, this will be used as the own wallet for the contract. Any other
+--  At least one WalletSpec is required, this will be used as the own wallet for the contract. Any other
 --  wallets can be used as other parties in transactions.
 --
---  A TestWallet can be initialised with any positive number of lovelace, using the `initAda` or
+--  A WalletSpec can be initialised with any positive number of lovelace, using the `initAda` or
 --  `initLovelace`. In addition, the value in these wallets can be asserted after the contract
 --  execution with `initAdaAssertValue` or `initAndAssertAda`. When `initAdaAssertValue` or `initAndAssertAda` used
 --  to initiate wallets corresponding test case will be added automatically.
@@ -38,7 +38,7 @@
 --    >   , stateSatisfies "description" somePredicate
 --    >   ]
 --
---  To use multiple wallets, you can use the `Semigroup` instance of `TestWallets`. To reference the
+--  To use multiple wallets, you can use the `Semigroup` instance of `NonEmpty WalletSpec`. To reference the
 --  wallet inside the contract, the following callback function is used together with `withContract`:
 --  @WalletLookups k -> Contract w s e a@.
 --
@@ -145,6 +145,7 @@ module Test.Plutip.Contract (
   WalletTag (EntTag, BaseTag),
   FailureReason (..),
   ValueOrdering (..),
+  -- TestWallet(..),
 ) where
 
 import BotPlutusInterface.Types (
@@ -195,6 +196,8 @@ import Test.Plutip.Contract.Init (
 import Test.Plutip.Contract.Types (
   TestContract (TestContract),
   TestContractConstraints,
+  TestWallet (getWallet),
+  getTwTag,
  )
 import Test.Plutip.Contract.Values (assertValues, valueAt)
 import Test.Plutip.Internal.BotPlutusInterface.Lookups (
@@ -209,15 +212,14 @@ import Test.Plutip.Internal.BotPlutusInterface.Run (
  )
 import Test.Plutip.Internal.BotPlutusInterface.Types (
   BaseWallet (BaseWallet),
-  BpiWallet (bwTag),
   EntWallet (EntWallet),
-  TestWallets,
   ValueOrdering (VEq, VGEq, VGt, VLEq, VLt),
   WalletInfo,
+  WalletSpec,
   WalletTag (BaseTag, EntTag),
   getTag,
   ownAddress,
-  twExpected,
+  wsExpected,
  )
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   walletPaymentPkh,
@@ -245,11 +247,11 @@ import Test.Tasty.Providers (
  )
 
 type TestRunner (w :: Type) (e :: Type) (a :: Type) =
-  ReaderT (ClusterEnv, NonEmpty BpiWallet) IO (ExecutionResult w e (a, Map Text Value))
+  ReaderT (ClusterEnv, NonEmpty TestWallet) IO (ExecutionResult w e (a, Map Text Value))
 
 -- | A type for the output of `assertExecution`.
 -- `k` is existentially quantified to allow different key types in every test case.
-newtype ClusterTest = ClusterTest (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
+newtype ClusterTest = ClusterTest (NonEmpty WalletSpec, IO (ClusterEnv, NonEmpty TestWallet) -> TestTree)
 
 -- | When used with `withCluster`, builds `TestTree` from initial wallets distribution,
 --  Contract and list of assertions (predicates). Each assertion will be run as separate test case,
@@ -269,7 +271,7 @@ assertExecution ::
   forall (w :: Type) (e :: Type) (a :: Type).
   TestContractConstraints w e a =>
   String ->
-  TestWallets ->
+  NonEmpty WalletSpec ->
   TestRunner w e a ->
   [Predicate w e a] ->
   ClusterTest
@@ -285,21 +287,21 @@ assertExecutionWith ::
   TestContractConstraints w e a =>
   [TraceOption] ->
   String ->
-  TestWallets ->
+  NonEmpty WalletSpec ->
   TestRunner w e a ->
   [Predicate w e a] ->
   ClusterTest
-assertExecutionWith options tag testWallets testRunner predicates =
-  ClusterTest (testWallets, toTestGroup)
+assertExecutionWith options tag walletSpecs testRunner predicates =
+  ClusterTest (walletSpecs, toTestGroup)
   where
-    toTestGroup :: IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree
+    toTestGroup :: IO (ClusterEnv, NonEmpty TestWallet) -> TestTree
     toTestGroup ioEnv =
       withResource (runReaderT testRunner =<< ioEnv) (const $ pure ()) $
         \ioRes ->
           testGroup tag $
             maybeAddValuesCheck
               ioRes
-              testWallets
+              walletSpecs
               ((toCase ioRes <$> predicates) <> ((`optionToTestTree` ioRes) <$> options))
 
     -- wraps IO with result of contract execution into single test
@@ -323,13 +325,13 @@ assertExecutionWith options tag testWallets testRunner predicates =
 maybeAddValuesCheck ::
   (Show e) =>
   IO (ExecutionResult w e (a, Map Text Value)) ->
-  TestWallets ->
+  NonEmpty WalletSpec ->
   [TestTree] ->
   [TestTree]
 maybeAddValuesCheck ioRes tws =
   bool id (valuesCheckCase :) (any isJust expected)
   where
-    expected = Map.fromList $ toList $ (\tw -> (getTag tw, twExpected tw)) <$> tws
+    expected = Map.fromList $ toList $ (\tw -> (getTag tw, wsExpected tw)) <$> tws
 
     valuesCheckCase :: TestTree
     valuesCheckCase =
@@ -347,7 +349,7 @@ maybeAddValuesCheck ioRes tws =
         >>= \(_, vs) ->
           let theseToPair = \case
                 (These b c) -> (b, c)
-                _ -> error "The two maps should have the same keys as both follow from TestWallets."
+                _ -> error "The two maps should have the same keys as both follow from NonEmpty WalletSpec."
               (expecs, vals) = unzip $ Map.elems $ theseToPair <$> zipMaps expected vs
            in assertValues expecs vals
 
@@ -368,7 +370,7 @@ withContract ::
   TestRunner w e a
 withContract toContract = do
   (_, wallets') <- ask
-  withContractAs (bwTag $ NonEmpty.head wallets') toContract
+  withContractAs (getTwTag $ NonEmpty.head wallets') toContract
 
 -- | Run a contract using wallet with the given tag as own wallet, and return `ExecutionResult`.
 -- This could be used by itself, or combined with multiple other contracts.
@@ -385,6 +387,7 @@ withContractAs walletName toContract = do
   let -- pick wallet for Contract's "own PKH", other wallets PKHs will be provided
       -- to the user in `withContractAs`
       (ownWallet, otherWallets) = separateWallets walletName $ NonEmpty.toList wallets'
+      ownBpiWallet = getWallet ownWallet
 
       -- without own wallet
       otherLookups :: Map Text WalletInfo
@@ -394,7 +397,9 @@ withContractAs walletName toContract = do
       walletLookups = makeWalletLookups otherLookups
 
       -- these are `PaymentPubKeyHash`es of all wallets used in test case
-      collectValuesAddr = ownAddress <$> Map.insert (bwTag ownWallet) (makeWalletInfo ownWallet) otherLookups
+      collectValuesAddr =
+        ownAddress
+          <$> Map.insert (getTwTag ownWallet) (makeWalletInfo ownWallet) otherLookups
 
       -- contract that gets all the values present at the test wallets.
       valuesAtWallet :: Contract w s e (Map Text Value)
@@ -403,18 +408,18 @@ withContractAs walletName toContract = do
           >> traverse valueAt collectValuesAddr
 
   -- run the test contract
-  execRes <- liftIO $ runContract cEnv ownWallet (toContract walletLookups)
+  execRes <- liftIO $ runContract cEnv ownBpiWallet (toContract walletLookups)
 
   -- get all the values present at the test wallets after the user given contracts has been executed.
-  execValues <- liftIO $ runContract cEnv ownWallet valuesAtWallet
+  execValues <- liftIO $ runContract cEnv ownBpiWallet valuesAtWallet
 
   case outcome execValues of
     Left e -> fail $ "Failed to get values. Error: " ++ show e
     Right values -> return $ execRes {outcome = (,values) <$> outcome execRes}
   where
-    separateWallets :: Text -> [BpiWallet] -> (BpiWallet, [BpiWallet])
+    separateWallets :: Text -> [TestWallet] -> (TestWallet, [TestWallet])
     separateWallets tag =
-      let p = (== tag) . bwTag
+      let p = (== tag) . getTwTag
           loop ys = \case
             (a : xs) -> if p a then (a, xs <> ys) else loop (a : ys) xs
             [] -> error $ "Should fail: bad wallet tag for own wallet: " <> show tag

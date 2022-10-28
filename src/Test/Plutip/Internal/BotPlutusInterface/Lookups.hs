@@ -15,9 +15,9 @@ import Data.Text (Text)
 import Ledger (Address)
 import Plutus.Contract (Contract, ContractError (OtherContractError))
 import Plutus.Contract.Error (AsContractError, _ContractError)
+import Test.Plutip.Contract.Types (TestWallet (getWallet), getTwTag)
 import Test.Plutip.Internal.BotPlutusInterface.Types (
   BaseWallet (BaseWallet),
-  BpiWallet (bwTag),
   EntWallet (EntWallet),
   WalletInfo,
   WalletTag (BaseTag, EntTag),
@@ -46,17 +46,18 @@ data WalletLookups = WalletLookups
       Contract w s e Address
   }
 
-makeWalletInfo :: BpiWallet -> WalletInfo
+makeWalletInfo :: TestWallet -> WalletInfo
 makeWalletInfo w =
-  maybe
-    (Right $ EntWallet (walletPaymentPkh w))
-    (Left . BaseWallet (walletPaymentPkh w))
-    (walletStakePkh w)
+  let bpiWallet = getWallet w
+   in maybe
+        (Right $ EntWallet (walletPaymentPkh bpiWallet))
+        (Left . BaseWallet (walletPaymentPkh bpiWallet))
+        (walletStakePkh bpiWallet)
 
-lookupsMap :: [BpiWallet] -> Map Text WalletInfo
+lookupsMap :: [TestWallet] -> Map Text WalletInfo
 lookupsMap bpiWalls =
   Map.fromList $
-    (\w -> (bwTag w, makeWalletInfo w)) <$> bpiWalls
+    (\w -> (getTwTag w, makeWalletInfo w)) <$> bpiWalls
 
 makeWalletLookups ::
   Map Text WalletInfo ->

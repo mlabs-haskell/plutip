@@ -57,13 +57,14 @@ import Data.Kind (Type)
 import Data.Row (Row)
 import Data.Text qualified as Text
 import Data.UUID.V4 qualified as UUID
-import Ledger (unPaymentPubKeyHash)
 import Plutus.Contract (Contract)
 import Plutus.PAB.Core.ContractInstance.STM (Activity (Active))
 import Test.Plutip.Config (PlutipConfig (budgetMultiplier))
-import Test.Plutip.Internal.BotPlutusInterface.Lookups (makeWalletInfo)
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BIS
-import Test.Plutip.Internal.BotPlutusInterface.Types (BpiWallet, ownPaymentPubKeyHash, ownStakePubKeyHash)
+import Test.Plutip.Internal.BotPlutusInterface.Types (
+  BpiWallet,
+ )
+import Test.Plutip.Internal.BotPlutusInterface.Wallet (walletPkh, walletStakePkh)
 import Test.Plutip.Internal.Types (
   ClusterEnv (chainIndexUrl, networkId, plutipConf),
   ExecutionResult (ExecutionResult),
@@ -135,8 +136,8 @@ runContractWithLogLvl logLvl cEnv bpiWallet contract = do
         , pcDryRun = False
         , pcProtocolParamsFile = Text.pack $ BIS.pParamsFile cEnv
         , pcLogLevel = logLvl
-        , pcOwnPubKeyHash = unPaymentPubKeyHash $ ownPaymentPubKeyHash walletInfo
-        , pcOwnStakePubKeyHash = ownStakePubKeyHash walletInfo
+        , pcOwnPubKeyHash = walletPkh bpiWallet
+        , pcOwnStakePubKeyHash = walletStakePkh bpiWallet
         , pcTipPollingInterval = 1_000_000
         , pcPort = 9080
         , pcEnableTxEndpoint = False
@@ -148,7 +149,7 @@ runContractWithLogLvl logLvl cEnv bpiWallet contract = do
         , pcCollateralSize = fromInteger defCollateralSize
         }
 
-    walletInfo = makeWalletInfo bpiWallet
+    -- walletInfo = makeWalletInfo bpiWallet
 
     runContract' :: ContractEnvironment w -> m (ExecutionResult w e a)
     runContract' contractEnv = do

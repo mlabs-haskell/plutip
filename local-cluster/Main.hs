@@ -11,7 +11,6 @@ import Control.Monad (forM_, void)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ReaderT (ReaderT), ask)
 import Data.Default (def)
-import Data.Text qualified as T
 import Data.Time (NominalDiffTime)
 import Data.Traversable (for)
 import GHC.Natural (Natural)
@@ -24,7 +23,7 @@ import Test.Plutip.Config (
   WorkingDirectory (Fixed, Temporary),
  )
 import Test.Plutip.LocalCluster (
-  BpiWallet (bwTag),
+  BpiWallet,
   ClusterEnv,
   ExtraConfig (ExtraConfig),
   addSomeWalletDir,
@@ -36,7 +35,7 @@ import Test.Plutip.LocalCluster (
   walletPaymentPkh,
  )
 
-import Test.Plutip.Contract (WalletTag (EntTag))
+import Test.Plutip.Internal.BotPlutusInterface.Types (AddressType (Enterprise))
 import Test.Plutip.Tools.Cluster (awaitAddressFunded)
 
 main :: IO ()
@@ -58,7 +57,7 @@ main = do
         awaitFunds ws (ceiling slotLength)
 
         separate
-        liftIO $ forM_ ws printWallet
+        for (zip [0..] ws) printWallet 
         printNodeRelatedInfo
         separate
 
@@ -80,17 +79,18 @@ main = do
         amt -> Right $ fromInteger . toInteger $ amt
 
     initWallets numWallets numUtxos amt dirWallets = do
-      for [0 .. (max 0 numWallets - 1)] $ \idx ->
+      for [0 .. (max 0 numWallets - 1)] $ \_ ->
         addSomeWalletDir
-          (EntTag $ T.pack $ show idx)
+          Enterprise
           (replicate numUtxos amt)
           dirWallets
-
-    printWallet w = do
-      putStrLn $ "Wallet " ++ show (bwTag w) ++ " PKH: " ++ show (walletPaymentPkh w)
+    -- FIXME: wallet indexes
+    printWallet (i, w) = liftIO $  do
+      putStrLn $ "Wallet " <> show i <> " PKH: " ++ show (walletPaymentPkh w)
       putStrLn $
-        "Wallet " ++ show (bwTag w) ++ " mainnet address: "
+        "Wallet " <> show i <> " mainnet address: "
           ++ show (mkMainnetAddress w)
+      
 
     toAda = (* 1_000_000)
 

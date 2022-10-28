@@ -9,7 +9,6 @@ module Types (
   ErrorMessage,
   Lovelace (unLovelace),
   Key (addressType, funds),
-  AddressType (Base, Enterprise),
   PlutipServerError (PlutipServerError),
   PrivateKey,
   ServerOptions (ServerOptions, nodeLogs, port),
@@ -40,6 +39,7 @@ import Data.Text (Text)
 import Data.Time (NominalDiffTime)
 import GHC.Generics (Generic)
 import Network.Wai.Handler.Warp (Port)
+import Test.Plutip.Internal.BotPlutusInterface.Types (AddressType)
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet)
 import Test.Plutip.Internal.LocalCluster (ClusterStatus)
 import Test.Plutip.Internal.Types (ClusterEnv)
@@ -87,12 +87,6 @@ data Key = Key
   { addressType :: AddressType
   , funds :: [Lovelace]
   }
-  deriving stock (Show, Eq, Generic)
-  deriving anyclass (ToJSON, FromJSON)
-
-data AddressType
-  = Base
-  | Enterprise
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToJSON, FromJSON)
 

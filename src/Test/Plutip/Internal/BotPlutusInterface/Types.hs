@@ -2,29 +2,35 @@
 
 module Test.Plutip.Internal.BotPlutusInterface.Types (
   BpiError (..),
-  BpiWallet (BpiWallet, payKeys, stakeKeys, bwTag),
-  TestWallets,
+  BpiWallet (BpiWallet, payKeys, stakeKeys),
   ValueOrdering (VEq, VGt, VLt, VGEq, VLEq),
   compareValuesWith,
   WalletTag (..),
-  TestWallet (..),
+  WalletSpec (..),
   WalletInfo,
   ownPaymentPubKeyHash,
   ownStakePubKeyHash,
   ownAddress,
   getTag,
-  mkWallet,
   BaseWallet (..),
   EntWallet (..),
+  AddressType (..),
 ) where
 
+import Cardano.Api (FromJSON, ToJSON)
 import Data.Data (Typeable)
-import Data.List.NonEmpty (NonEmpty)
 import Data.Text (Text)
+import GHC.Generics (Generic)
 import Ledger (Address, PaymentPubKeyHash, StakePubKeyHash, Value, pubKeyHashAddress)
 import Ledger.Value qualified as Value
 import Numeric.Positive (Positive)
 import Test.Plutip.Internal.BotPlutusInterface.Keys (KeyPair, StakeKeyPair)
+
+data AddressType
+  = Base
+  | Enterprise
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (ToJSON, FromJSON)
 
 -- | Tag of the wallet that gives wallet name and specifies type of address it will have:
 -- base or enterprise.
@@ -50,26 +56,19 @@ data BpiError
 data BpiWallet = BpiWallet
   { payKeys :: KeyPair
   , stakeKeys :: Maybe StakeKeyPair
-  , bwTag :: Text
   }
   deriving stock (Show)
 
-type TestWallets = NonEmpty TestWallet
-
-data TestWallet = forall t.
-  TestWallet
-  { twTag :: WalletTag t
-  , twDistribution :: [Positive]
-  , twExpected :: Maybe (ValueOrdering, Value)
+data WalletSpec = forall t.
+  WalletSpec
+  { wsTag :: WalletTag t
+  , wsDistribution :: [Positive]
+  , wsExpected :: Maybe (ValueOrdering, Value)
   }
 
--- | Make TestWallet, takes utxo distribution, value assertions and WalletTag as arguments.
-mkWallet :: [Positive] -> Maybe (ValueOrdering, Value) -> WalletTag t -> TestWallet
-mkWallet initDistribiution expected tag =
-  TestWallet tag initDistribiution expected
 
-getTag :: TestWallet -> Text
-getTag (TestWallet tag _ _) = getTag' tag
+getTag :: WalletSpec -> Text
+getTag (WalletSpec tag _ _) = getTag' tag
   where
     getTag' :: WalletTag t -> Text
     getTag' = \case

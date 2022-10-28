@@ -26,7 +26,6 @@ import Test.Plutip.Config (
  )
 import Test.Plutip.Tools.Cluster (awaitAddressFunded)
 import Types (
-  AddressType (Base, Enterprise),
   AppM,
   ClusterStartupFailureReason (
     ClusterIsRunningAlready,
@@ -59,12 +58,10 @@ import Types (
   StopClusterResponse (StopClusterFailure, StopClusterSuccess),
  )
 
-import Data.Text qualified as T
 import Test.Plutip.Internal.BotPlutusInterface.Keys (sKey)
 import Test.Plutip.Internal.BotPlutusInterface.Setup (keysDir)
 import Test.Plutip.Internal.BotPlutusInterface.Types (
   BpiWallet (payKeys),
-  WalletTag (BaseTag, EntTag),
  )
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   addSomeWallet,
@@ -112,9 +109,8 @@ startClusterHandler
       setup :: ReaderT ClusterEnv IO (ClusterEnv, [BpiWallet])
       setup = do
         env <- ask
-        let tags = T.pack . show <$> [0 ..]
         wallets <- do
-          for (zip tags keysToGenerate) $ \(idx, key) -> addWallet key idx
+          for keysToGenerate $ \key -> addWallet key
         liftIO $ putStrLn "Waiting for wallets to be funded..."
         awaitFunds wallets 2
         pure (env, wallets)
@@ -131,11 +127,9 @@ startClusterHandler
           . payKeys
 
       interpret = fmap (either ClusterStartupFailure id) . runExceptT
-      addWallet key tag =
+      addWallet key =
         let funds' = (fromInteger . unLovelace <$> funds key)
-         in case addressType key of
-              Base -> addSomeWallet (BaseTag tag) funds'
-              Enterprise -> addSomeWallet (EntTag tag) funds'
+         in addSomeWallet (addressType key) funds'
 
       -- waits for the last wallet to be funded
       awaitFunds :: [BpiWallet] -> Int -> ReaderT ClusterEnv IO ()

@@ -1,57 +1,47 @@
-# Address types and `WalletTag`
+# Address types
 
 There are [several types of addresses](https://docs.cardano.org/learn/cardano-addresses) on Cardano network. Currently Plutip supports two types of addresses in both [interactive](./interactive-plutip.md) and [tasty](tasty-integration.md) modes:
 
 * ***Enterprise Address*** - carry no stake rights, backed only by payment keys
 * ***Base Address*** - directly specifies the staking key, backed by both payment and staking keys
 
-To pick which type of address to create for wallet, Plutip provides `WalletTag`. `WalletTag` has two constructors:
+To pick which type of address to create for wallet, Plutip provides some options depending on what type of tool user want to use - local cluster eDSL or tasty integration.
 
-* `BaseTag Text` - will create wallet with `Base Address`
-* `EntTag Text` - will create wallet with `Enterprise Address`
+## Setting address type for local cluster runners
 
-Wallet tag also gives wallet it's name (the `Text` argument of constructor) and can be used to lookup desired wallet by name. There is special functionality for `WalletTag` available tasty framework, but lets see simple example with local cluster eDSL first.
+As shown in [conctract-execution example](../contract-execution/Main.hs) or in [interactive plutip tutorial](./interactive-plutip.md) new wallet can be added to the local cluster with `addSomeWallet` or `eitherAddSomeWalletDir` function. As first argument this functions accepts `AddressType` type of argument, which have to constructions:
 
-## `WalletTag` in interactive mode and local cluster
+* `Base` for Base Address
+* `Enterprise` for EnterpriseAddress
 
-Whenever you use eDSL function like `addSomeWallet` ([example 1](interactive-plutip.md), [example 2](../local-cluster/README.md)), from now on you can specify `WalletTag` as first argument to pick what type of address wallet will have. The `Text` argument of constructor will be added as textual tag to created wallet. E.g.:
+E.g.:
 
 ```haskell
 main :: IO ()
 main = do
   (st, _) <- startCluster def $ do
-    wallet1 <- addSomeWallet (BaseTag "wallet1") [100_000_000]
-    waitSeconds 2
+    w <- addSomeWallet Enterprise [10_000_000]
+    awaitWalletFunded w 1
+    doSomething w
   stopCluster st
 ```
 
-`wallet1` has type `BpiWallet`, and textual tag can be obtained with
+Creation of staking keys for Base Address will be handled automatically. Staking keys will be stored in the same directory as verification keys.
 
-```haskell
-wTag :: Text
-wTag = bwTag wallet1
-```
+## Setting address type in tasty integration
 
-It could useful if you want to print some info about wallet and distinguish output by tag, or when you initialize several wallets with something like `mapM` - can use tags to enable some lookups:
+In case of tasty integration, type of address is determined by `WalletTag` when initializing wallets with `init...` functions like `initAda`. `WalletTag` has two constructors:
 
-```haskell
-  let mkTag idx = EntTag $ T.pack $ "wallet" <> show idx
-  wallets <- 
-    for [0..42] $ \idx ->
-      addSomeWalletDir (mkTag idx) [100_000_000]
-  ...
-  let maybeMyWallet = find ((== "wallet13") . bwTag) wallets
-```
+* `BaseTag Text` - will create wallet with `Base Address`
+* `EntTag Text` - will create wallet with `Enterprise Address`
 
-## `WalletTag` and tasty Plutip
-
-In tasty integration it is also possible to pick address type now with functions like `initAda`. And on top of that new lookup system was added, that lets you find initialized wallets easier (no more pattern matching on lists and figuring out correct indexes):
+Besides determining address type, tag gives test wallet it's name (the `Text` argument of constructor) and can be used to lookup desired wallet by name via special lookups machinery. E.g.:
 
 ```haskell
 assertExecution
   "Some test"
-  ( initAndAda (EntTag "w0") [100]
-    <> initAnd (EntTag "w1") [100]
+  ( initAda (EntTag "w0") [100]
+    <> initAda (EntTag "w1") [100]
   )
   ( do
   void $ withContract $ \ws -> do

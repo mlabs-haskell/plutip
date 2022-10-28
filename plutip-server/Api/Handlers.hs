@@ -28,7 +28,6 @@ import Test.Plutip.Config (
  )
 import Test.Plutip.Internal.BotPlutusInterface.Setup (keysDir)
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (
-  BpiWallet (signKey),
   addSomeWallet,
   cardanoMainnetAddress,
  )

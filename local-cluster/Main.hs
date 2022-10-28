@@ -66,7 +66,7 @@ main = do
         awaitFunds ws slotLength
 
         separate
-        for (zip [0..] ws) printWallet 
+        for (zip [0 ..] ws) printWallet
         printNodeRelatedInfo
         separate
 
@@ -94,12 +94,11 @@ main = do
           (replicate numUtxos amt)
           dirWallets
     -- FIXME: wallet indexes
-    printWallet (i, w) = liftIO $  do
+    printWallet (i, w) = liftIO $ do
       putStrLn $ "Wallet " <> show i <> " PKH: " ++ show (walletPaymentPkh w)
       putStrLn $
         "Wallet " <> show i <> " mainnet address: "
           ++ show (mkMainnetAddress w)
-      
 
     toAda = (* 1_000_000)
 

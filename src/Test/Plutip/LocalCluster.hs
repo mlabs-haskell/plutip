@@ -24,6 +24,7 @@ module Test.Plutip.LocalCluster (
   ClusterEnv,
   ExtraConfig (ExtraConfig),
   RunningNode (RunningNode),
+  AddressType (Enterprise, Base),
   runningNode,
 ) where
 
@@ -56,24 +57,14 @@ import Test.Plutip.Internal.BotPlutusInterface.Wallet (
  )
 import Test.Plutip.Internal.Cluster.Extra.Types (
   ExtraConfig (ExtraConfig),
-  ecSlotLength)
-import Test.Plutip.Contract.Types (
-  TestWallet (twInitDistribuition),
-  TestWallets (unTestWallets),
- )
-import Test.Plutip.Internal.BotPlutusInterface.Wallet (
-  BpiWallet,
-  addSomeWallet,
-  cardanoMainnetAddress,
-  ledgerPaymentPkh,
-  mkMainnetAddress,
+  ecSlotLength,
  )
 import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)
-import Test.Plutip.Internal.Types
-    ( ClusterEnv(runningNode),
-      RunningNode(RunningNode),
-      nodeSocket,
-      ClusterEnv )
+import Test.Plutip.Internal.Types (
+  ClusterEnv (runningNode),
+  RunningNode (RunningNode),
+  nodeSocket,
+ )
 import Test.Plutip.Tools.ChainIndex qualified as CI
 import Test.Tasty (testGroup, withResource)
 import Test.Tasty.Providers (TestTree)
@@ -136,7 +127,7 @@ withConfiguredCluster conf name testCases =
         traverse
           (traverse addTestWallet . getTestWallets)
           testCases
-      let waitDelay = ceiling $ ecSlotLength $ extraConfig conf
+      let waitDelay = ecSlotLength $ extraConfig conf
       awaitFunds wallets waitDelay
       pure (env, wallets)
 
@@ -152,7 +143,7 @@ withConfiguredCluster conf name testCases =
       BaseTag _ -> Base
 
     awaitFunds ws delay = do
-      let lastWallet = NE.last $ last ws
+      let lastWallet = getWallet $ NE.last $ last ws
       liftIO $ putStrLn "Waiting till all wallets will be funded to start tests..."
       CI.awaitWalletFunded lastWallet delay
 

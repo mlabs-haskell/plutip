@@ -26,9 +26,15 @@ import Ledger.Value qualified as Value
 import Numeric.Positive (Positive)
 import Test.Plutip.Internal.BotPlutusInterface.Keys (KeyPair, StakeKeyPair)
 
+-- |Type of address for wallet creation.
+-- Currently Base and Enterprise addresses are supported.
 data AddressType
-  = Base
-  | Enterprise
+  = -- | Option to create wallet with Base Address
+    -- (with verification and staking keys)
+    Base
+  | -- | Option to create wallet with Enterprise Address
+    -- (with verification keys only keys)
+    Enterprise
   deriving stock (Show, Eq, Generic)
   deriving anyclass (ToJSON, FromJSON)
 
@@ -65,7 +71,6 @@ data WalletSpec = forall t.
   , wsDistribution :: [Positive]
   , wsExpected :: Maybe (ValueOrdering, Value)
   }
-
 
 getTag :: WalletSpec -> Text
 getTag (WalletSpec tag _ _) = getTag' tag

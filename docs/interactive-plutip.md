@@ -45,7 +45,7 @@ setup = do
 addWalletWithAdas :: [Ada] -> ReaderT ClusterEnv IO BpiWallet
 addWalletWithAdas funds = 
   addSomeWallet
-    (EntTag "w1")
+    Enterprise
     (map (fromInteger . Ada.toLovelace) funds)
 ```
 

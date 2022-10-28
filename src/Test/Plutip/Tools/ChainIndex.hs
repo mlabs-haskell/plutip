@@ -18,7 +18,7 @@ import Servant.Client (
   mkClientEnv,
   runClientM,
  )
-import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet (walletPkh))
+import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet, walletPkh)
 import Test.Plutip.Internal.Types (ClusterEnv (chainIndexUrl))
 import UnliftIO (throwString)
 

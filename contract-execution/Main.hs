@@ -14,6 +14,7 @@ import Test.Plutip.Config (
   PlutipConfig (extraConfig),
  )
 import Test.Plutip.Contract (runContract)
+import Test.Plutip.Internal.BotPlutusInterface.Types (AddressType (Enterprise))
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   BpiWallet,
   addSomeWallet,
@@ -43,7 +44,7 @@ main = do
 
   putStrLn "Starting cluster..."
   (st, _) <- startCluster plutipConfig $ do
-    w <- addSomeWallet [toAda 10]
+    w <- addSomeWallet Enterprise [toAda 10]
     liftIO $ putStrLn "Waiting for wallets to be funded..."
     CI.awaitWalletFunded w slotLen
 

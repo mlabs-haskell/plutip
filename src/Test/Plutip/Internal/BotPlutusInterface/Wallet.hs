@@ -67,14 +67,24 @@ During wallet addition `.skey` file with required name generated and saved
  to be used by bot interface.
  Directory for files could be obtained with `Test.Plutip.BotPlutusInterface.Setup.keysDir`
 -}
-eitherAddSomeWallet :: MonadIO m => AddressType -> [Positive] -> ReaderT ClusterEnv m (Either BpiError BpiWallet)
-eitherAddSomeWallet tag funds = eitherAddSomeWalletDir tag funds Nothing
+eitherAddSomeWallet ::
+  MonadIO m =>
+  AddressType ->
+  [Positive] ->
+  ReaderT ClusterEnv m (Either BpiError BpiWallet)
+eitherAddSomeWallet addrType funds =
+  eitherAddSomeWalletDir addrType funds Nothing
 
 -- | The same as `eitherAddSomeWallet`, but also
 -- saves the key file to a separate directory.
-eitherAddSomeWalletDir :: MonadIO m => AddressType -> [Positive] -> Maybe FilePath -> ReaderT ClusterEnv m (Either BpiError BpiWallet)
-eitherAddSomeWalletDir tag funds wallDir = do
-  bpiWallet <- createWallet tag
+eitherAddSomeWalletDir ::
+  MonadIO m =>
+  AddressType ->
+  [Positive] ->
+  Maybe FilePath ->
+  ReaderT ClusterEnv m (Either BpiError BpiWallet)
+eitherAddSomeWalletDir addrType funds wallDir = do
+  bpiWallet <- createWallet addrType
   saveWallets bpiWallet wallDir
     >>= \case
       Right _ -> sendFunds bpiWallet >> pure (Right bpiWallet)
@@ -94,8 +104,8 @@ eitherAddSomeWalletDir tag funds wallDir = do
 -- | Add wallet with arbitrary address and specified amount of Ada.
 -- (version of `eitherAddSomeWallet` that will throw an error in case of failure)
 addSomeWallet :: MonadIO m => AddressType -> [Positive] -> ReaderT ClusterEnv m BpiWallet
-addSomeWallet tag funds =
-  eitherAddSomeWallet tag funds >>= either (error . show) pure
+addSomeWallet addrType funds =
+  eitherAddSomeWallet addrType funds >>= either (error . show) pure
 
 -- | Version of `addSomeWallet` that also writes the
 -- wallet key file to a separate directory

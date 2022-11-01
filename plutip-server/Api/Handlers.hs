@@ -21,7 +21,7 @@ import Data.Traversable (for)
 import System.Directory (doesFileExist)
 import System.FilePath (replaceFileName)
 import Test.Plutip.Config (
-  ChainIndexMode (NotNeeded),
+  ChainIndexMode (DefaultPort),
   PlutipConfig (extraConfig),
   chainIndexMode,
   relayNodeLogs,
@@ -81,7 +81,7 @@ startClusterHandler
     isClusterDown <- liftIO $ isEmptyMVar statusMVar
     unless isClusterDown $ throwError ClusterIsRunningAlready
     let extraConf = ExtraConfig slotLength epochSize
-        cfg = def {relayNodeLogs = nodeLogs, chainIndexMode = NotNeeded, extraConfig = extraConf}
+        cfg = def {relayNodeLogs = nodeLogs, chainIndexMode = DefaultPort, extraConfig = extraConf}
 
     (statusTVar, res@(clusterEnv, _)) <- liftIO $ startCluster cfg setup
     liftIO $ putMVar statusMVar statusTVar

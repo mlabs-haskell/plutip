@@ -196,6 +196,7 @@ withLocalClusterSetup ::
   (FilePath -> [LogOutput] -> [LogOutput] -> Handle -> IO a) ->
   IO a
 withLocalClusterSetup conf action = do
+  setEnv "NO_POOLS" "1"
   setClusterDataDir
 
   -- Handle SIGTERM properly

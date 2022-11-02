@@ -22,6 +22,7 @@
 {-# OPTIONS_GHC -Wwarn=incomplete-uni-patterns #-}
 {-# OPTIONS_GHC -Wwarn=missing-deriving-strategies #-}
 {-# OPTIONS_GHC -Wwarn=name-shadowing #-}
+{-# OPTIONS_GHC -Wwarn=unused-top-binds #-}
 
 -- | 
 -- This module is modified copy of https://github.com/input-output-hk/cardano-wallet/blob/1952de13f1cd954514cfa1cb02e628cfc9fde675/lib/shelley/src/Cardano/Wallet/Shelley/Launch/Cluster.hs
@@ -37,44 +38,44 @@
 
 module Test.Plutip.Internal.Cluster
     ( -- * Local test cluster launcher
-      withCluster
-    , LocalClusterConfig (..)
-    , localClusterConfigFromEnv
-    , ClusterEra (..)
+    --   withCluster
+    -- , LocalClusterConfig (..)
+    -- , localClusterConfigFromEnv
+    -- , ClusterEra (..)
 
-      -- * Node launcher
-    , NodeParams (..)
-    , singleNodeParams
-    , RunningNode (..)
+    --   -- * Node launcher
+    -- , NodeParams (..)
+    -- , singleNodeParams
+    -- , RunningNode (..)
 
-      -- * Cluster node launcher
-    , defaultPoolConfigs
-    , clusterEraFromEnv
-    , clusterToApiEra
-    , clusterEraToString
-    , withSMASH
+    --   -- * Cluster node launcher
+    -- , defaultPoolConfigs
+    -- , clusterEraFromEnv
+    -- , clusterToApiEra
+    -- , clusterEraToString
+    -- , withSMASH
 
-      -- * Configuration
-    , LogFileConfig (..)
-    , logFileConfigFromEnv
-    , minSeverityFromEnv
-    , nodeMinSeverityFromEnv
-    , walletMinSeverityFromEnv
-    , testMinSeverityFromEnv
-    , testLogDirFromEnv
-    , walletListenFromEnv
-    , tokenMetadataServerFromEnv
+    --   -- * Configuration
+    -- , LogFileConfig (..)
+    -- , logFileConfigFromEnv
+    -- , minSeverityFromEnv
+    -- , nodeMinSeverityFromEnv
+    -- , walletMinSeverityFromEnv
+    -- , testMinSeverityFromEnv
+    -- , testLogDirFromEnv
+    -- , walletListenFromEnv
+    -- , tokenMetadataServerFromEnv
 
-      -- * Faucets
-    , Credential (..)
-    , sendFaucetFundsTo
-    , sendFaucetAssetsTo
-    , moveInstantaneousRewardsTo
-    , oneMillionAda
-    , genMonetaryPolicyScript
+    --   -- * Faucets
+    -- , Credential (..)
+    -- , sendFaucetFundsTo
+    -- , sendFaucetAssetsTo
+    -- , moveInstantaneousRewardsTo
+    -- , oneMillionAda
+    -- , genMonetaryPolicyScript
 
-    -- * Logging
-    , ClusterLog (..)
+    -- -- * Logging
+    -- , ClusterLog (..)
     ) where
 
 import Prelude

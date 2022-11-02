@@ -15,12 +15,13 @@ import Cardano.Api qualified as CAPI
 import Cardano.BM.Data.Tracer (nullTracer)
 import Cardano.Wallet.Primitive.Types.Coin (Coin (Coin))
 
--- import Cardano.Wallet.Shelley.Launch.Cluster (
---   sendFaucetFundsTo,
---  )
-import Test.Plutip.Internal.Cluster (
+import Cardano.Wallet.Shelley.Launch.Cluster (
   sendFaucetFundsTo,
  )
+
+-- import Test.Plutip.Internal.Cluster (
+--   sendFaucetFundsTo,
+--  )
 
 import Control.Arrow (ArrowChoice (left))
 import Control.Monad (void)

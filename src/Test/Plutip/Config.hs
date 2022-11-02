@@ -8,7 +8,8 @@ import Cardano.Api (PaymentKey, SigningKey)
 import Data.Default (Default, def)
 import GHC.Generics (Generic)
 import GHC.Natural (Natural)
-import Test.Plutip.Internal.Cluster.Extra.Types (ExtraConfig)
+
+-- import Test.Plutip.Internal.Cluster.Extra.Types (ExtraConfig)
 
 -- | Configuration for the cluster working directory
 -- This determines where the node database, chain-index database,
@@ -46,9 +47,9 @@ data PlutipConfig = PlutipConfig
   , -- | Any extra pre-determined signers to use.
     --    Either provided by a path to the signing key file, or by the signing key itself.
     extraSigners :: [Either FilePath (SigningKey PaymentKey)]
-  , -- | Extra config to set (at the moment) slot lenght and epoch size
-    --   for local network
-    extraConfig :: ExtraConfig
+    -- , -- | Extra config to set (at the moment) slot lenght and epoch size
+    --   --   for local network
+    -- extraConfig :: ExtraConfig
   }
   deriving stock (Generic, Show)
 
@@ -64,4 +65,4 @@ data ChainIndexMode
   deriving stock (Generic, Eq, Show)
 
 instance Default PlutipConfig where
-  def = PlutipConfig Nothing Nothing DefaultPort 1 Temporary [] def
+  def = PlutipConfig Nothing Nothing DefaultPort 1 Temporary [] -- def

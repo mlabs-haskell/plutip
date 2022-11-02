@@ -11,7 +11,8 @@ import Data.Monoid (Last (getLast))
 import Data.Text.Lazy qualified as T
 import ExampleContracts (ownValueToState)
 import Test.Plutip.Config (
-  PlutipConfig (extraConfig),
+  -- PlutipConfig (extraConfig),
+  PlutipConfig,
  )
 import Test.Plutip.Contract (runContract)
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (
@@ -20,9 +21,10 @@ import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   mkMainnetAddress,
   walletPkh,
  )
-import Test.Plutip.Internal.Cluster.Extra.Types (
-  ExtraConfig (ecSlotLength),
- )
+
+-- import Test.Plutip.Internal.Cluster.Extra.Types (
+--   ExtraConfig (ecSlotLength),
+--  )
 import Test.Plutip.Internal.LocalCluster (
   startCluster,
   stopCluster,
@@ -38,12 +40,13 @@ import Text.Pretty.Simple (pShow)
 main :: IO ()
 main = do
   let slotLen = 1
-      extraConf = def {ecSlotLength = slotLen}
-      plutipConfig = def {extraConfig = extraConf}
+      -- extraConf = def {ecSlotLength = slotLen}
+      -- plutipConfig = def {extraConfig = extraConf}
+      plutipConfig = def
 
   putStrLn "Starting cluster..."
   (st, _) <- startCluster plutipConfig $ do
-    w <- addSomeWallet [toAda 10]
+    w <- addSomeWallet [toAda 100]
     liftIO $ putStrLn "Waiting for wallets to be funded..."
     CI.awaitWalletFunded w slotLen
 

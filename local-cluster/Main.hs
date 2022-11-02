@@ -19,7 +19,8 @@ import Options.Applicative (Parser, helper, info)
 import Options.Applicative qualified as Options
 import Test.Plutip.Config (
   ChainIndexMode (CustomPort, DefaultPort, NotNeeded),
-  PlutipConfig (chainIndexMode, clusterWorkingDir, extraConfig),
+  -- PlutipConfig (chainIndexMode, clusterWorkingDir, extraConfig),
+  PlutipConfig (chainIndexMode, clusterWorkingDir),
   WorkingDirectory (Fixed, Temporary),
  )
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (
@@ -27,9 +28,10 @@ import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   cardanoMainnetAddress,
   walletPkh,
  )
-import Test.Plutip.Internal.Cluster.Extra.Types (
-  ExtraConfig (ExtraConfig),
- )
+
+-- import Test.Plutip.Internal.Cluster.Extra.Types (
+--   ExtraConfig (ExtraConfig),
+--  )
 import Test.Plutip.Internal.Types (nodeSocket)
 import Test.Plutip.LocalCluster (
   mkMainnetAddress,
@@ -44,11 +46,13 @@ main = do
   case totalAmount config of
     Left e -> error e
     Right amt -> do
-      let ClusterConfig {numWallets, dirWallets, numUtxos, workDir, slotLength, epochSize, cIndexMode} = config
+      -- let ClusterConfig {numWallets, dirWallets, numUtxos, workDir, slotLength, epochSize, cIndexMode} = config
+      let ClusterConfig {numWallets, dirWallets, numUtxos, workDir, slotLength, cIndexMode} = config
           workingDir = maybe Temporary (`Fixed` False) workDir
 
-          extraConf = ExtraConfig slotLength epochSize
-          plutipConfig = def {clusterWorkingDir = workingDir, extraConfig = extraConf, chainIndexMode = cIndexMode}
+          -- extraConf = ExtraConfig slotLength epochSize
+          -- plutipConfig = def {clusterWorkingDir = workingDir, extraConfig = extraConf, chainIndexMode = cIndexMode}
+          plutipConfig = def {clusterWorkingDir = workingDir, chainIndexMode = cIndexMode}
 
       putStrLn "Starting cluster..."
       (st, _) <- startCluster plutipConfig $ do

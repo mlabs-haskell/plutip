@@ -22,7 +22,8 @@ import Data.List.NonEmpty (NonEmpty)
 import Data.List.NonEmpty qualified as NE
 import Numeric.Natural (Natural)
 import Numeric.Positive (Positive)
-import Test.Plutip.Config (PlutipConfig (extraConfig))
+-- import Test.Plutip.Config (PlutipConfig (extraConfig))
+import Test.Plutip.Config (PlutipConfig)
 import Test.Plutip.Contract.Init (ada)
 import Test.Plutip.Contract.Types (
   TestWallet (twInitDistribuition),
@@ -35,7 +36,8 @@ import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   ledgerPaymentPkh,
   mkMainnetAddress,
  )
-import Test.Plutip.Internal.Cluster.Extra.Types (ecSlotLength)
+
+-- import Test.Plutip.Internal.Cluster.Extra.Types (ecSlotLength)
 import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)
 import Test.Plutip.Internal.Types (ClusterEnv)
 import Test.Plutip.Tools.ChainIndex qualified as CI
@@ -100,7 +102,8 @@ withConfiguredCluster conf name testCases =
         traverse
           (traverse addSomeWallet . fmap twInitDistribuition . unTestWallets . fst)
           testCases
-      let waitDelay = ecSlotLength $ extraConfig conf
+      -- let waitDelay = ecSlotLength $ extraConfig conf
+      let waitDelay = 0.2
       awaitFunds wallets waitDelay
       pure (env, wallets)
 

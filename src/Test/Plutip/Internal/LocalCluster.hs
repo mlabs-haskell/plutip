@@ -19,7 +19,13 @@ import Cardano.Startup (installSignalHandlers, setDefaultFilePermissions, withUt
 import Cardano.Wallet.Logging (stdoutTextTracer, trMessageText)
 import Cardano.Wallet.Shelley.Launch (TempDirLog, withSystemTempDir)
 
--- import Cardano.Wallet.Shelley.Launch.Cluster (ClusterLog, localClusterConfigFromEnv, testMinSeverityFromEnv, walletMinSeverityFromEnv, withCluster)
+import Cardano.Wallet.Shelley.Launch.Cluster (
+  ClusterLog,
+  localClusterConfigFromEnv,
+  testMinSeverityFromEnv,
+  walletMinSeverityFromEnv,
+  withCluster,
+ )
 
 import Control.Monad (unless, void, when)
 import Control.Monad.IO.Class (liftIO)
@@ -53,19 +59,27 @@ import Test.Plutip.Config (
     chainIndexMode,
     clusterDataDir,
     clusterWorkingDir,
-    extraConfig,
+    -- extraConfig,
     relayNodeLogs
   ),
   WorkingDirectory (Fixed, Temporary),
  )
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BotSetup
-import Test.Plutip.Internal.Cluster (
-  ClusterLog,
-  RunningNode,
-  testMinSeverityFromEnv,
-  walletMinSeverityFromEnv,
-  withCluster,
- )
+
+-- import Test.Plutip.Internal.Cluster (
+--   ClusterLog,
+--   RunningNode,
+--   testMinSeverityFromEnv,
+--   walletMinSeverityFromEnv,
+--   withCluster,
+--  )
+-- import Test.Plutip.Internal.Cluster (
+--   ClusterLog,
+--   RunningNode,
+--   testMinSeverityFromEnv,
+--   walletMinSeverityFromEnv,
+--   withCluster,
+--  )
 import Test.Plutip.Internal.Types (
   ClusterEnv (
     ClusterEnv,
@@ -75,7 +89,7 @@ import Test.Plutip.Internal.Types (
     runningNode,
     supportDir,
     tracer
-  ),
+  ), RunningNode
  )
 import Test.Plutip.Tools.CardanoApi qualified as Tools
 import Text.Printf (printf)
@@ -84,7 +98,7 @@ import UnliftIO.Exception (bracket, catchIO, finally, throwString)
 import UnliftIO.STM (TVar, atomically, newTVarIO, readTVar, retrySTM, writeTVar)
 
 import Test.Plutip.Internal.ChainIndex (handleChainIndexLaunch)
-import Test.Plutip.Internal.Cluster.Extra.Utils (localClusterConfigWithExtraConf)
+-- import Test.Plutip.Internal.Cluster.Extra.Utils (localClusterConfigWithExtraConf)
 
 -- | Starting a cluster with a setup action
 -- We're heavily depending on cardano-wallet local cluster tooling, however they don't allow the
@@ -132,7 +146,8 @@ withPlutusInterface conf action = do
   withLocalClusterSetup conf $ \dir clusterLogs _walletLogs nodeConfigLogHdl -> do
     result <- withLoggingNamed "cluster" clusterLogs $ \(_, (_, trCluster)) -> do
       let tr' = contramap MsgCluster $ trMessageText trCluster
-      clusterCfg <- localClusterConfigWithExtraConf (extraConfig conf)
+      -- clusterCfg <- localClusterConfigWithExtraConf (extraConfig conf)
+      clusterCfg <- localClusterConfigFromEnv
       withRedirectedStdoutHdl nodeConfigLogHdl $ \restoreStdout ->
         withCluster tr' dir clusterCfg mempty $ \rn -> do
           restoreStdout $ runActionWthSetup rn dir trCluster action

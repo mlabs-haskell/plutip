@@ -22,7 +22,8 @@ import System.Directory (doesFileExist)
 import System.FilePath (replaceFileName)
 import Test.Plutip.Config (
   ChainIndexMode (NotNeeded),
-  PlutipConfig (extraConfig),
+  -- PlutipConfig (extraConfig),
+  PlutipConfig,
   chainIndexMode,
   relayNodeLogs,
  )
@@ -32,10 +33,11 @@ import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   addSomeWallet,
   cardanoMainnetAddress,
  )
-import Test.Plutip.Internal.Cluster (RunningNode (RunningNode))
-import Test.Plutip.Internal.Cluster.Extra.Types (ExtraConfig (ExtraConfig, ecSlotLength))
+
+-- import Test.Plutip.Internal.Cluster (RunningNode (RunningNode))
+-- import Test.Plutip.Internal.Cluster.Extra.Types (ExtraConfig (ExtraConfig, ecSlotLength))
 import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)
-import Test.Plutip.Internal.Types (ClusterEnv (plutipConf, runningNode))
+import Test.Plutip.Internal.Types (ClusterEnv (plutipConf, runningNode), RunningNode(RunningNode))
 import Types (
   AppM,
   ClusterStartupFailureReason (
@@ -80,8 +82,10 @@ startClusterHandler
     statusMVar <- asks status
     isClusterDown <- liftIO $ isEmptyMVar statusMVar
     unless isClusterDown $ throwError ClusterIsRunningAlready
-    let extraConf = ExtraConfig slotLength epochSize
-        cfg = def {relayNodeLogs = nodeLogs, chainIndexMode = NotNeeded, extraConfig = extraConf}
+    let 
+        -- extraConf = ExtraConfig slotLength epochSize
+        -- cfg = def {relayNodeLogs = nodeLogs, chainIndexMode = NotNeeded, extraConfig = extraConf}
+        cfg = def {relayNodeLogs = nodeLogs, chainIndexMode = NotNeeded}
 
     (statusTVar, res@(clusterEnv, _)) <- liftIO $ startCluster cfg setup
     liftIO $ putMVar statusMVar statusTVar
@@ -104,7 +108,8 @@ startClusterHandler
           for keysToGenerate $ \lovelaceAmounts -> do
             addSomeWallet (fromInteger . unLovelace <$> lovelaceAmounts)
         liftIO $ putStrLn "Waiting for wallets to be funded..."
-        awaitFunds wallets (ecSlotLength $ extraConfig $ plutipConf env)
+        -- awaitFunds wallets (ecSlotLength $ extraConfig $ plutipConf env)
+        awaitFunds wallets 0.2
         pure (env, wallets)
       getNodeSocketFile (runningNode -> RunningNode conn _ _ _) = nodeSocketFile conn
       getNodeConfigFile =

@@ -15,7 +15,7 @@ import Cardano.Api (NetworkId)
 import Cardano.BM.Tracing (Trace)
 import Cardano.Launcher.Node (CardanoNodeConn)
 
--- import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (RunningNode))
+import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (RunningNode))
 
 import Control.Exception (SomeException)
 import Data.Either (isRight)
@@ -24,7 +24,8 @@ import Data.Text (Text)
 import Ledger qualified
 import Servant.Client (BaseUrl)
 import Test.Plutip.Config (PlutipConfig)
-import Test.Plutip.Internal.Cluster (RunningNode (RunningNode))
+
+-- import Test.Plutip.Internal.Cluster (RunningNode (RunningNode))
 
 -- | Environment for actions that use local cluster
 data ClusterEnv = ClusterEnv

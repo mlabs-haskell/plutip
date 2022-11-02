@@ -28,7 +28,8 @@ import Spec.TestContract.SimpleContracts (
   payTo,
  )
 import Spec.TestContract.ValidateTimeRange (failingTimeContract, successTimeContract)
-import Test.Plutip.Config (PlutipConfig (extraConfig))
+-- import Test.Plutip.Config (PlutipConfig (extraConfig))
+import Test.Plutip.Config (PlutipConfig)
 import Test.Plutip.Contract (
   TestWallets,
   ValueOrdering (VLt),
@@ -43,7 +44,8 @@ import Test.Plutip.Contract (
   withContract,
   withContractAs,
  )
-import Test.Plutip.Internal.Cluster.Extra.Types (ExtraConfig (ecSlotLength))
+
+-- import Test.Plutip.Internal.Cluster.Extra.Types (ExtraConfig (ecSlotLength))
 import Test.Plutip.Internal.Types (
   ClusterEnv,
   FailureReason (CaughtException, ContractExecutionError),
@@ -73,7 +75,8 @@ import Test.Tasty (TestTree)
 test :: TestTree
 test =
   let config = def
-      slotLen = ecSlotLength $ extraConfig config
+      -- slotLen = ecSlotLength $ extraConfig config
+      slotLen = 0.2
    in withConfiguredCluster
         config
         "Basic integration: launch, add wallet, tx from wallet to wallet"

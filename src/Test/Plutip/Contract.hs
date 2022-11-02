@@ -141,7 +141,13 @@ import BotPlutusInterface.Types (
  )
 
 import Control.Arrow (left)
-import Control.Monad.Reader (MonadIO (liftIO), MonadReader (ask), ReaderT, runReaderT)
+import Control.Monad.Reader (
+  MonadIO (liftIO),
+  MonadReader (ask),
+  ReaderT,
+  runReaderT,
+  withReaderT,
+ )
 import Data.Bool (bool)
 import Data.Kind (Type)
 import Data.List.NonEmpty (NonEmpty)
@@ -329,7 +335,7 @@ withContractAs walletIdx toContract = do
   execRes <- liftIO $ runContract cEnv ownWallet (toContract otherWalletsPkhs)
 
   -- get all the values present at the test wallets after the user given contracts has been executed.
-  values <- liftIO $ runReaderT collectValues cEnv
+  values <- withReaderT fst collectValues
 
   case values of
     Left e -> fail $ "Failed to get values. Error: " ++ show e

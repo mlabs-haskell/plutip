@@ -23,12 +23,12 @@ import Ledger.Value qualified as Value
 import Plutus.Contract (AsContractError, Contract, utxosAt)
 import PlutusTx.Builtins (fromBuiltin)
 
+import Ledger (Address, ciTxOutValue)
 import PlutusPrelude ((^.))
 import Test.Plutip.Contract.Types (
   ValueOrdering (VEq, VGEq, VGt, VLEq, VLt),
   compareValuesWith,
  )
-import Ledger (Address, ciTxOutValue)
 
 valueAt ::
   forall (w :: Type) (s :: Row Type) (e :: Type).

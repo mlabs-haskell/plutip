@@ -184,13 +184,13 @@ import Test.Plutip.Internal.Types (
   ExecutionResult (contractLogs, outcome),
   budgets,
  )
+import Test.Plutip.LocalCluster (plutusValueFromWallet)
 import Test.Plutip.Options (TraceOption (ShowBudgets, ShowTrace, ShowTraceButOnlyContext))
 import Test.Plutip.Predicate (Predicate, noBudgetsMessage, pTag)
 import Test.Plutip.Tools.Format (fmtTxBudgets)
 import Test.Tasty (testGroup, withResource)
 import Test.Tasty.HUnit (assertFailure, testCase)
 import Test.Tasty.Providers (IsTest (run, testOptions), TestTree, singleTest, testPassed)
-import Test.Plutip.LocalCluster (plutusValueFromWallet)
 
 type TestRunner (w :: Type) (e :: Type) (a :: Type) =
   ReaderT (ClusterEnv, NonEmpty BpiWallet) IO (ExecutionResult w e (a, NonEmpty Value))
@@ -329,7 +329,7 @@ withContractAs walletIdx toContract = do
   execRes <- liftIO $ runContract cEnv ownWallet (toContract otherWalletsPkhs)
 
   -- get all the values present at the test wallets after the user given contracts has been executed.
-  values <-  liftIO $ runReaderT collectValues cEnv
+  values <- liftIO $ runReaderT collectValues cEnv
 
   case values of
     Left e -> fail $ "Failed to get values. Error: " ++ show e

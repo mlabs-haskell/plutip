@@ -71,18 +71,18 @@
         "typed-protocols": "typed-protocols"
       },
       "locked": {
-        "lastModified": 1667372509,
-        "narHash": "sha256-dYtOF5KB88OnV3NCudCzSrijohiVEnwUWJvgEvnhYks=",
-        "ref": "adjust-collateral-creation",
-        "rev": "d062dfb71baf13c2b49dbf9253b5f27fca39f18e",
-        "revCount": 642,
-        "type": "git",
-        "url": "file:///home/mike/dev/mlabs/bot-plutus-interface"
+        "lastModified": 1667387750,
+        "narHash": "sha256-n8j7VscC90I2R6aG4h4ufOY6pQgo1mapdnLHsaptieA=",
+        "owner": "mlabs-haskell",
+        "repo": "bot-plutus-interface",
+        "rev": "2f4b4c5104bd573039995d6d7eef0c9235ddbc32",
+        "type": "github"
       },
       "original": {
-        "rev": "d062dfb71baf13c2b49dbf9253b5f27fca39f18e",
-        "type": "git",
-        "url": "file:///home/mike/dev/mlabs/bot-plutus-interface"
+        "owner": "mlabs-haskell",
+        "ref": "2f4b4c5104bd573039995d6d7eef0c9235ddbc32",
+        "repo": "bot-plutus-interface",
+        "type": "github"
       }
     },
     "cabal-32": {

@@ -11,15 +11,17 @@ module Test.Plutip.LocalCluster (
   withConfiguredCluster,
   startCluster,
   stopCluster,
+  plutusValueFromWallet,
 ) where
 
 import Control.Concurrent (threadDelay)
-import Control.Monad.IO.Class (liftIO)
+import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Reader (MonadReader (ask), ReaderT, ask)
 import Data.Bifunctor (second)
 import Data.Default (def)
 import Data.List.NonEmpty (NonEmpty)
 import Data.List.NonEmpty qualified as NE
+import Ledger (Value)
 import Numeric.Natural (Natural)
 import Numeric.Positive (Positive)
 import Test.Plutip.Config (PlutipConfig (extraConfig))
@@ -38,6 +40,7 @@ import Test.Plutip.Internal.BotPlutusInterface.Wallet (
 import Test.Plutip.Internal.Cluster.Extra.Types (ecSlotLength)
 import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)
 import Test.Plutip.Internal.Types (ClusterEnv)
+import Test.Plutip.Tools.CardanoApi (CardanoApiError, plutusValueFromAddress)
 import Test.Plutip.Tools.ChainIndex qualified as CI
 import Test.Tasty (testGroup, withResource)
 import Test.Tasty.Providers (TestTree)
@@ -113,3 +116,12 @@ type RetryDelay = Positive
 
 imap :: (Int -> a -> b) -> [a] -> [b]
 imap fn = zipWith fn [0 ..]
+
+-- Get total `Value` of all UTxOs at `BpiWallet` address.
+plutusValueFromWallet ::
+  MonadIO m =>
+  BpiWallet ->
+  ReaderT ClusterEnv m (Either CardanoApiError Value)
+plutusValueFromWallet bw = do
+  cEnv <- ask
+  liftIO . plutusValueFromAddress cEnv . cardanoMainnetAddress $ bw

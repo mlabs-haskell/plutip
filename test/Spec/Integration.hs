@@ -139,7 +139,7 @@ test =
           , let initFunds = 10_000_000
              in assertExecution
                   "Should yield own initial Ada"
-                  (initLovelace [toEnum initFunds])
+                  (withCollateral $ initLovelace [toEnum initFunds])
                   (withContract $ const ownValue)
                   [ shouldYield (lovelaceValueOf $ toEnum initFunds)
                   ]
@@ -147,7 +147,7 @@ test =
             let initFunds = 10_000_000
              in assertExecution
                   "Puts own UTxOs Value to state"
-                  (initLovelace [toEnum initFunds])
+                  (withCollateral $ initLovelace [toEnum initFunds])
                   (withContract $ const ownValueToState)
                   [ stateIs [lovelaceValueOf $ toEnum initFunds]
                   , Predicate.not $ stateSatisfies "length > 1" ((> 1) . length)

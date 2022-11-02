@@ -114,8 +114,7 @@ withCollateral TestWallets {..} = TestWallets $ NonEmpty.map go unTestWallets
     go TestWallet {..} =
       TestWallet
         { twInitDistribuition = fromInteger defCollateralSize : twInitDistribuition
-        , twExpected =
-            second (Value.unionWith (+) $ Ada.lovelaceValueOf defCollateralSize) <$> twExpected
+        , twExpected = second (Value.unionWith (+) $ Ada.lovelaceValueOf defCollateralSize) <$> twExpected
         }
 
 -- | Library functions works with amounts in `Lovelace`.

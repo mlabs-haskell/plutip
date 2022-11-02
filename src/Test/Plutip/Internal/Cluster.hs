@@ -689,7 +689,7 @@ defaultPoolConfigs = zipWith (\i p -> p {index = i}) [1..]
     -- This pool should retire almost immediately:
     , PoolRecipe
         { pledgeAmt = 100 * millionAda
-        , retirementEpoch = Just 3
+        , retirementEpoch = Nothing
         , poolMetadata = Aeson.object
               [ "name" .= Aeson.String "Genesis Pool B"
               , "ticker" .= Aeson.String "GPB"
@@ -725,7 +725,7 @@ defaultPoolConfigs = zipWith (\i p -> p {index = i}) [1..]
     -- This pool should retire, but not within the duration of a test run:
     , PoolRecipe
         { pledgeAmt = 100 * millionAda
-        , retirementEpoch = Just 100_000
+        , retirementEpoch = Nothing
         , poolMetadata = Aeson.object
               [ "name" .= Aeson.String "Genesis Pool C"
               , "ticker" .= Aeson.String "GPC"
@@ -760,7 +760,7 @@ defaultPoolConfigs = zipWith (\i p -> p {index = i}) [1..]
     -- This pool should retire, but not within the duration of a test run:
     , PoolRecipe
         { pledgeAmt = 100 * millionAda
-        , retirementEpoch = Just 1_000_000
+        , retirementEpoch = Nothing
         , poolMetadata = Aeson.object
               [ "name" .= Aeson.String "Genesis Pool D"
               , "ticker" .= Aeson.String "GPD"

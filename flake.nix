@@ -10,11 +10,7 @@
       url = "github:edolstra/flake-compat";
       flake = false;
     };
-    bot-plutus-interface = {
-      url = github:mlabs-haskell/bot-plutus-interface/7235aa6fba12b0cf368d9976e1e1b21ba642c038;
-      inputs.cardano-wallet.url = github:sadMaxim/cardano-wallet/9d34b2633ace6aa32c1556d33c8c2df63dbc8f5b;
-      inputs.cardano-node.url = github:input-output-hk/cardano-node/e0719fdb491229b113114c2cb009f02c83f6118f;
-    };
+    bot-plutus-interface.url = github:mlabs-haskell/bot-plutus-interface/72ed68b38f62e7704af16308378e3be4e09cfd91;
   };
 
   outputs =
@@ -32,11 +28,6 @@
           inherit system;
         };
       nixpkgsFor' = system: import nixpkgs { inherit system; };
-
-      extraSources = inputs.bot-plutus-interface.extraSources ++ [{
-        src = inputs.bot-plutus-interface;
-        subdirs = [ "." ];
-      }];
 
       haskellModules = bot-plutus-interface.haskellModules ++ [
         ({ config, pkgs, ... }: {
@@ -106,14 +97,13 @@
             };
 
             inherit (bot-plutus-interface) cabalProjectLocal;
-            inherit extraSources;
             modules = haskellModules;
           };
         in
         project;
     in
     {
-      inherit extraSources haskellModules;
+      inherit haskellModules;
       inherit (bot-plutus-interface) cabalProjectLocal;
 
       project = perSystem projectFor;

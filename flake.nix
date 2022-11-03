@@ -96,7 +96,7 @@
               ];
             };
 
-            inherit (bot-plutus-interface) cabalProjectLocal;
+            inherit (bot-plutus-interface);
             modules = haskellModules;
           };
         in
@@ -104,7 +104,6 @@
     in
     {
       inherit haskellModules;
-      inherit (bot-plutus-interface) cabalProjectLocal;
 
       project = perSystem projectFor;
       flake = perSystem (system: (projectFor system).flake { });

@@ -26,6 +26,7 @@ constraints:
   , hedgehog >= 1.1
   , algebraic-graphs == 0.6.1
   , resource-pool == 0.2.3.2
+  , generic-arbitrary == 0.2.2
     -- TODO: these should be set in cabal files, but avoiding setting them in lower dependencies for initial CHaP release
   , cardano-prelude == 0.1.0.0
   , base-deriving-via == 0.1.0.0

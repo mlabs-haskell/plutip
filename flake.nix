@@ -10,7 +10,7 @@
       url = "github:edolstra/flake-compat";
       flake = false;
     };
-    bot-plutus-interface.url = github:mlabs-haskell/bot-plutus-interface/72ed68b38f62e7704af16308378e3be4e09cfd91;
+    bot-plutus-interface.url = github:mlabs-haskell/bot-plutus-interface/0c0b1d2338039c58cfed038dd6570dffd178c306;
   };
 
   outputs =

@@ -5,10 +5,12 @@ module Test.Plutip.Tools.CardanoApi (
   queryProtocolParams,
   queryTip,
   awaitAddressFunded,
+  plutusValueFromAddress,
+  CardanoApiError,
 ) where
 
 import Cardano.Api qualified as C
-import Cardano.Api.Shelley (ProtocolParameters, UTxO (UTxO))
+import Cardano.Api.Shelley (ProtocolParameters, TxOut (TxOut), UTxO (UTxO, unUTxO), txOutValueToValue)
 import Cardano.Launcher.Node (nodeSocketFile)
 import Cardano.Slotting.Slot (WithOrigin)
 import Test.Plutip.Internal.Cluster (RunningNode (RunningNode))
@@ -22,6 +24,8 @@ import Data.Map qualified as Map
 import Data.Set qualified as Set
 import Data.Time (NominalDiffTime, nominalDiffTimeToSeconds)
 import GHC.Generics (Generic)
+import Ledger (Value)
+import Ledger.Tx.CardanoAPI (fromCardanoValue)
 import Ouroboros.Consensus.HardFork.Combinator.AcrossEras (EraMismatch)
 import Ouroboros.Network.Protocol.LocalStateQuery.Type (AcquireFailure)
 import Test.Plutip.Internal.Types (ClusterEnv (runningNode))
@@ -106,3 +110,14 @@ awaitAddressFunded addr retryDelay = do
         | Map.null utxo' ->
           throwString "No UTxOs returned by cardano API query for address"
       _ -> pure ()
+
+-- | Get total `Value` of all UTxOs at address.
+plutusValueFromAddress ::
+  ClusterEnv ->
+  C.AddressAny ->
+  IO (Either CardanoApiError Value)
+plutusValueFromAddress cEnv addr = do
+  let getValues = mconcat . fmap extract . (Map.elems . unUTxO)
+      extract (TxOut _ txoV _ _) = fromCardanoValue $ txOutValueToValue txoV
+  res <- utxosAtAddress cEnv addr
+  return $ getValues <$> res

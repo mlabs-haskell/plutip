@@ -72,8 +72,10 @@ data TestWallet = TestWallet
   { twInitDistribuition :: [Positive]
   , twExpected :: Maybe (ValueOrdering, Value)
   }
+  deriving stock (Show)
 
 data ValueOrdering = VEq | VGt | VLt | VGEq | VLEq
+  deriving stock (Show)
 
 -- | Value doesn't have an Ord instance, so we cannot use `compare`
 compareValuesWith :: ValueOrdering -> Value -> Value -> Bool

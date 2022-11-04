@@ -55,7 +55,7 @@ main = do
      ask >>= \cEnv -> runContract cEnv wallet contract
      
   (st, _) <- startCluster def $ do
-    w <- addSomeWallet [100_000_000]
+    w <- addSomeWallet [100_000_000, 10_000_000] -- 10 Ada will be used as collateral
     awaitWalletFunded w 1
     result <- executeContract w someContract
     doSomething result

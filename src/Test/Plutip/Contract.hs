@@ -141,7 +141,13 @@ import BotPlutusInterface.Types (
  )
 
 import Control.Arrow (left)
-import Control.Monad.Reader (MonadIO (liftIO), MonadReader (ask), ReaderT, runReaderT, void)
+import Control.Monad.Reader (
+  MonadIO (liftIO),
+  MonadReader (ask),
+  ReaderT,
+  runReaderT,
+  withReaderT,
+ )
 import Data.Bool (bool)
 import Data.Kind (Type)
 import Data.List.NonEmpty (NonEmpty)
@@ -151,9 +157,8 @@ import Data.Row (Row)
 import Data.Tagged (Tagged (Tagged))
 import Data.Text qualified as Text
 import Ledger (PaymentPubKeyHash)
-import Ledger.Address (pubKeyHashAddress)
 import Ledger.Value (Value)
-import Plutus.Contract (Contract, waitNSlots)
+import Plutus.Contract (Contract)
 import PlutusPrelude (render)
 import Prettyprinter (Doc, Pretty (pretty), vcat, (<+>))
 import Test.Plutip.Contract.Init (
@@ -177,7 +182,7 @@ import Test.Plutip.Contract.Types (
   TestWallets (TestWallets, unTestWallets),
   ValueOrdering (VEq, VGEq, VGt, VLEq, VLt),
  )
-import Test.Plutip.Contract.Values (assertValues, valueAt)
+import Test.Plutip.Contract.Values (assertValues)
 import Test.Plutip.Internal.BotPlutusInterface.Run (runContract, runContractWithLogLvl)
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet, ledgerPaymentPkh)
 import Test.Plutip.Internal.Types (
@@ -185,6 +190,7 @@ import Test.Plutip.Internal.Types (
   ExecutionResult (contractLogs, outcome),
   budgets,
  )
+import Test.Plutip.LocalCluster (plutusValueFromWallet)
 import Test.Plutip.Options (TraceOption (ShowBudgets, ShowTrace, ShowTraceButOnlyContext))
 import Test.Plutip.Predicate (Predicate, noBudgetsMessage, pTag)
 import Test.Plutip.Tools.Format (fmtTxBudgets)
@@ -317,35 +323,23 @@ withContractAs walletIdx toContract = do
       -- to the user in `withContractAs`
       (ownWallet, otherWallets) = separateWallets walletIdx wallets'
 
-      {- these are `PaymentPubKeyHash`es of all wallets used in test case
-      they stay in list is same order as `TestWallets` defined in test case
-      so collected Values will be in same order as well
-      it is important to preserve this order for Values check with `assertValues`
-      as there is no other mechanism atm to match `TestWallet` with collected `Value`
-      -}
-      collectValuesPkhs :: NonEmpty PaymentPubKeyHash
-      collectValuesPkhs = fmap ledgerPaymentPkh wallets'
-
       -- wallet `PaymentPubKeyHash`es that will be available in
       -- `withContract` and `withContractAs`
       otherWalletsPkhs :: [PaymentPubKeyHash]
       otherWalletsPkhs = fmap ledgerPaymentPkh otherWallets
 
-      -- contract that gets all the values present at the test wallets.
-      valuesAtWallet :: Contract w s e (NonEmpty Value)
-      valuesAtWallet =
-        void (waitNSlots 1)
-          >> traverse (valueAt . (`pubKeyHashAddress` Nothing)) collectValuesPkhs
-
+      collectValues = do
+        vs <- traverse plutusValueFromWallet wallets'
+        return $ sequence vs
   -- run the test contract
   execRes <- liftIO $ runContract cEnv ownWallet (toContract otherWalletsPkhs)
 
   -- get all the values present at the test wallets after the user given contracts has been executed.
-  execValues <- liftIO $ runContract cEnv ownWallet valuesAtWallet
+  values <- withReaderT fst collectValues
 
-  case outcome execValues of
+  case values of
     Left e -> fail $ "Failed to get values. Error: " ++ show e
-    Right values -> return $ execRes {outcome = (,values) <$> outcome execRes}
+    Right vs -> return $ execRes {outcome = (,vs) <$> outcome execRes}
   where
     separateWallets :: forall b. Int -> NonEmpty b -> (b, [b])
     separateWallets i xss

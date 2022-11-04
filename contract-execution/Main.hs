@@ -41,9 +41,12 @@ main = do
       extraConf = def {ecSlotLength = slotLen}
       plutipConfig = def {extraConfig = extraConf}
 
+      addSomeWalletWithCollateral funds =
+        addSomeWallet (toAda 10 : funds)
+
   putStrLn "Starting cluster..."
   (st, _) <- startCluster plutipConfig $ do
-    w <- addSomeWallet [toAda 10]
+    w <- addSomeWalletWithCollateral [toAda 100]
     liftIO $ putStrLn "Waiting for wallets to be funded..."
     CI.awaitWalletFunded w slotLen
 

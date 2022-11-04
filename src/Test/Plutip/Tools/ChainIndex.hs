@@ -18,7 +18,7 @@ import Servant.Client (
   mkClientEnv,
   runClientM,
  )
-import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet (walletPkh))
+import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet (walletPkh), mkMainnetAddress)
 import Test.Plutip.Internal.Types (ClusterEnv (chainIndexUrl))
 import UnliftIO (throwString)
 
@@ -45,7 +45,7 @@ utxosAtPkh pkh = do
     req = UtxoAtAddressRequest (Just def) (PubKeyCredential pkh)
 
 -- | Waits till specified `BpiWallet` is funded using chain-index query.
--- Performs 60 tries with `retryDelay` seconds between tries.
+-- Performs 120 tries with `retryDelay` seconds between tries.
 awaitWalletFunded ::
   (MonadIO m, MonadMask m) =>
   BpiWallet ->
@@ -57,7 +57,8 @@ awaitWalletFunded wallet retryDelay = do
     checkResponse resp
   where
     delay = truncate $ nominalDiffTimeToSeconds retryDelay * 1000000
-    policy = constantDelay delay <> limitRetries 60
+    retries = 120
+    policy = constantDelay delay <> limitRetries retries
 
     checkResponse = \case
       Left e ->
@@ -65,5 +66,14 @@ awaitWalletFunded wallet retryDelay = do
           "Failed to check if wallet funded via chain-index query: "
             <> show e
       Right (UtxosResponse _ (Page _ _ [])) ->
-        throwString "No UTxOs returned by chain-index after querying wallet address"
+        throwString $
+          "Failed to check if wallet is funded via chain-index query: "
+            <> "Plutip performed "
+            <> show retries
+            <> " chain-index queries with delay of "
+            <> show delay
+            <> " microseconds between them (based on slot length),"
+            <> " but there are no UTxOs in chain-index response"
+            <> " for the wallet with address "
+            <> mkMainnetAddress wallet
       Right _ -> pure ()

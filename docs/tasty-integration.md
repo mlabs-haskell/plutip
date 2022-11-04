@@ -126,7 +126,9 @@ To assert the final `Value` which `wallet` will have after contract execution sp
 * `initAdaAssertValue [100] 133` - initialize `wallet` with single UTxO with 100 Ada and check that after contract execution final `Value` of all `wallet`'s UTxOs is equal to 133 Ada.
 * `initAndAssertLovelaceWith [1_000_000] VGt 2_000_000` - initialize `wallet` with single UTxO with 1000000 Lovelace and check that after contract execution final `Value` of all `wallet`'s UTxOs is *greater than* 2000000 Lovelace.
 
-***One important note*** is that Plutip creates dedicated UTxO to be used *only* as collateral under the hood. This UTxO would normally be created by spending wallets funds, and the transaction fee and Ada amount used for collateral UTxO would mess up balance assertions. So when using assertions for `Value` it is advised to wrap `wallets` initialization with `withCollateral` function. This simply adds a small UTxO to the `wallets`'s balance during network setup that is then picked up for collateral instead avoiding the problem. Use it like so:
+#### Collateral handling
+
+***One important note*** is that Plutip creates dedicated UTxO to be used *only* as collateral under the hood. This UTxO would normally be created by spending wallets funds, and the transaction fee and Ada amount used for collateral UTxO would mess up balance assertions. So when using any kind of assertions for `Value` it is advised to wrap `wallets` initialization with `withCollateral` function. This simply adds a small UTxO to the `wallets`'s balance during network setup that is then picked up for collateral instead avoiding the problem. Use it like so:
 
 ```haskell
 ( withCollateral $

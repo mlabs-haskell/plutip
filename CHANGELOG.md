@@ -7,6 +7,16 @@ This format is based on [Keep A Changelog](https://keepachangelog.com/en/1.0.0).
 - Wallets with Base Address support
 - Lookups for wallets in tasty integration
 
+## [1.3.1] - 2022-11-04
+
+### Fixed
+
+- collateral creation - happens now before user contract execution
+
+### Added
+
+- collateral handling documentation
+
 ## [1.3.0] - 2022-10-26
 
 ### Added

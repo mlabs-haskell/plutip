@@ -80,9 +80,9 @@ source-repository-package
 
 source-repository-package
   type: git
-  location: https://github.com/input-output-hk/cardano-wallet
-  tag: 9d34b2633ace6aa32c1556d33c8c2df63dbc8f5b
-  --sha256: 08xr0h8vbk9p0ycbbgq7b6am29477vypl0gfln2mfcg8lpzfiszy
+  location: https://github.com/gege251/cardano-wallet
+  tag: ee5fd7d201ed7d6b2deaf1557f492d04ded5f1a6
+  --sha256: 14z1n1562bds5wjbzq9bm3wk8b0xma3i8si23l8z7hq8zzrwiql6
   subdir:
     lib/cli
     lib/core
@@ -171,5 +171,5 @@ source-repository-package
 source-repository-package
     type: git
     location: https://github.com/mlabs-haskell/bot-plutus-interface
-    tag: 0c0b1d2338039c58cfed038dd6570dffd178c306
-    --sha256: 184vw90zqzpsjmapjjsfy49r0gfa7xahk6gaaifrw1hkljjmwmzc
+    tag: def9b215a974326eb7237df84bc4d07970c07294
+    --sha256: 00hpf3slbsnbzvgh4b92v7w0mppx8af3lxlyd14pk5rwysmgdh7r

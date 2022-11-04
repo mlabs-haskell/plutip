@@ -79,8 +79,11 @@ main = do
         amt -> Right $ fromInteger . toInteger $ amt
 
     initWallets numWallets numUtxos amt dirWallets = do
+      let collateralAmount = 10_000_000
       replicateM (max 0 numWallets) $
-        addSomeWalletDir (replicate numUtxos amt) dirWallets
+        addSomeWalletDir
+          (collateralAmount : replicate numUtxos amt)
+          dirWallets
 
     printWallet (w, n) = do
       putStrLn $ "Wallet " ++ show n ++ " PKH: " ++ show (walletPkh w)

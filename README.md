@@ -36,7 +36,11 @@ If your project is importing and making use of `Plutip`s library you will need t
 
 And the following ghc flag must to be set for the test execution: `-Wall -threaded -rtsopts`
 
-NOTE: This branch launches local network in `Vasil`. It was tested with node `1.35.3` (this node version used in nix environment as well). Please use appropriate node version when setting up own binaries in `PATH`.
+## NOTES
+
+⚠️ This branch launches local network in `Vasil`. It was tested with node `1.35.3` (this node version used in nix environment as well). Please use appropriate node version when setting up own binaries in `PATH`.
+
+⚠️ [Collateral handling](./docs/collateral-handling.md)
 
 ## Tutorials
 

@@ -9,7 +9,6 @@ module Test.Plutip.Tools.Address (
 
 import Cardano.Api qualified as CAPI
 import Cardano.Wallet.Primitive.Types.Address qualified as Wallet
-import Control.Arrow (left)
 import Data.Data (Proxy)
 import Data.Proxy (Proxy (Proxy))
 import Data.Text (Text)
@@ -34,13 +33,7 @@ walletToCardanoAny :: Wallet.Address -> Either AddressConversionError CAPI.Addre
 walletToCardanoAny = fmap CAPI.AddressShelley . walletToCardano
 
 walletToLedger :: Wallet.Address -> Either AddressConversionError Address.Address
-walletToLedger wAddr =
-  walletToCardano wAddr
-    >>= left WalletToLedgerError . convert
-  where
-    convert =
-      Ledger.fromCardanoAddressInEra
-        . CAPI.shelleyAddressInEra @CAPI.BabbageEra
+walletToLedger waddr = Ledger.fromCardanoAddressInEra . CAPI.shelleyAddressInEra @CAPI.BabbageEra <$> walletToCardano waddr
 
 ledgerToCardanoMainnet ::
   Address.Address ->

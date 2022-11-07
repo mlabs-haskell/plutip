@@ -22,9 +22,11 @@ import Ledger (
   TxInfo (txInfoValidRange),
   UpperBound (UpperBound),
   Validator,
+  Versioned,
   always,
   getCardanoTxId,
   lowerBound,
+  scriptHashAddress,
   strictUpperBound,
   unitDatum,
   validatorHash,
@@ -33,10 +35,9 @@ import Ledger.Ada qualified as Ada
 import Ledger.Constraints qualified as Constraints
 import Ledger.TimeSlot (nominalDiffTimeToPOSIXTime)
 import Ledger.Typed.Scripts (mkUntypedValidator)
-import Plutus.Contract (Contract)
+import Plutus.Contract (Contract, currentNodeClientTimeRange)
 import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
-import Plutus.Script.Utils.V1.Address (mkValidatorAddress)
 import Plutus.Script.Utils.V1.Typed.Scripts.Validators qualified as Validators
 import Plutus.V1.Ledger.Interval (member)
 import PlutusTx qualified
@@ -114,11 +115,11 @@ typedValidator =
   where
     wrap = mkUntypedValidator @() @TimeRedeemer
 
-validator :: Validator
-validator = Validators.validatorScript typedValidator
+validator :: Versioned Validator
+validator = Validators.vValidatorScript typedValidator
 
 validatorAddr :: Address
-validatorAddr = mkValidatorAddress validator
+validatorAddr = scriptHashAddress (validatorHash validator)
 
 ------------------------------------------
 {- Number of slots to wait was picked empirically.
@@ -130,7 +131,7 @@ slotsTowait = 20
 
 failingTimeContract :: NominalDiffTime -> Contract () EmptySchema Text Hask.String
 failingTimeContract slotLen = do
-  startTime <- Contract.currentTime
+  (_, startTime) <- currentNodeClientTimeRange
   let timeDiff =
         let (POSIXTime t) = nominalDiffTimeToPOSIXTime slotLen
          in (POSIXTime $ t * slotsTowait)
@@ -162,7 +163,7 @@ lockAtScript = do
 
 unlockWithTimeCheck :: NominalDiffTime -> Contract () EmptySchema Text ()
 unlockWithTimeCheck slotLen = do
-  startTime <- Contract.currentTime
+  (_, startTime) <- currentNodeClientTimeRange
   let timeDiff =
         let (POSIXTime t) = nominalDiffTimeToPOSIXTime slotLen
          in (POSIXTime $ t * slotsTowait)
@@ -184,7 +185,7 @@ unlockWithTimeCheck slotLen = do
 
           lkps =
             Hask.mconcat
-              [ Constraints.plutusV1OtherScript validator
+              [ Constraints.otherScript validator
               , Constraints.unspentOutputs (Map.fromList utxos)
               ]
       tx <- Contract.submitTxConstraintsWith @TestTime lkps txc

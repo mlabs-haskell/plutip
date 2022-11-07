@@ -9,7 +9,6 @@ import Data.Void (Void)
 import Ledger (
   PaymentPubKeyHash,
   Tx (..),
-  TxOut (..),
   getCardanoTxId,
  )
 import Ledger qualified
@@ -54,7 +53,7 @@ adjustTx toPkh = do
   -- Adjust the Tx so that all UTxOs have the minimum ADA.
   adjustedTx <- adjustUnbalancedTx unbalancedTx
   let rawTx = adjustedTx ^. OffChain.tx
-      vals = map txOutValue $ txOutputs rawTx
+      vals = map Ledger.txOutValue $ txOutputs rawTx
   balTx <- Contract.balanceTx adjustedTx
   crdTx <- Contract.submitBalancedTx balTx
   _ <- awaitTxConfirmed (getCardanoTxId crdTx)

@@ -52,7 +52,6 @@
         "haskell-nix": "haskell-nix",
         "hedgehog-extras": "hedgehog-extras",
         "hw-aeson": "hw-aeson",
-        "hysterical-screams": "hysterical-screams",
         "io-sim": "io-sim",
         "iohk-monitoring-framework": "iohk-monitoring-framework",
         "iohk-nix": "iohk-nix",
@@ -63,24 +62,24 @@
         ],
         "optparse-applicative": "optparse-applicative",
         "ouroboros-network": "ouroboros-network",
-        "plutus": "plutus",
         "plutus-apps": "plutus-apps",
+        "plutus-core": "plutus-core",
         "purescript-bridge": "purescript-bridge",
         "quickcheck-dynamic": "quickcheck-dynamic",
         "servant-purescript": "servant-purescript",
         "typed-protocols": "typed-protocols"
       },
       "locked": {
-        "lastModified": 1667387750,
-        "narHash": "sha256-n8j7VscC90I2R6aG4h4ufOY6pQgo1mapdnLHsaptieA=",
+        "lastModified": 1667837036,
+        "narHash": "sha256-nHC5ZKweUD8qLsUq1YxbSqZqaiybuJDhrt2zCdPCBh8=",
         "owner": "mlabs-haskell",
         "repo": "bot-plutus-interface",
-        "rev": "2f4b4c5104bd573039995d6d7eef0c9235ddbc32",
+        "rev": "c86949eda3eafb2e73b8f1769429e12ac065484f",
         "type": "github"
       },
       "original": {
         "owner": "mlabs-haskell",
-        "ref": "2f4b4c5104bd573039995d6d7eef0c9235ddbc32",
+        "ref": "sam/add-vasil-features",
         "repo": "bot-plutus-interface",
         "type": "github"
       }
@@ -549,23 +548,6 @@
         "type": "indirect"
       }
     },
-    "hysterical-screams": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1654007733,
-        "narHash": "sha256-d4N3rUzg45BUs5Lx/kK7vXYsLMNoO15dlzo7t8lGIXA=",
-        "owner": "raduom",
-        "repo": "hysterical-screams",
-        "rev": "4c523469e9efd3f0d10d17da3304923b7b0e0674",
-        "type": "github"
-      },
-      "original": {
-        "owner": "raduom",
-        "repo": "hysterical-screams",
-        "rev": "4c523469e9efd3f0d10d17da3304923b7b0e0674",
-        "type": "github"
-      }
-    },
     "io-sim": {
       "flake": false,
       "locked": {
@@ -814,7 +796,24 @@
         "type": "github"
       }
     },
-    "plutus": {
+    "plutus-apps": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1666610226,
+        "narHash": "sha256-WFnwMDyexskoYNZk4CbiFLOt2I/zj5QBBYf3evgDLEk=",
+        "owner": "input-output-hk",
+        "repo": "plutus-apps",
+        "rev": "991709a96310e5533cec3da30e78a9319737a151",
+        "type": "github"
+      },
+      "original": {
+        "owner": "input-output-hk",
+        "repo": "plutus-apps",
+        "rev": "991709a96310e5533cec3da30e78a9319737a151",
+        "type": "github"
+      }
+    },
+    "plutus-core": {
       "flake": false,
       "locked": {
         "lastModified": 1659046871,
@@ -828,23 +827,6 @@
         "owner": "input-output-hk",
         "repo": "plutus",
         "rev": "a56c96598b4b25c9e28215214d25189331087244",
-        "type": "github"
-      }
-    },
-    "plutus-apps": {
-      "flake": false,
-      "locked": {
-        "lastModified": 1661246964,
-        "narHash": "sha256-NuSwD6mjUEgBay2sIKRo6DUBualMQUDKfHQlsbYzKuk=",
-        "owner": "mlabs-haskell",
-        "repo": "plutus-apps",
-        "rev": "31bfd4c7fff5158c9f2618b76b68dbbae410221d",
-        "type": "github"
-      },
-      "original": {
-        "owner": "mlabs-haskell",
-        "repo": "plutus-apps",
-        "rev": "31bfd4c7fff5158c9f2618b76b68dbbae410221d",
         "type": "github"
       }
     },

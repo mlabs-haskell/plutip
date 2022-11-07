@@ -8,7 +8,9 @@ import Ledger (
   Address,
   ScriptContext,
   Validator,
+  Versioned,
   getCardanoTxId,
+  scriptHashAddress,
   unitDatum,
   unitRedeemer,
   validatorHash,
@@ -20,7 +22,6 @@ import Ledger.Typed.Scripts qualified as Scripts
 import Plutus.Contract (Contract, awaitTxConfirmed, submitTx, submitTxConstraintsWith)
 import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
-import Plutus.Script.Utils.V1.Address (mkValidatorAddress)
 import PlutusTx qualified
 import PlutusTx.Prelude
 import Prelude qualified as Hask
@@ -52,7 +53,7 @@ spendFromScript = do
 
           lkps =
             Hask.mconcat
-              [ Constraints.plutusV1OtherScript validator
+              [ Constraints.otherScript validator
               , Constraints.unspentOutputs (Map.fromList utxos)
               ]
       tx <- submitTxConstraintsWith @AlwaysFail lkps txc
@@ -77,8 +78,8 @@ typedValidator =
   where
     wrap = Scripts.mkUntypedValidator @() @()
 
-validator :: Validator
-validator = Scripts.validatorScript typedValidator
+validator :: Versioned Validator
+validator = Scripts.vValidatorScript typedValidator
 
 validatorAddr :: Address
-validatorAddr = mkValidatorAddress validator
+validatorAddr = scriptHashAddress (validatorHash validator)

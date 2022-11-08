@@ -5,16 +5,17 @@
     haskell-nix.follows = "bot-plutus-interface/haskell-nix";
     nixpkgs.follows = "bot-plutus-interface/haskell-nix/nixpkgs";
     iohk-nix.follows = "bot-plutus-interface/iohk-nix";
+    CHaP.follows = "bot-plutus-interface/CHaP";
 
     flake-compat = {
       url = "github:edolstra/flake-compat";
       flake = false;
     };
-    bot-plutus-interface.url = github:mlabs-haskell/bot-plutus-interface/def9b215a974326eb7237df84bc4d07970c07294;
+    bot-plutus-interface.url = github:mlabs-haskell/bot-plutus-interface/9c7e06ec1b6911d5814982ef3dc563a8bc74909a;
   };
 
   outputs =
-    { self, bot-plutus-interface, nixpkgs, haskell-nix, iohk-nix, ... }@inputs:
+    { self, bot-plutus-interface, nixpkgs, haskell-nix, CHaP, iohk-nix, ... }@inputs:
     let
       defaultSystems = [ "x86_64-linux" "x86_64-darwin" ];
 
@@ -65,6 +66,9 @@
           project = pkgs.haskell-nix.cabalProject {
             name = "plutip";
             src = ./.;
+            inputMap = {
+              "https://input-output-hk.github.io/cardano-haskell-packages" = CHaP;
+            };
             compiler-nix-name = "ghc8107";
 
             shell = {

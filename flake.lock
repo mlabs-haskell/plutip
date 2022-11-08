@@ -70,14 +70,18 @@
         "typed-protocols": "typed-protocols"
       },
       "locked": {
-        "lastModified": 1667904733,
-        "narHash": "sha256-ZguG79zFS7P5GIdulTSw93Uw3osO6X9IVQWjMfoIsPI=",
-        "type": "git",
-        "url": "file:///home/bladyjoker/Desktop/bot-plutus-interface"
+        "lastModified": 1667921196,
+        "narHash": "sha256-y+BE9MHA4ax74MlSAeFx4PoFIUFyc2BMtmRLwM9VPTY=",
+        "owner": "mlabs-haskell",
+        "repo": "bot-plutus-interface",
+        "rev": "c6afc3b395f3d3d6e83b0f0474d2278ebae1566f",
+        "type": "github"
       },
       "original": {
-        "type": "git",
-        "url": "file:///home/bladyjoker/Desktop/bot-plutus-interface"
+        "owner": "mlabs-haskell",
+        "ref": "sam/add-vasil-features",
+        "repo": "bot-plutus-interface",
+        "type": "github"
       }
     },
     "cabal-32": {

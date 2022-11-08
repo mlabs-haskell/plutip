@@ -11,7 +11,7 @@
       flake = false;
     };
     bot-plutus-interface.url =
-      "github:mlabs-haskell/bot-plutus-interface/sam/add-vasil-features";
+      "/home/bladyjoker/Desktop/bot-plutus-interface"; #"github:mlabs-haskell/bot-plutus-interface/sam/add-vasil-features";
   };
 
   outputs =

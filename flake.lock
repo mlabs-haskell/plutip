@@ -70,18 +70,14 @@
         "typed-protocols": "typed-protocols"
       },
       "locked": {
-        "lastModified": 1667837036,
-        "narHash": "sha256-nHC5ZKweUD8qLsUq1YxbSqZqaiybuJDhrt2zCdPCBh8=",
-        "owner": "mlabs-haskell",
-        "repo": "bot-plutus-interface",
-        "rev": "c86949eda3eafb2e73b8f1769429e12ac065484f",
-        "type": "github"
+        "lastModified": 1667904733,
+        "narHash": "sha256-ZguG79zFS7P5GIdulTSw93Uw3osO6X9IVQWjMfoIsPI=",
+        "type": "git",
+        "url": "file:///home/bladyjoker/Desktop/bot-plutus-interface"
       },
       "original": {
-        "owner": "mlabs-haskell",
-        "ref": "sam/add-vasil-features",
-        "repo": "bot-plutus-interface",
-        "type": "github"
+        "type": "git",
+        "url": "file:///home/bladyjoker/Desktop/bot-plutus-interface"
       }
     },
     "cabal-32": {
@@ -799,17 +795,17 @@
     "plutus-apps": {
       "flake": false,
       "locked": {
-        "lastModified": 1666610226,
-        "narHash": "sha256-WFnwMDyexskoYNZk4CbiFLOt2I/zj5QBBYf3evgDLEk=",
+        "lastModified": 1667491945,
+        "narHash": "sha256-gVqaGFMlXU4HdMWRzRTzNG+WPUOtPr3GLHGhAtKOuuY=",
         "owner": "input-output-hk",
         "repo": "plutus-apps",
-        "rev": "991709a96310e5533cec3da30e78a9319737a151",
+        "rev": "a2045141fc0b4f14470ebf4679c6abe40aac4db7",
         "type": "github"
       },
       "original": {
         "owner": "input-output-hk",
         "repo": "plutus-apps",
-        "rev": "991709a96310e5533cec3da30e78a9319737a151",
+        "rev": "a2045141fc0b4f14470ebf4679c6abe40aac4db7",
         "type": "github"
       }
     },

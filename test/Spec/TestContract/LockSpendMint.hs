@@ -1,9 +1,11 @@
 module Spec.TestContract.LockSpendMint (lockThenSpend) where
 
+import BotPlutusInterface.Constraints (submitBpiTxConstraintsWith)
 import Control.Monad (void)
 import Data.List.NonEmpty qualified as NonEmpty
 import Data.Map qualified as Map
 import Data.Text (Text)
+import Data.Void (Void)
 import Ledger (
   Address,
   CardanoTx,
@@ -23,7 +25,7 @@ import Ledger.Scripts qualified as Scripts
 import Ledger.Typed.Scripts (TypedValidator, Validator, ValidatorTypes, mkUntypedMintingPolicy)
 import Ledger.Typed.Scripts qualified as TypedScripts
 import Ledger.Value (flattenValue, tokenName)
-import Plutus.Contract (Contract, awaitTxConfirmed, submitTx, submitTxConstraintsWith)
+import Plutus.Contract (Contract, awaitTxConfirmed)
 import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
 import Plutus.Script.Utils.V1.Scripts qualified as ScriptUtils
@@ -46,16 +48,16 @@ lockThenSpend = do
 lockAtScript :: Contract () EmptySchema Text (TxId, CardanoTx)
 lockAtScript = do
   let constr =
-        Constraints.mustPayToOtherScript
+        Constraints.mustPayToOtherScriptWithDatumInTx -- WARN: mustPayToOtherScript doesn't work with DatumNotFound
           (ScriptUtils.validatorHash validator)
           Scripts.unitDatum
           (adaValueOf 10)
   let constr2 =
-        Constraints.mustPayToOtherScript
+        Constraints.mustPayToOtherScriptWithDatumInTx -- WARN: mustPayToOtherScript doesn't work with DatumNotFound
           (ScriptUtils.validatorHash $ validator2 2)
           Scripts.unitDatum
           (adaValueOf 10)
-  tx <- submitTx (constr <> constr2)
+  tx <- submitBpiTxConstraintsWith @Void mempty (constr <> constr2) []
   awaitTxConfirmed $ getCardanoTxId tx
   pure (getCardanoTxId tx, tx)
 
@@ -87,10 +89,7 @@ spendFromScript = do
             Constraints.unspentOutputs (Map.fromList utxos2)
               <> Constraints.plutusV1OtherScript (validator2 2)
 
-      tx <-
-        submitTxConstraintsWith @TestLockSpend
-          (lookups1 <> lookups2)
-          (txc1 <> txc2)
+      tx <- submitBpiTxConstraintsWith @TestLockSpend (lookups1 <> lookups2) (txc1 <> txc2) []
       awaitTxConfirmed $ getCardanoTxId tx
       pure (getCardanoTxId tx, tx)
 

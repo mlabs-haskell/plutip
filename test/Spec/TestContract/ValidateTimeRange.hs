@@ -5,6 +5,8 @@ module Spec.TestContract.ValidateTimeRange (
   successTimeContract,
 ) where
 
+import BotPlutusInterface.Constraints (submitBpiTxConstraintsWith)
+import BotPlutusInterface.Constraints qualified as Constraints
 import Control.Monad (void)
 import Data.Map qualified as Map
 import Data.Text (Text)
@@ -32,6 +34,7 @@ import Ledger (
   validatorHash,
  )
 import Ledger.Ada qualified as Ada
+import Ledger.Constraints (otherData)
 import Ledger.Constraints qualified as Constraints
 import Ledger.TimeSlot (nominalDiffTimeToPOSIXTime)
 import Ledger.Typed.Scripts (mkUntypedValidator)
@@ -139,12 +142,11 @@ failingTimeContract slotLen = do
 
       validInterval = Interval (lowerBound startTime) (strictUpperBound endTime)
 
-  let constr =
-        Constraints.mustPayToOtherScript (validatorHash validator) unitDatum (Ada.adaValueOf 4)
-          <> Constraints.mustValidateIn validInterval
-
+  -- WARN: mustPayToOtherScript doesn't work with DatumNotFound
+  let constr = Constraints.mustPayToOtherScriptWithDatumInTx (validatorHash validator) unitDatum (Ada.adaValueOf 4)
+      lookups = otherData unitDatum
   void $ Contract.awaitTime endTime
-  tx <- Contract.submitTx constr
+  tx <- submitBpiTxConstraintsWith @TestTime lookups constr (Constraints.mustValidateInFixed validInterval)
   Contract.awaitTxConfirmed $ getCardanoTxId tx
   pure "Light debug done"
 
@@ -154,11 +156,12 @@ successTimeContract slotLen = lockAtScript >> unlockWithTimeCheck slotLen
 lockAtScript :: Contract () EmptySchema Text ()
 lockAtScript = do
   let constr =
-        Constraints.mustPayToOtherScript
+        Constraints.mustPayToOtherScriptWithDatumInTx -- WARN: mustPayToOtherScript doesn't work with DatumNotFound
           (validatorHash validator)
           unitDatum
           (Ada.adaValueOf 10)
-  tx <- Contract.submitTx constr
+      lookups = otherData unitDatum
+  tx <- submitBpiTxConstraintsWith @TestTime lookups constr []
   Contract.awaitTxConfirmed $ getCardanoTxId tx
 
 unlockWithTimeCheck :: NominalDiffTime -> Contract () EmptySchema Text ()
@@ -180,7 +183,6 @@ unlockWithTimeCheck slotLen = do
       let txc =
             Hask.mconcat
               [ Constraints.mustSpendScriptOutput oref rmr
-              , Constraints.mustValidateIn rmrInterval
               ]
 
           lkps =
@@ -188,6 +190,6 @@ unlockWithTimeCheck slotLen = do
               [ Constraints.otherScript validator
               , Constraints.unspentOutputs (Map.fromList utxos)
               ]
-      tx <- Contract.submitTxConstraintsWith @TestTime lkps txc
+      tx <- submitBpiTxConstraintsWith @TestTime lkps txc (Constraints.mustValidateInFixed rmrInterval)
       Contract.awaitTxConfirmed (getCardanoTxId tx)
     rest -> Contract.throwError $ "Unlocking error: Unwanted set of utxos: " Hask.<> Text.pack (Hask.show rest)

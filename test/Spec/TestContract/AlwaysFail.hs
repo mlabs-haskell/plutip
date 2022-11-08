@@ -1,14 +1,18 @@
 module Spec.TestContract.AlwaysFail (lockThenFailToSpend) where
 
+import BotPlutusInterface.Constraints (submitBpiTxConstraintsWith)
 import Control.Monad (void)
 import Data.Map qualified as Map
 import Data.Text (Text)
 import Data.Text qualified as Text
+import Data.Void (Void)
 import Ledger (
   Address,
+  Language (PlutusV1),
   ScriptContext,
-  Validator,
-  Versioned,
+  Validator (Validator),
+  Versioned (Versioned),
+  fromCompiledCode,
   getCardanoTxId,
   scriptHashAddress,
   unitDatum,
@@ -16,10 +20,11 @@ import Ledger (
   validatorHash,
  )
 import Ledger.Ada qualified as Ada
+import Ledger.Constraints (otherData)
 import Ledger.Constraints qualified as Constraints
 import Ledger.Typed.Scripts (TypedValidator, ValidatorTypes (DatumType, RedeemerType))
 import Ledger.Typed.Scripts qualified as Scripts
-import Plutus.Contract (Contract, awaitTxConfirmed, submitTx, submitTxConstraintsWith)
+import Plutus.Contract (Contract, awaitTxConfirmed, submitTxConstraintsWith)
 import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
 import PlutusTx qualified
@@ -37,11 +42,12 @@ lockThenFailToSpend = do
 lockAtScript :: Contract () EmptySchema Text ()
 lockAtScript = do
   let constr =
-        Constraints.mustPayToOtherScript
+        Constraints.mustPayToOtherScriptWithDatumInTx -- WARN: mustPayToOtherScript doesn't work with DatumNotFound
           (validatorHash validator)
           unitDatum
           (Ada.adaValueOf 10)
-  tx <- submitTx constr
+      lookups = otherData unitDatum
+  tx <- submitBpiTxConstraintsWith @Void lookups constr []
   awaitTxConfirmed $ getCardanoTxId tx
 
 spendFromScript :: Contract () EmptySchema Text ()
@@ -78,8 +84,11 @@ typedValidator =
   where
     wrap = Scripts.mkUntypedValidator @() @()
 
+compiled :: Validator
+compiled = Validator $ fromCompiledCode $$(PlutusTx.compile [||mkValidator||])
+
 validator :: Versioned Validator
-validator = Scripts.vValidatorScript typedValidator
+validator = Versioned compiled PlutusV1
 
 validatorAddr :: Address
 validatorAddr = scriptHashAddress (validatorHash validator)

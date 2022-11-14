@@ -70,11 +70,11 @@
         "typed-protocols": "typed-protocols"
       },
       "locked": {
-        "lastModified": 1668366207,
-        "narHash": "sha256-wB0Kmt1zTjMZsM/t2HyFteVJOrldXuo0JYmcfR4RxcU=",
+        "lastModified": 1668442537,
+        "narHash": "sha256-idvqB6ASyusRo3qQ17cV2IcMpxAq5Gu6aVYQh865mEA=",
         "owner": "mlabs-haskell",
         "repo": "bot-plutus-interface",
-        "rev": "f0bc00fbeda8e21a16fb752598302ac46ec94689",
+        "rev": "b898468402600ab386c72d81ce582114c47ad9e0",
         "type": "github"
       },
       "original": {

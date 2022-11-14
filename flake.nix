@@ -2,9 +2,17 @@
   description = "plutip";
 
   inputs = {
-    haskell-nix.follows = "bot-plutus-interface/haskell-nix";
-    nixpkgs.follows = "bot-plutus-interface/haskell-nix/nixpkgs";
-    iohk-nix.follows = "bot-plutus-interface/iohk-nix";
+    haskell-nix = {
+      url = "github:input-output-hk/haskell.nix?ref=31b4ff7b3cf1b6537da08ca7c20f4a7ab96fe397";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+
+    nixpkgs.follows = "haskell-nix/nixpkgs-unstable";
+
+    iohk-nix = {
+      url = "github:input-output-hk/iohk-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
     flake-compat = {
       url = "github:edolstra/flake-compat";

@@ -1,9 +1,6 @@
 index-state: 2022-05-18T00:00:00Z
 
-packages: ./bot-plutus-interface.cabal
-          ./examples/plutus-game/plutus-game.cabal
-          ./examples/plutus-transfer/plutus-transfer.cabal
-          ./examples/plutus-nft/plutus-nft.cabal
+packages: ./.
 
 --
 -- The following section constrains the build plan to what we currently

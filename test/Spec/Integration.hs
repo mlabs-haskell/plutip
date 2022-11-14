@@ -50,7 +50,7 @@ import Test.Plutip.Internal.Types (
   isException,
  )
 import Test.Plutip.LocalCluster (BpiWallet, withConfiguredCluster)
-import Test.Plutip.Options (TraceOption (ShowBudgets, ShowTraceButOnlyContext))
+import Test.Plutip.Options (TraceOption (ShowBudgets, ShowTraceButOnlyContext, ShowTrace))
 import Test.Plutip.Predicate (
   assertOverallBudget,
   budgetsFitUnder,
@@ -69,6 +69,7 @@ import Test.Plutip.Predicate (
  )
 import Test.Plutip.Predicate qualified as Predicate
 import Test.Tasty (TestTree)
+import qualified Spec.TestContract.MustBeSignedBy as MustBeSignedBy
 
 test :: TestTree
 test =
@@ -220,6 +221,11 @@ test =
           , -- Test `adjustUnbalancedTx`
             runAdjustTest
           , testBugMintAndPay
+          , assertExecutionWith @Text [ShowTrace]
+              "MustBeSignedBy test should succeed"
+              (initAda [100])
+              (withContract $ const MustBeSignedBy.test)
+              [shouldSucceed]
           ]
           ++ testValueAssertionsOrderCorrectness
 

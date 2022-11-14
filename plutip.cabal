@@ -206,6 +206,7 @@ test-suite plutip-tests
     Spec.TestContract.MintAndPay
     Spec.TestContract.SimpleContracts
     Spec.TestContract.ValidateTimeRange
+    Spec.TestContract.MustBeSignedBy
 
   default-extensions:
     OverloadedStrings

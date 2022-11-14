@@ -223,9 +223,15 @@ test =
           , testBugMintAndPay
           , assertExecutionWith @Text
               [ShowTrace]
-              "MustBeSignedBy test should succeed"
+              "MustBeSignedBy: Signed by Self and requires Others should succeed"
               (initAda [100])
-              (withContract $ const MustBeSignedBy.test)
+              (withContract $ const MustBeSignedBy.testSignedBySelfAndRequiresOthers)
+              [shouldSucceed]
+          , assertExecutionWith @Text
+              [ShowTrace]
+              "MustBeSignedBy: Signed by none and requires Others should succeed"
+              (initAda [100])
+              (withContract $ const MustBeSignedBy.testSignedByNoneAndRequireOthers)
               [shouldSucceed]
           ]
           ++ testValueAssertionsOrderCorrectness

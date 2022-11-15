@@ -170,6 +170,6 @@ source-repository-package
 
 source-repository-package
     type: git
-    location: https://github.com/mlabs-haskell/bot-plutus-interface
-    tag: def9b215a974326eb7237df84bc4d07970c07294
-    --sha256: 00hpf3slbsnbzvgh4b92v7w0mppx8af3lxlyd14pk5rwysmgdh7r
+    location: https://github.com/jaredponn/bot-plutus-interface
+    tag: a17b38062eaa93f20ece085fb3d3ee340b0ff4ba
+    --sha256: bLEe9x/rNYxaZ+U1ue1AN/KvnuG2ZsADkcJcKdPLmIA=

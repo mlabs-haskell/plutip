@@ -267,6 +267,10 @@ executable local-cluster
     , plutip
     , positive
     , time
+    , unix
+    , containers
+    , aeson
+    , cardano-wallet-launcher
 
   ghc-options:   -Wall -threaded -rtsopts
 

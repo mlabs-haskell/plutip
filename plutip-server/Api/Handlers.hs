@@ -6,7 +6,7 @@ module Api.Handlers (
 import Cardano.Api (serialiseToCBOR)
 import Cardano.Launcher.Node (nodeSocketFile)
 import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (RunningNode))
-import Control.Concurrent.MVar (isEmptyMVar, putMVar, takeMVar)
+import Control.Concurrent.MVar (isEmptyMVar, putMVar, tryTakeMVar)
 import Control.Monad (unless)
 import Control.Monad.Except (runExceptT, throwError)
 import Control.Monad.Extra (unlessM)
@@ -98,10 +98,9 @@ startClusterHandler
 stopClusterHandler :: StopClusterRequest -> AppM StopClusterResponse
 stopClusterHandler StopClusterRequest = do
   statusMVar <- asks status
-  isClusterDown <- liftIO $ isEmptyMVar statusMVar
-  if isClusterDown
-    then pure $ StopClusterFailure "Cluster is not running"
-    else do
-      statusTVar <- liftIO $ takeMVar statusMVar
+  maybeClusterStatus <- liftIO $ tryTakeMVar statusMVar
+  case maybeClusterStatus of
+    Nothing -> pure $ StopClusterFailure "Cluster is not running"
+    Just statusTVar -> do
       liftIO $ stopCluster statusTVar
       pure $ StopClusterSuccess

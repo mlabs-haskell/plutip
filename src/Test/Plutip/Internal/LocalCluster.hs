@@ -20,7 +20,7 @@ import Cardano.Startup (installSignalHandlers, setDefaultFilePermissions, withUt
 import Cardano.Wallet.Logging (stdoutTextTracer, trMessageText)
 import Cardano.Wallet.Shelley.Launch (TempDirLog, withSystemTempDir)
 import Cardano.Wallet.Shelley.Launch.Cluster (ClusterLog, localClusterConfigFromEnv, testMinSeverityFromEnv, walletMinSeverityFromEnv, withCluster)
-import Control.Concurrent.Async (async)
+import Control.Concurrent.Async (Async, async, cancel)
 import Control.Monad (unless, void, when)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.IO.Unlift (MonadUnliftIO)
@@ -130,11 +130,11 @@ withPlutusInterface conf action = do
     handleLogs dir conf
     return result
   where
-    runActionWthSetup rn dir trCluster userActon = do
+    runActionWthSetup rn dir trCluster userAction = do
       let tracer' = trMessageText trCluster
       waitForRelayNode tracer' rn
       -- launch chain index in seperate thread, logs to stdout
-      ciPort <- launchChainIndex conf rn dir
+      (ciPort, runningChainIndex) <- launchChainIndex conf rn dir
       traceWith tracer' (ChaiIndexStartedAt ciPort)
       let cEnv =
             ClusterEnv
@@ -147,7 +147,7 @@ withPlutusInterface conf action = do
               }
 
       BotSetup.runSetup cEnv -- run preparations to use `bot-plutus-interface`
-      userActon cEnv -- executing user action on cluster
+      userAction cEnv `finally` cancel runningChainIndex -- executing user action on cluster
 
 -- Redirect stdout to a provided handle providing mask to temporarily revert back to initial stdout.
 withRedirectedStdoutHdl :: Handle -> ((forall b. IO b -> IO b) -> IO a) -> IO a
@@ -240,7 +240,7 @@ waitForRelayNode trCluster rn = do
     trace = traceWith trCluster WaitingRelayNode
 
 -- | Launch the chain index in a separate thread.
-launchChainIndex :: PlutipConfig -> RunningNode -> FilePath -> IO Int
+launchChainIndex :: PlutipConfig -> RunningNode -> FilePath -> IO (Int, Async ())
 launchChainIndex conf (RunningNode sp _block0 (_gp, _vData) _) dir = do
   config <- defaultConfig
   CM.setMinSeverity config Severity.Notice
@@ -256,8 +256,8 @@ launchChainIndex conf (RunningNode sp _block0 (_gp, _vData) _) dir = do
                 fromEnum
                 (chainIndexPort conf)
           }
-  void . async $ void $ ChainIndex.runMainWithLog (const $ return ()) config chainIndexConfig
-  return $ cicPort chainIndexConfig
+  running <- async $ ChainIndex.runMainWithLog (const $ return ()) config chainIndexConfig
+  return (cicPort chainIndexConfig, running)
 
 handleLogs :: HasCallStack => FilePath -> PlutipConfig -> IO ()
 handleLogs clusterDir conf =

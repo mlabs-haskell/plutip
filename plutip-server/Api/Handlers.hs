@@ -15,6 +15,7 @@ import Control.Monad.Reader (ReaderT, ask, asks)
 import Data.ByteString.Base16 qualified as Base16
 import Data.Default (def)
 import Data.Foldable (for_)
+import Data.Text (Text)
 import Data.Text.Encoding qualified as Text
 import Data.Traversable (for)
 import System.Directory (doesFileExist)
@@ -24,13 +25,15 @@ import Test.Plutip.Internal.BotPlutusInterface.Setup (keysDir)
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet (signKey), addSomeWallet)
 import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)
 import Test.Plutip.Internal.Types (ClusterEnv (runningNode))
-import Test.Plutip.LocalCluster (waitSeconds)
+import Test.Plutip.LocalCluster (cardanoMainnetAddress)
+import Test.Plutip.Tools.CardanoApi (awaitWalletFunded)
 import Types (
   AppM,
   ClusterStartupFailureReason (
     ClusterIsRunningAlready,
     NegativeLovelaces,
-    NodeConfigNotFound
+    NodeConfigNotFound,
+    WaitingForFundedWalletsFailed
   ),
   ClusterStartupParameters (
     ClusterStartupParameters,
@@ -65,32 +68,40 @@ startClusterHandler
     isClusterDown <- liftIO $ isEmptyMVar statusMVar
     unless isClusterDown $ throwError ClusterIsRunningAlready
     let cfg = def {relayNodeLogs = nodeLogs, chainIndexPort = Nothing}
-    (statusTVar, res@(clusterEnv, _)) <- liftIO $ startCluster cfg setup
+    (statusTVar, (clusterEnv, ewallets)) <- liftIO $ startCluster cfg setup
     liftIO $ putMVar statusMVar statusTVar
     let nodeConfigPath = getNodeConfigFile clusterEnv
     -- safeguard against directory tree structure changes
     unlessM (liftIO $ doesFileExist nodeConfigPath) $ throwError NodeConfigNotFound
-    pure $
-      ClusterStartupSuccess $
-        ClusterStartupParameters
-          { privateKeys = getWalletPrivateKey <$> snd res
-          , nodeSocketPath = getNodeSocketFile clusterEnv
-          , nodeConfigPath = nodeConfigPath
-          , keysDirectory = keysDir clusterEnv
-          }
+    case ewallets of
+      Left e -> throwError $ WaitingForFundedWalletsFailed e
+      Right wallets ->
+        pure $
+          ClusterStartupSuccess $
+            ClusterStartupParameters
+              { privateKeys = getWalletPrivateKey <$> wallets
+              , nodeSocketPath = getNodeSocketFile clusterEnv
+              , nodeConfigPath = nodeConfigPath
+              , keysDirectory = keysDir clusterEnv
+              }
     where
-      setup :: ReaderT ClusterEnv IO (ClusterEnv, [BpiWallet])
+      setup :: ReaderT ClusterEnv IO (ClusterEnv, Either Text [BpiWallet])
       setup = do
         env <- ask
         wallets <- do
           for keysToGenerate $ \lovelaceAmounts -> do
             addSomeWallet (fromInteger . unLovelace <$> lovelaceAmounts)
-        waitSeconds 2 -- wait for transactions to submit
-        pure (env, wallets)
+        waitRes <- for wallets $ \w -> awaitWalletFunded (cardanoMainnetAddress w)
+        case sequence_ waitRes of
+          Left e -> pure (env, Left e)
+          Right () -> do
+            pure $ (env, Right wallets)
+
       getNodeSocketFile (runningNode -> RunningNode conn _ _ _) = nodeSocketFile conn
       getNodeConfigFile =
         -- assumption is that node.config lies in the same directory as node.socket
         flip replaceFileName "node.config" . getNodeSocketFile
+
       getWalletPrivateKey :: BpiWallet -> PrivateKey
       getWalletPrivateKey = Text.decodeUtf8 . Base16.encode . serialiseToCBOR . signKey
       interpret = fmap (either ClusterStartupFailure id) . runExceptT

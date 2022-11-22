@@ -3,7 +3,8 @@ module Types (
   ClusterStartupFailureReason (
     ClusterIsRunningAlready,
     NegativeLovelaces,
-    NodeConfigNotFound
+    NodeConfigNotFound,
+    WaitingForFundedWalletsFailed
   ),
   Env (Env, status, options),
   ErrorMessage,
@@ -37,14 +38,7 @@ import Data.Text (Text)
 import GHC.Generics (Generic)
 import Network.Wai.Handler.Warp (Port)
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet)
-import Test.Plutip.Internal.LocalCluster (
-  ClusterStatus (
-    ClusterClosed,
-    ClusterClosing,
-    ClusterStarted,
-    ClusterStarting
-  ),
- )
+import Test.Plutip.Internal.LocalCluster (ClusterStatus)
 import Test.Plutip.Internal.Types (ClusterEnv)
 import UnliftIO.STM (TVar)
 
@@ -54,7 +48,7 @@ import UnliftIO.STM (TVar)
 -- cluster at any given moment).
 -- This MVar is used by start/stop handlers.
 -- The payload of ClusterStatus is irrelevant.
-type ClusterStatusRef = MVar (TVar (ClusterStatus (ClusterEnv, [BpiWallet])))
+type ClusterStatusRef = MVar (TVar (ClusterStatus (ClusterEnv, Either Text [BpiWallet])))
 
 data Env = Env
   { status :: ClusterStatusRef
@@ -111,6 +105,7 @@ data ClusterStartupFailureReason
   = ClusterIsRunningAlready
   | NegativeLovelaces
   | NodeConfigNotFound
+  | WaitingForFundedWalletsFailed Text
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
 

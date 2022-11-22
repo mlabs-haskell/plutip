@@ -4,6 +4,7 @@ module Test.Plutip.Tools.CardanoApi (
   utxosAtAddress,
   queryProtocolParams,
   queryTip,
+  awaitWalletFunded,
 ) where
 
 import Cardano.Api qualified as C
@@ -11,8 +12,16 @@ import Cardano.Api.Shelley (ProtocolParameters)
 import Cardano.Launcher.Node (nodeSocketFile)
 import Cardano.Slotting.Slot (WithOrigin)
 import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (RunningNode))
+import Control.Arrow (right)
 import Control.Exception (Exception)
+import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Reader (ReaderT, ask)
+import Control.Retry (constantDelay, limitRetries, retrying)
+import Data.Either (fromRight)
+import Data.Map qualified as M
 import Data.Set qualified as Set
+import Data.Text (Text)
+import Data.Text qualified as T
 import GHC.Generics (Generic)
 import Ouroboros.Consensus.HardFork.Combinator.AcrossEras (EraMismatch)
 import Ouroboros.Network.Protocol.LocalStateQuery.Type (AcquireFailure)
@@ -71,3 +80,29 @@ flattenQueryResult ::
 flattenQueryResult = \case
   Right (Right res) -> Right res
   err -> Left $ SomeError (show err)
+
+-- | Waits till specified address is funded using cardano-node query.
+-- Performs 20 tries with 0.2 seconds between tries, which should be a sane default.
+-- Waits till there's any utxos at an address - works for us as funds will be send with tx per address.
+awaitWalletFunded ::
+  C.AddressAny ->
+  ReaderT ClusterEnv IO (Either Text ())
+awaitWalletFunded addr = toErrorMsg <$> retrying policy checkResponse action
+  where
+    -- With current defaults the slot length is 0.2s and block gets produced about every second slot.
+    -- We are expected to wait 0.4s, waiting 4s we are almost guaranteed (p>0.9999)
+    delay = 200_000 -- in microseconds, 0.2s.
+    policy = constantDelay delay <> limitRetries 20
+
+    action _ = do
+      cenv <- ask
+      liftIO $ right (M.null . C.unUTxO) <$> utxosAtAddress cenv addr
+
+    checkResponse _ = return . fromRight False
+
+    toErrorMsg = \case
+      Left (SomeError e) -> Left $ T.pack e
+      Right noUtxos ->
+        if noUtxos
+          then Left "Funding transaction wasn't submitted yet and we're done waiting."
+          else Right ()

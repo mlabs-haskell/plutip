@@ -14,8 +14,6 @@ import Cardano.Slotting.Slot (WithOrigin)
 import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (RunningNode))
 import Control.Arrow (right)
 import Control.Exception (Exception)
-import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Reader (ReaderT, ask)
 import Control.Retry (constantDelay, limitRetries, retrying)
 import Data.Either (fromRight)
 import Data.Map qualified as M
@@ -85,18 +83,17 @@ flattenQueryResult = \case
 -- Performs 20 tries with 0.2 seconds between tries, which should be a sane default.
 -- Waits till there's any utxos at an address - works for us as funds will be send with tx per address.
 awaitWalletFunded ::
+  ClusterEnv ->
   C.AddressAny ->
-  ReaderT ClusterEnv IO (Either Text ())
-awaitWalletFunded addr = toErrorMsg <$> retrying policy checkResponse action
+  IO (Either Text ())
+awaitWalletFunded cenv addr = toErrorMsg <$> retrying policy checkResponse action
   where
     -- With current defaults the slot length is 0.2s and block gets produced about every second slot.
     -- We are expected to wait 0.4s, waiting 4s we are almost guaranteed (p>0.9999)
     delay = 200_000 -- in microseconds, 0.2s.
     policy = constantDelay delay <> limitRetries 20
 
-    action _ = do
-      cenv <- ask
-      liftIO $ right (M.null . C.unUTxO) <$> utxosAtAddress cenv addr
+    action _ = right (M.null . C.unUTxO) <$> utxosAtAddress cenv addr
 
     checkResponse _ = return . fromRight False
 

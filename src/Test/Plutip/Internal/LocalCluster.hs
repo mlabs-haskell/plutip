@@ -25,7 +25,7 @@ import Control.Monad (unless, void, when)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.IO.Unlift (MonadUnliftIO)
 import Control.Monad.Reader (ReaderT (runReaderT))
-import Control.Retry (constantDelay, limitRetries, recoverAll)
+import Control.Retry (constantDelay, limitRetries, recoverAll, recovering, logRetries)
 import Control.Tracer (Tracer, contramap, traceWith)
 import Data.Foldable (for_)
 import Data.Kind (Type)
@@ -44,7 +44,7 @@ import System.Directory (canonicalizePath, copyFile, createDirectoryIfMissing, d
 import System.Environment (setEnv)
 import System.Exit (die)
 import System.FilePath ((</>))
-import System.IO (IOMode (WriteMode), hClose, openFile, stdout)
+import System.IO (IOMode (WriteMode), hClose, openFile, stdout, stderr)
 import Test.Plutip.Config (
   PlutipConfig (
     chainIndexPort,
@@ -72,6 +72,8 @@ import Text.Printf (printf)
 import UnliftIO.Concurrent (forkFinally, myThreadId, throwTo)
 import UnliftIO.Exception (bracket, catchIO, finally)
 import UnliftIO.STM (TVar, atomically, newTVarIO, readTVar, retrySTM, writeTVar)
+import Cardano.Launcher (ProcessHasExited(ProcessHasExited))
+import qualified Data.ByteString.Char8 as B
 
 -- | Starting a cluster with a setup action
 -- We're heavily depending on cardano-wallet local cluster tooling, however they don't allow the
@@ -115,18 +117,18 @@ withPlutusInterface :: forall (a :: Type). PlutipConfig -> (ClusterEnv -> IO a) 
 withPlutusInterface conf action = do
   -- current setup requires `cardano-node` and `cardano-cli` as external processes
   checkProcessesAvailable ["cardano-node", "cardano-cli"]
-
   withLocalClusterSetup conf $ \dir clusterLogs _walletLogs nodeConfigLogHdl -> do
     result <- withLoggingNamed "cluster" clusterLogs $ \(_, (_, trCluster)) -> do
       let tr' = contramap MsgCluster $ trMessageText trCluster
       clusterCfg <- localClusterConfigFromEnv
       withRedirectedStdoutHdl nodeConfigLogHdl $ \restoreStdout ->
-        withCluster
-          tr'
-          dir
-          clusterCfg
-          []
-          (\rn -> restoreStdout $ runActionWthSetup rn dir trCluster action)
+        retryClusterFailedStartup $
+          withCluster
+            tr'
+            dir
+            clusterCfg
+            []
+            (\rn -> restoreStdout $ runActionWthSetup rn dir trCluster action)
     handleLogs dir conf
     return result
   where
@@ -148,6 +150,18 @@ withPlutusInterface conf action = do
 
       BotSetup.runSetup cEnv -- run preparations to use `bot-plutus-interface`
       userAction cEnv `finally` cancel runningChainIndex -- executing user action on cluster
+
+    -- | withCluster has a race condition between checking for available ports and claiming the ports.
+    -- This may cause failure at the cluster startup (the "resource busy (Address already in use)" error)
+    -- Given this is rare and the problem root sits in cardano-wallet, lets simply retry the startup few times full of hope.
+    retryClusterFailedStartup = 
+      let msg err = B.pack $ "Retrying cluster startup due to: " <> show err <> "\n"
+          shouldRetry = pure . \case 
+            ProcessHasExited _ _ -> True
+            _ -> False
+      in recovering (limitRetries 5)
+        [logRetries shouldRetry (\_ y _ -> B.hPutStr stderr $ msg y)]
+      . const
 
 -- Redirect stdout to a provided handle providing mask to temporarily revert back to initial stdout.
 withRedirectedStdoutHdl :: Handle -> ((forall b. IO b -> IO b) -> IO a) -> IO a

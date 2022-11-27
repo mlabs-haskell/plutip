@@ -3,8 +3,7 @@ module Types (
   ClusterStartupFailureReason (
     ClusterIsRunningAlready,
     NegativeLovelaces,
-    NodeConfigNotFound,
-    WaitingForFundedWalletsFailed
+    NodeConfigNotFound
   ),
   Env (Env, status, options),
   ErrorMessage,
@@ -105,7 +104,6 @@ data ClusterStartupFailureReason
   = ClusterIsRunningAlready
   | NegativeLovelaces
   | NodeConfigNotFound
-  | WaitingForFundedWalletsFailed Text
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
 

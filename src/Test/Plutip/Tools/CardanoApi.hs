@@ -8,6 +8,7 @@ module Test.Plutip.Tools.CardanoApi (
   queryProtocolParams,
   queryTip,
   awaitWalletFunded,
+  AwaitWalletFundedError (AwaitingCapiError, AwaitingTimeoutError),
 ) where
 
 import Cardano.Api qualified as C
@@ -21,8 +22,6 @@ import Control.Retry (constantDelay, limitRetries, retrying)
 import Data.Either (fromRight)
 import Data.Map qualified as M
 import Data.Set qualified as Set
-import Data.Text (Text)
-import Data.Text qualified as T
 import GHC.Generics (Generic)
 import Ouroboros.Consensus.HardFork.Combinator.AcrossEras (EraMismatch)
 import Test.Plutip.Internal.Types (ClusterEnv (runningNode))
@@ -81,13 +80,21 @@ flattenQueryResult = \case
   Right (Right res) -> Right res
   err -> Left $ SomeError (show err)
 
+data AwaitWalletFundedError
+  = AwaitingCapiError CardanoApiError
+  | AwaitingTimeoutError
+
+instance Show AwaitWalletFundedError where
+  show (AwaitingCapiError (SomeError e)) = e
+  show AwaitingTimeoutError = "Awaiting funding transaction timed out."
+
 -- | Waits till specified address is funded using cardano-node query.
 -- Performs 20 tries with 0.2 seconds between tries, which should be a sane default.
 -- Waits till there's any utxos at an address - works for us as funds will be send with tx per address.
 awaitWalletFunded ::
   ClusterEnv ->
   C.AddressAny ->
-  IO (Either Text ())
+  IO (Either AwaitWalletFundedError ())
 awaitWalletFunded cenv addr = toErrorMsg <$> retrying policy checkResponse action
   where
     -- With current defaults the slot length is 0.2s and block gets produced about every second slot.
@@ -100,8 +107,8 @@ awaitWalletFunded cenv addr = toErrorMsg <$> retrying policy checkResponse actio
     checkResponse _ = return . fromRight False
 
     toErrorMsg = \case
-      Left (SomeError e) -> Left $ T.pack e
+      Left e -> Left $ AwaitingCapiError e
       Right noUtxos ->
         if noUtxos
-          then Left "Funding transaction wasn't submitted yet and we're done waiting."
+          then Left AwaitingTimeoutError
           else Right ()

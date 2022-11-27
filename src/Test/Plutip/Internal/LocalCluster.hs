@@ -15,6 +15,7 @@ import Cardano.BM.Configuration.Model qualified as CM
 import Cardano.BM.Data.Severity qualified as Severity
 import Cardano.BM.Data.Tracer (HasPrivacyAnnotation, HasSeverityAnnotation (getSeverityAnnotation))
 import Cardano.CLI (LogOutput (LogToFile), withLoggingNamed)
+import Cardano.Launcher (ProcessHasExited (ProcessHasExited))
 import Cardano.Launcher.Node (nodeSocketFile)
 import Cardano.Startup (installSignalHandlers, setDefaultFilePermissions, withUtf8Encoding)
 import Cardano.Wallet.Logging (stdoutTextTracer, trMessageText)
@@ -25,8 +26,9 @@ import Control.Monad (unless, void, when)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.IO.Unlift (MonadUnliftIO)
 import Control.Monad.Reader (ReaderT (runReaderT))
-import Control.Retry (constantDelay, limitRetries, recoverAll, recovering, logRetries)
+import Control.Retry (constantDelay, limitRetries, logRetries, recoverAll, recovering)
 import Control.Tracer (Tracer, contramap, traceWith)
+import Data.ByteString.Char8 qualified as B
 import Data.Foldable (for_)
 import Data.Kind (Type)
 import Data.Maybe (catMaybes, fromMaybe, isJust)
@@ -44,7 +46,7 @@ import System.Directory (canonicalizePath, copyFile, createDirectoryIfMissing, d
 import System.Environment (setEnv)
 import System.Exit (die)
 import System.FilePath ((</>))
-import System.IO (IOMode (WriteMode), hClose, openFile, stdout, stderr)
+import System.IO (IOMode (WriteMode), hClose, openFile, stderr, stdout)
 import Test.Plutip.Config (
   PlutipConfig (
     chainIndexPort,
@@ -72,8 +74,6 @@ import Text.Printf (printf)
 import UnliftIO.Concurrent (forkFinally, myThreadId, throwTo)
 import UnliftIO.Exception (bracket, catchIO, finally)
 import UnliftIO.STM (TVar, atomically, newTVarIO, readTVar, retrySTM, writeTVar)
-import Cardano.Launcher (ProcessHasExited(ProcessHasExited))
-import qualified Data.ByteString.Char8 as B
 
 -- | Starting a cluster with a setup action
 -- We're heavily depending on cardano-wallet local cluster tooling, however they don't allow the
@@ -151,17 +151,19 @@ withPlutusInterface conf action = do
       BotSetup.runSetup cEnv -- run preparations to use `bot-plutus-interface`
       userAction cEnv `finally` cancel runningChainIndex -- executing user action on cluster
 
-    -- | withCluster has a race condition between checking for available ports and claiming the ports.
+    -- withCluster has a race condition between checking for available ports and claiming the ports.
     -- This may cause failure at the cluster startup (the "resource busy (Address already in use)" error)
     -- Given this is rare and the problem root sits in cardano-wallet, lets simply retry the startup few times full of hope.
-    retryClusterFailedStartup = 
+    retryClusterFailedStartup =
       let msg err = B.pack $ "Retrying cluster startup due to: " <> show err <> "\n"
-          shouldRetry = pure . \case 
-            ProcessHasExited _ _ -> True
-            _ -> False
-      in recovering (limitRetries 5)
-        [logRetries shouldRetry (\_ y _ -> B.hPutStr stderr $ msg y)]
-      . const
+          shouldRetry =
+            pure . \case
+              ProcessHasExited _ _ -> True
+              _ -> False
+       in recovering
+            (limitRetries 5)
+            [logRetries shouldRetry (\_ y _ -> B.hPutStr stderr $ msg y)]
+            . const
 
 -- Redirect stdout to a provided handle providing mask to temporarily revert back to initial stdout.
 withRedirectedStdoutHdl :: Handle -> ((forall b. IO b -> IO b) -> IO a) -> IO a

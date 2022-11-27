@@ -39,9 +39,7 @@ import Data.Time (NominalDiffTime)
 import GHC.Generics (Generic)
 import Network.Wai.Handler.Warp (Port)
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet)
-import Test.Plutip.Internal.LocalCluster (
-  ClusterStatus,
- )
+import Test.Plutip.Internal.LocalCluster (ClusterStatus)
 import Test.Plutip.Internal.Types (ClusterEnv)
 import UnliftIO.STM (TVar)
 

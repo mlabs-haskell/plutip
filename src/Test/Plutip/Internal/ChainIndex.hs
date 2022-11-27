@@ -7,8 +7,7 @@ import Cardano.BM.Configuration.Model qualified as CM
 import Cardano.BM.Data.Severity qualified as Severity
 import Cardano.Launcher.Node (nodeSocketFile)
 
-import Control.Concurrent.Async (async)
-import Control.Monad (void)
+import Control.Concurrent.Async (Async, async)
 import Control.Retry (constantDelay, limitRetries, recoverAll)
 import Plutus.ChainIndex.App qualified as ChainIndex
 import Plutus.ChainIndex.Config qualified as ChainIndex
@@ -48,7 +47,7 @@ handleChainIndexLaunch ::
   ChainIndexMode ->
   RunningNode ->
   FilePath ->
-  IO (Maybe ChainIndexPort)
+  IO (Maybe (ChainIndexPort, Async ()))
 handleChainIndexLaunch mode rn dir = do
   maybePort <-
     case mode of
@@ -57,7 +56,7 @@ handleChainIndexLaunch mode rn dir = do
       CustomPort port' -> do
         Just <$> launchChainIndex (fromEnum port') rn dir
       NotNeeded -> pure Nothing
-  reportLaunch maybePort
+  reportLaunch $ fst <$> maybePort
   pure maybePort
   where
     reportLaunch = \case
@@ -65,7 +64,7 @@ handleChainIndexLaunch mode rn dir = do
       _ -> pure ()
 
 -- | Launch the chain index in a separate thread.
-launchChainIndex :: Int -> RunningNode -> FilePath -> IO Int
+launchChainIndex :: Int -> RunningNode -> FilePath -> IO (Int, Async ())
 launchChainIndex port (RunningNode sp _block0 (netParams, _vData) _) dir = do
   let (NetworkParameters _ (SlottingParameters (SlotLength slotLen) _ _ _) _) = netParams
 
@@ -80,9 +79,9 @@ launchChainIndex port (RunningNode sp _block0 (netParams, _vData) _) dir = do
           & CIC.port .~ port
           & CIC.slotConfig .~ (def {scSlotLength = toMilliseconds slotLen})
 
-  void $ async $ void $ ChainIndex.runMainWithLog (const $ return ()) config chainIndexConfig
+  running <- async $ ChainIndex.runMainWithLog (const $ return ()) config chainIndexConfig
   waitForChainIndex
-  return $ chainIndexConfig ^. CIC.port
+  return (chainIndexConfig ^. CIC.port, running)
   where
     toMilliseconds = floor . (1e3 *) . nominalDiffTimeToSeconds
 

@@ -7,7 +7,7 @@ import Cardano.Api (serialiseToCBOR)
 import Cardano.Launcher.Node (nodeSocketFile)
 import Test.Plutip.Tools.CardanoApi qualified as Tools
 
-import Control.Concurrent.MVar (isEmptyMVar, putMVar, takeMVar)
+import Control.Concurrent.MVar (isEmptyMVar, putMVar, tryTakeMVar)
 import Control.Monad (unless)
 import Control.Monad.Except (runExceptT, throwError)
 import Control.Monad.Extra (unlessM)
@@ -83,7 +83,7 @@ startClusterHandler
     let extraConf = ExtraConfig slotLength epochSize
         cfg = def {relayNodeLogs = nodeLogs, chainIndexMode = NotNeeded, extraConfig = extraConf}
 
-    (statusTVar, res@(clusterEnv, _)) <- liftIO $ startCluster cfg setup
+    (statusTVar, (clusterEnv, wallets)) <- liftIO $ startCluster cfg setup
     liftIO $ putMVar statusMVar statusTVar
     let nodeConfigPath = getNodeConfigFile clusterEnv
     -- safeguard against directory tree structure changes
@@ -91,7 +91,7 @@ startClusterHandler
     pure $
       ClusterStartupSuccess $
         ClusterStartupParameters
-          { privateKeys = getWalletPrivateKey <$> snd res
+          { privateKeys = getWalletPrivateKey <$> wallets
           , nodeSocketPath = getNodeSocketFile clusterEnv
           , nodeConfigPath = nodeConfigPath
           , keysDirectory = keysDir clusterEnv
@@ -110,6 +110,7 @@ startClusterHandler
       getNodeConfigFile =
         -- assumption is that node.config lies in the same directory as node.socket
         flip replaceFileName "node.config" . getNodeSocketFile
+
       getWalletPrivateKey :: BpiWallet -> PrivateKey
       getWalletPrivateKey = Text.decodeUtf8 . Base16.encode . serialiseToCBOR . signKey
       interpret = fmap (either ClusterStartupFailure id) . runExceptT
@@ -123,10 +124,9 @@ startClusterHandler
 stopClusterHandler :: StopClusterRequest -> AppM StopClusterResponse
 stopClusterHandler StopClusterRequest = do
   statusMVar <- asks status
-  isClusterDown <- liftIO $ isEmptyMVar statusMVar
-  if isClusterDown
-    then pure $ StopClusterFailure "Cluster is not running"
-    else do
-      statusTVar <- liftIO $ takeMVar statusMVar
+  maybeClusterStatus <- liftIO $ tryTakeMVar statusMVar
+  case maybeClusterStatus of
+    Nothing -> pure $ StopClusterFailure "Cluster is not running"
+    Just statusTVar -> do
       liftIO $ stopCluster statusTVar
       pure StopClusterSuccess

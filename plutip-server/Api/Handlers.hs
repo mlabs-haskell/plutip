@@ -6,16 +6,16 @@ module Api.Handlers (
 import Cardano.Api (serialiseToCBOR)
 import Cardano.Launcher.Node (nodeSocketFile)
 import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (RunningNode))
-import Control.Arrow (left)
 import Control.Concurrent.MVar (isEmptyMVar, putMVar, tryTakeMVar)
 import Control.Monad (unless)
-import Control.Monad.Except (ExceptT (ExceptT), runExceptT, throwError)
+import Control.Monad.Except (runExceptT, throwError)
 import Control.Monad.Extra (unlessM)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ReaderT, ask, asks)
 import Data.ByteString.Base16 qualified as Base16
 import Data.Default (def)
 import Data.Foldable (for_)
+import Data.List.Extra (firstJust)
 import Data.Text.Encoding qualified as Text
 import Data.Traversable (for)
 import System.Directory (doesFileExist)
@@ -26,14 +26,13 @@ import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet (signKey), addS
 import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)
 import Test.Plutip.Internal.Types (ClusterEnv (runningNode))
 import Test.Plutip.LocalCluster (cardanoMainnetAddress)
-import Test.Plutip.Tools.CardanoApi (awaitWalletFunded)
+import Test.Plutip.Tools.CardanoApi (AwaitWalletFundedError (AwaitingCapiError, AwaitingTimeoutError), awaitWalletFunded)
 import Types (
   AppM,
   ClusterStartupFailureReason (
     ClusterIsRunningAlready,
     NegativeLovelaces,
-    NodeConfigNotFound,
-    WaitingForFundedWalletsFailed
+    NodeConfigNotFound
   ),
   ClusterStartupParameters (
     ClusterStartupParameters,
@@ -54,6 +53,7 @@ import Types (
   StopClusterRequest (StopClusterRequest),
   StopClusterResponse (StopClusterFailure, StopClusterSuccess),
  )
+import UnliftIO.Exception (throwString)
 
 startClusterHandler :: ServerOptions -> StartClusterRequest -> AppM StartClusterResponse
 startClusterHandler
@@ -70,7 +70,10 @@ startClusterHandler
     let cfg = def {relayNodeLogs = nodeLogs, chainIndexPort = Nothing}
     (statusTVar, (clusterEnv, wallets)) <- liftIO $ startCluster cfg setup
     liftIO $ putMVar statusMVar statusTVar
-    waitForFundingTxs clusterEnv wallets
+    res <- liftIO $ waitForFundingTxs clusterEnv wallets
+    -- throw Exception for cardano-cli errors.
+    -- Ignore wait timeout error - return from this handler doesn't guarantee funded wallets immedietely.
+    maybe (return ()) throwString res
     let nodeConfigPath = getNodeConfigFile clusterEnv
     -- safeguard against directory tree structure changes
     unlessM (liftIO $ doesFileExist nodeConfigPath) $ throwError NodeConfigNotFound
@@ -92,10 +95,17 @@ startClusterHandler
         return (env, wallets)
 
       -- wait for confirmation of funding txs, throw the first error if there's any
-      waitForFundingTxs clusterEnv wallets =
-        ExceptT . liftIO . fmap (left WaitingForFundedWalletsFailed . sequence_) $
-          for wallets $ \w ->
-            awaitWalletFunded clusterEnv (cardanoMainnetAddress w)
+      waitForFundingTxs clusterEnv wallets = do
+        res <- for wallets $ \w ->
+          awaitWalletFunded clusterEnv (cardanoMainnetAddress w)
+        return $
+          firstJust
+            ( \case
+                Left (AwaitingCapiError e) -> Just $ show e
+                Left AwaitingTimeoutError -> Nothing
+                Right () -> Nothing
+            )
+            res
 
       getNodeSocketFile (runningNode -> RunningNode conn _ _ _) = nodeSocketFile conn
       getNodeConfigFile =

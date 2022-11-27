@@ -6,6 +6,8 @@ module Api.Handlers (
 import Cardano.Api (serialiseToCBOR)
 import Cardano.Launcher.Node (nodeSocketFile)
 import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (RunningNode))
+import Control.Concurrent (threadDelay)
+import Control.Concurrent.Async (race)
 import Control.Concurrent.MVar (isEmptyMVar, putMVar, tryTakeMVar)
 import Control.Monad (unless)
 import Control.Monad.Except (runExceptT, throwError)
@@ -14,6 +16,7 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ReaderT, ask, asks)
 import Data.ByteString.Base16 qualified as Base16
 import Data.Default (def)
+import Data.Either (fromRight)
 import Data.Foldable (for_)
 import Data.List.Extra (firstJust)
 import Data.Text.Encoding qualified as Text
@@ -70,10 +73,10 @@ startClusterHandler
     let cfg = def {relayNodeLogs = nodeLogs, chainIndexPort = Nothing}
     (statusTVar, (clusterEnv, wallets)) <- liftIO $ startCluster cfg setup
     liftIO $ putMVar statusMVar statusTVar
-    res <- liftIO $ waitForFundingTxs clusterEnv wallets
+    res <- liftIO $ race (threadDelay 2_000_000) $ waitForFundingTxs clusterEnv wallets
     -- throw Exception for cardano-cli errors.
     -- Ignore wait timeout error - return from this handler doesn't guarantee funded wallets immedietely.
-    maybe (return ()) throwString res
+    maybe (return ()) throwString $ fromRight Nothing res
     let nodeConfigPath = getNodeConfigFile clusterEnv
     -- safeguard against directory tree structure changes
     unlessM (liftIO $ doesFileExist nodeConfigPath) $ throwError NodeConfigNotFound

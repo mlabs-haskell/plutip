@@ -42,7 +42,7 @@ lockThenFailToSpend = do
 lockAtScript :: Contract () EmptySchema Text ()
 lockAtScript = do
   let constr =
-        Constraints.mustPayToOtherScriptWithDatumInTx -- WARN: mustPayToOtherScript doesn't work with DatumNotFound
+        Constraints.mustPayToOtherScriptWithDatumInTx -- WARN: at the moment `mustPayToOtherScript` causes `DatumNotFound` error during constraints resolution
           (validatorHash validator)
           unitDatum
           (Ada.adaValueOf 10)

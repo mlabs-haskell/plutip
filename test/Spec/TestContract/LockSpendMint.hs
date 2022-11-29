@@ -48,12 +48,12 @@ lockThenSpend = do
 lockAtScript :: Contract () EmptySchema Text (TxId, CardanoTx)
 lockAtScript = do
   let constr =
-        Constraints.mustPayToOtherScriptWithDatumInTx -- WARN: mustPayToOtherScript doesn't work with DatumNotFound
+        Constraints.mustPayToOtherScriptWithDatumInTx -- WARN: at the moment `mustPayToOtherScript` causes `DatumNotFound` error during constraints resolution
           (ScriptUtils.validatorHash validator)
           Scripts.unitDatum
           (adaValueOf 10)
   let constr2 =
-        Constraints.mustPayToOtherScriptWithDatumInTx -- WARN: mustPayToOtherScript doesn't work with DatumNotFound
+        Constraints.mustPayToOtherScriptWithDatumInTx -- WARN: at the moment `mustPayToOtherScript` causes `DatumNotFound` error during constraints resolution
           (ScriptUtils.validatorHash $ validator2 2)
           Scripts.unitDatum
           (adaValueOf 10)

@@ -6,6 +6,8 @@ This format is based on [Keep A Changelog](https://keepachangelog.com/en/1.0.0).
 
 - Wallets with Base Address support
 - Lookups for wallets in tasty integration
+- Update BPI to support Vasil features
+- Add `dump-info-json` to local-cluster
 
 ## [1.3.1] - 2022-11-04
 

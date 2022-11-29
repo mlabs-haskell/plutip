@@ -55,7 +55,7 @@ import Test.Plutip.Internal.Types (
   isException,
  )
 import Test.Plutip.LocalCluster (BpiWallet, withConfiguredCluster)
-import Test.Plutip.Options (TraceOption (ShowBudgets, ShowTrace, ShowTraceButOnlyContext))
+import Test.Plutip.Options (TraceOption (ShowBudgets, ShowTraceButOnlyContext))
 import Test.Plutip.Predicate (
   assertOverallBudget,
   budgetsFitUnder,
@@ -242,8 +242,7 @@ runSimpleTest ::
   Contract.Contract Text s Text a ->
   (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
 runSimpleTest msg contract =
-  assertExecutionWith @Text
-    [ShowTrace]
+  assertExecution @Text
     msg
     (initAda [100])
     (withContract $ const contract)

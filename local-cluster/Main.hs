@@ -10,7 +10,7 @@ module Main (main) where
 import Cardano.Launcher.Node (CardanoNodeConn, nodeSocketFile)
 import Cardano.Ledger.Slot (EpochSize (EpochSize))
 import Control.Applicative (optional, (<**>), (<|>))
-import Control.Monad (forM_, replicateM)
+import Control.Monad (forM_, replicateM, void)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (MonadReader (ask), ReaderT (ReaderT), lift)
 import Data.Aeson (FromJSON, ToJSON, encodeFile)
@@ -69,14 +69,16 @@ main = do
         liftIO $ forM_ (zip ws [(1 :: Int) ..]) printWallet
         printNodeRelatedInfo
         separate
-        cEnv <- ask
-        lift $
-          dumpClusterInfo
-            (dumpInfo config)
-            (nodeSocket cEnv)
-            ws
 
-      _ <- installHandler sigINT (termHandler st) Nothing
+        forM_ (dumpInfo config) $ \dInfo -> do
+          cEnv <- ask
+          lift $
+            dumpClusterInfo
+              dInfo
+              (nodeSocket cEnv)
+              ws
+
+      void $ installHandler sigINT (termHandler st) Nothing
       putStrLn "Cluster is running. Ctrl-C to stop."
       loopThreadDelay
   where
@@ -237,15 +239,15 @@ pChainIndexMode =
             <> Options.help "Start cluster with chain-index on custom port"
         )
 
-pInfoJson :: Parser FilePath
+pInfoJson :: Parser (Maybe FilePath)
 pInfoJson =
-  Options.strOption
-    ( Options.long "dump-info-json"
-        <> Options.long "dump-info-json"
-        <> Options.metavar "FILEPATH"
-        <> Options.help "After starting the cluster add some useful runtime information to a JSON file (wallets, node socket path etc)"
-        <> Options.value "local-cluster-info.json"
-    )
+  optional $
+    Options.strOption
+      ( Options.long "dump-info-json"
+          <> Options.metavar "FILEPATH"
+          <> Options.help "After starting the cluster, add some useful runtime information to a JSON file (wallets, node socket path etc)"
+          <> Options.value "local-cluster-info.json"
+      )
 
 pClusterConfig :: Parser ClusterConfig
 pClusterConfig =
@@ -273,6 +275,6 @@ data ClusterConfig = ClusterConfig
   , slotLength :: NominalDiffTime
   , epochSize :: EpochSize
   , cIndexMode :: ChainIndexMode
-  , dumpInfo :: FilePath
+  , dumpInfo :: Maybe FilePath
   }
   deriving stock (Show, Eq)

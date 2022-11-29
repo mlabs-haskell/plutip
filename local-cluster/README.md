@@ -41,6 +41,7 @@ Full | Short | Description
 --slot-len SECONDS | -s SECONDS | Sets slot length of created network, is seconds. E.g. `--slot-len 1s`, `-s 0.2s`. <br /> Addition of `s` is important for correct parsing of this option.
 --epoch-size NUM | -e NUM | Sets epoch size of created network, is slots.
 --chain-index-port PORT<br />or<br />--no-index| - | With `--chain-index-port` and `PORT` specified `chain-index` will be launched on specified port together with private network.<br /> With `--no-index` only private network will be launched without `chain-index`.<br /> When nothing specified `chain-index` will be launched on default port `9083`.<br />
+--dump-info-json /path/<br />or<br />--dump-info-json | - | Sets a path for which to write some preliminary runtime information (wallets and node socket). Defaults to `./local-cluster-info.json`
 
 ## Making own local network launcher
 

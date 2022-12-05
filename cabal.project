@@ -22,61 +22,57 @@ allow-newer:
   , size-based:template-haskell
 
 constraints:
-    aeson >= 2
-  , hedgehog >= 1.1
-  , algebraic-graphs == 0.6.1
-  , resource-pool == 0.2.3.2
-  , generic-arbitrary == 0.2.2
-    -- TODO: these should be set in cabal files, but avoiding setting them in lower dependencies for initial CHaP release
-  , cardano-prelude == 0.1.0.0
-  , base-deriving-via == 0.1.0.0
-  , cardano-binary  == 1.5.0
-  , cardano-binary-test == 1.3.0
-  , cardano-crypto-class  == 2.0.0.0.1
-  , cardano-crypto-praos  == 2.0.0.0.1
-  , cardano-crypto-tests  == 2.0.0.0.1
-  , cardano-prelude == 0.1.0.0
-  , cardano-slotting  == 0.1.0.0
-  , measures == 0.1.0.0
-  , orphans-deriving-via == 0.1.0.0
-  , strict-containers == 0.1.0.0
-  , plutus-core == 1.0.0.1
-  , plutus-ledger-api == 1.0.0.1
-  , plutus-tx == 1.0.0.0
-  , plutus-tx-plugin == 1.0.0.0
-  , protolude == 0.3.0
-  , prettyprinter-configurable == 0.1.0.0
-  , plutus-ghc-stub == 8.6.5
-  , word-array == 0.1.0.0
+  -- cardano-prelude-0.1.0.0 needs
+  , protolude <0.3.1
+
+  -- cardano-ledger-byron-0.1.0.0 needs
+  , cardano-binary <1.5.0.1
+
+  -- plutus-core-1.0.0.1 needs
+  , cardano-crypto-class >2.0.0.0
+  , algebraic-graphs <0.7
+
+  -- cardano-ledger-core-0.1.0.0 needs
+  , cardano-crypto-class <2.0.0.1
+
+  -- cardano-crypto-class-2.0.0.0.1 needs
+  , cardano-prelude <0.1.0.1
+
+  -- dbvar from cardano-wallet needs
+  , io-classes <0.3.0.0
+
+  -- newer typed-protocols need io-classes>=0.3.0.0 which is incompatible with dbvar's constraint above
+  , typed-protocols==0.1.0.0
 
 extra-packages:
     ouroboros-consensus-cardano-tools == 0.1.0.0
 
 source-repository-package
   type: git
-  location: https://github.com/mlabs-haskell/plutus-apps
-  tag: 31bfd4c7fff5158c9f2618b76b68dbbae410221d
-  --sha256: 1s9a6fvb29blgk540hacm6wh2dg8d2j21b1ddc0lhl53m47v1r1n
+  location: https://github.com/input-output-hk/plutus-apps
+  tag: 0951b871d6e1a8ec950d277c1f98920808199b12
+  --sha256: 1zv5qwivfifg6wpnz0l4rkp5dwyl2lv6ljlrx42k0f51zjga8yp5
   subdir:
+    cardano-streaming
     doc
     freer-extras
+    marconi
+    marconi-mamba
     playground-common
+    pab-blockfrost
     plutus-chain-index
     plutus-chain-index-core
     plutus-contract
-    plutus-example
-    plutus-hysterical-screams
     plutus-contract-certification
+    plutus-example
     plutus-ledger
     plutus-ledger-constraints
     plutus-pab
     plutus-pab-executables
-    plutus-playground-server
     plutus-script-utils
     plutus-tx-constraints
     plutus-use-cases
-    plutus-streaming
-    web-ghc
+    rewindable-index
 
 source-repository-package
   type: git
@@ -107,8 +103,8 @@ source-repository-package
 source-repository-package
    type: git
    location: https://github.com/input-output-hk/cardano-node
-   tag: 1.35.4-rc1
-   --sha256: 1f75j85fgj4y0n0fgnm4rkk728lz3azq02pnwa2nvn53andal8gx
+   tag: 1.35.4
+   --sha256: 1j01m2cp2vdcl26zx9xmipr551v3b2rz9kfn9ik8byfwj1z7652r
    subdir:
      cardano-api
      cardano-cli
@@ -126,21 +122,6 @@ source-repository-package
      trace-dispatcher
      trace-resources
      trace-forward
-
-
-source-repository-package
-  type: git
-  location: https://github.com/input-output-hk/moo
-  tag: 8c487714fbfdea66188fcb85053e7e292e0cc348
-  --sha256: 1mdj218hgh7s5a6b9k14vg9i06zxah0wa42ycdgh245izs8nfv0x
-
--- Open PR upstream, maintainer unresponsive, hopefully short-lived fork.
--- TODO (mpj): release into CHaP as a patched version and delete
-source-repository-package
-  type: git
-  location: https://github.com/vshabanov/ekg-json
-  tag: 00ebe7211c981686e65730b7144fbf5350462608
-  --sha256: 1zvjm3pb38w0ijig5wk5mdkzcszpmlp5d4zxvks2jk1rkypi8gsm
 
 source-repository-package
   type: git
@@ -171,5 +152,37 @@ source-repository-package
 source-repository-package
     type: git
     location: https://github.com/jaredponn/bot-plutus-interface
-    tag: a17b38062eaa93f20ece085fb3d3ee340b0ff4ba
-    --sha256: bLEe9x/rNYxaZ+U1ue1AN/KvnuG2ZsADkcJcKdPLmIA=
+    tag: c0a4ae59405d717afa38e44a7e0f6d2ff9242701
+    --sha256: 15nnlwc13w4dglpk58fjwq3r21vrb2wp1yj8zwvhkmjnyzvx4cdm
+
+-- This is needed because we rely on an unreleased feature
+-- https://github.com/input-output-hk/cardano-ledger/pull/3111
+source-repository-package
+    type: git
+    location: https://github.com/input-output-hk/cardano-ledger
+    tag: da3e9ae10cf9ef0b805a046c84745f06643583c2
+    --sha256: 1jg1h05gcms119mw7fz798xpj3hr5h426ga934vixmgf88m1jmfx
+    subdir:
+      eras/alonzo/impl
+      eras/alonzo/test-suite
+      eras/babbage/impl
+      eras/babbage/test-suite
+      eras/byron/chain/executable-spec
+      eras/byron/crypto
+      eras/byron/crypto/test
+      eras/byron/ledger/executable-spec
+      eras/byron/ledger/impl
+      eras/byron/ledger/impl/test
+      eras/shelley/impl
+      eras/shelley/test-suite
+      eras/shelley-ma/impl
+      eras/shelley-ma/test-suite
+      libs/cardano-ledger-core
+      libs/cardano-ledger-pretty
+      libs/cardano-protocol-tpraos
+      libs/cardano-data
+      libs/vector-map
+      libs/set-algebra
+      libs/small-steps
+      libs/small-steps-test
+      libs/non-integral

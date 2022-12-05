@@ -12,7 +12,7 @@
       flake = false;
     };
 
-    bot-plutus-interface.url = github:jaredponn/bot-plutus-interface/a17b38062eaa93f20ece085fb3d3ee340b0ff4ba;
+    bot-plutus-interface.url = github:mlabs-haskell/bot-plutus-interface/c0a4ae59405d717afa38e44a7e0f6d2ff9242701;
   };
 
   outputs =

@@ -46,17 +46,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1668393527,
-        "narHash": "sha256-bLEe9x/rNYxaZ+U1ue1AN/KvnuG2ZsADkcJcKdPLmIA=",
-        "owner": "jaredponn",
+        "lastModified": 1670009096,
+        "narHash": "sha256-tTHS9/dW1gk3/0j6cLlYeQeRB+bSoTIvfY3wERin1pY=",
+        "owner": "mlabs-haskell",
         "repo": "bot-plutus-interface",
-        "rev": "a17b38062eaa93f20ece085fb3d3ee340b0ff4ba",
+        "rev": "c0a4ae59405d717afa38e44a7e0f6d2ff9242701",
         "type": "github"
       },
       "original": {
-        "owner": "jaredponn",
+        "owner": "mlabs-haskell",
         "repo": "bot-plutus-interface",
-        "rev": "a17b38062eaa93f20ece085fb3d3ee340b0ff4ba",
+        "rev": "c0a4ae59405d717afa38e44a7e0f6d2ff9242701",
         "type": "github"
       }
     },

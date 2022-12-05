@@ -9,7 +9,6 @@ module Test.Plutip.Tools.Address (
 
 import Cardano.Api qualified as CAPI
 import Cardano.Wallet.Primitive.Types.Address qualified as Wallet
-import Control.Arrow (left)
 import Data.Data (Proxy)
 import Data.Proxy (Proxy (Proxy))
 import Data.Text (Text)
@@ -18,7 +17,6 @@ import Plutus.V1.Ledger.Address qualified as Address
 
 data AddressConversionError
   = WalletToCardanoDeserializationError
-  | WalletToLedgerError Ledger.FromCardanoError
   deriving stock (Show)
 
 -- walletToCardano :: Wallet.Address -> Maybe (CAPI.Address CAPI.ShelleyAddr)
@@ -35,8 +33,7 @@ walletToCardanoAny = fmap CAPI.AddressShelley . walletToCardano
 
 walletToLedger :: Wallet.Address -> Either AddressConversionError Address.Address
 walletToLedger wAddr =
-  walletToCardano wAddr
-    >>= left WalletToLedgerError . convert
+  convert <$> walletToCardano wAddr
   where
     convert =
       Ledger.fromCardanoAddressInEra

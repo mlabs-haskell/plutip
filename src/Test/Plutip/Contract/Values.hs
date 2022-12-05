@@ -17,7 +17,7 @@ import Data.Row (Row)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Text.Encoding (decodeUtf8')
-import Ledger (Address, ChainIndexTxOut (PublicKeyChainIndexTxOut, ScriptChainIndexTxOut))
+import Ledger (Address,   DecoratedTxOut (PublicKeyDecoratedTxOut, ScriptDecoratedTxOut) )
 import Ledger.Ada qualified as Ada
 import Ledger.Value (CurrencySymbol (unCurrencySymbol), TokenName (unTokenName), Value)
 import Ledger.Value qualified as Value
@@ -38,9 +38,9 @@ valueAt addr = do
   utxos <- utxosAt addr
   pure . mconcat . map utxoValue . Map.elems $ utxos
   where
-    utxoValue :: ChainIndexTxOut -> Value
-    utxoValue (PublicKeyChainIndexTxOut _ v _ _) = v
-    utxoValue (ScriptChainIndexTxOut _ v _ _ _) = v
+    utxoValue :: DecoratedTxOut -> Value
+    utxoValue (PublicKeyDecoratedTxOut _ _ v _ _) = v
+    utxoValue (ScriptDecoratedTxOut _ _ v _ _ _) = v
 
 assertValues :: NonEmpty (Maybe (ValueOrdering, Value)) -> NonEmpty Value -> Either Text ()
 assertValues expected values =

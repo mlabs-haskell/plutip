@@ -7,7 +7,7 @@ import Data.Text (Text)
 import Ledger (
   Address,
   CardanoTx,
-  ChainIndexTxOut,
+  DecoratedTxOut,
   CurrencySymbol,
   PaymentPubKeyHash (PaymentPubKeyHash),
   ScriptContext (scriptContextTxInfo),
@@ -32,7 +32,7 @@ import PlutusTx qualified
 import PlutusTx.Prelude qualified as PP
 import Prelude
 
-lockThenSpend :: Contract () EmptySchema Text [(TxOutRef, ChainIndexTxOut)]
+lockThenSpend :: Contract () EmptySchema Text [(TxOutRef, DecoratedTxOut)]
 lockThenSpend = do
   _ <- lockAtScript
   wait 1
@@ -46,12 +46,12 @@ lockThenSpend = do
 lockAtScript :: Contract () EmptySchema Text (TxId, CardanoTx)
 lockAtScript = do
   let constr =
-        Constraints.mustPayToOtherScript
+        Constraints.mustPayToOtherScriptWithDatumHash
           (ScriptUtils.validatorHash validator)
           Scripts.unitDatum
           (adaValueOf 10)
   let constr2 =
-        Constraints.mustPayToOtherScript
+        Constraints.mustPayToOtherScriptWithDatumHash
           (ScriptUtils.validatorHash $ validator2 2)
           Scripts.unitDatum
           (adaValueOf 10)

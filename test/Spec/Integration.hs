@@ -9,7 +9,7 @@ import Data.Map qualified as Map
 import Data.Maybe (isJust)
 import Data.Text (Text, isInfixOf, pack)
 import Ledger.Ada (lovelaceValueOf)
-import Ledger.Constraints (MkTxError (OwnPubKeyMissing))
+import Ledger.Constraints (MkTxError (CannotSatisfyAny))
 import Plutus.Contract (
   ContractError (ConstraintResolutionContractError),
   waitNSlots,
@@ -143,7 +143,7 @@ test =
               , Predicate.not $ stateSatisfies "length > 1" ((> 1) . length)
               ]
       , -- Tests with assertions on failure
-        let expectedErr = ConstraintResolutionContractError OwnPubKeyMissing
+        let expectedErr = ConstraintResolutionContractError CannotSatisfyAny
             isResolutionError = \case
               ConstraintResolutionContractError _ -> True
               _ -> False

@@ -26,9 +26,9 @@ import Ledger (
   lowerBound,
   strictUpperBound,
   unitDatum,
-  validatorHash,
  )
 import Ledger.Ada qualified as Ada
+import Plutus.Script.Utils.V2.Typed.Scripts (validatorHash)
 import Ledger.Constraints qualified as Constraints
 import Ledger.Typed.Scripts (mkUntypedValidator)
 import Plutus.Contract (Contract, awaitTxConfirmed, submitTx, submitTxConstraintsWith)
@@ -121,14 +121,14 @@ validatorAddr = mkValidatorAddress validator
 ------------------------------------------
 failingTimeContract :: Contract () EmptySchema Text Hask.String
 failingTimeContract = do
-  startTime <- Contract.currentTime
+  (startTime, _) <- Contract.currentNodeClientTimeRange
   let timeDiff = POSIXTime 5_000
       endTime = startTime + timeDiff
 
       validInterval = Interval (lowerBound startTime) (strictUpperBound endTime)
 
   let constr =
-        Constraints.mustPayToOtherScript (validatorHash validator) unitDatum (Ada.adaValueOf 4)
+        Constraints.mustPayToOtherScriptWithDatumHash (validatorHash typedValidator) unitDatum (Ada.adaValueOf 4)
           <> Constraints.mustValidateIn validInterval
 
   void $ Contract.awaitTime (endTime - POSIXTime 1_000)
@@ -142,8 +142,8 @@ successTimeContract = lockAtScript >> unlockWithTimeCheck
 lockAtScript :: Contract () EmptySchema Text ()
 lockAtScript = do
   let constr =
-        Constraints.mustPayToOtherScript
-          (validatorHash validator)
+        Constraints.mustPayToOtherScriptWithDatumHash
+          (validatorHash typedValidator)
           unitDatum
           (Ada.adaValueOf 10)
   tx <- submitTx constr
@@ -151,7 +151,7 @@ lockAtScript = do
 
 unlockWithTimeCheck :: Contract () EmptySchema Text ()
 unlockWithTimeCheck = do
-  startTime <- Contract.currentTime
+  (startTime, _) <- Contract.currentNodeClientTimeRange
   let timeDiff = POSIXTime 2_000
       endTime = startTime + timeDiff
 

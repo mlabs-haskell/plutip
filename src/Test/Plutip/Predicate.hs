@@ -309,8 +309,8 @@ budgetsFitUnder (Limit sCpu sMem) (Limit pCpu pMem) =
 
       -- "filter" `TxBudget` by removing only script or minting budgets
       -- that fit limits
-      findNonFitting b =
-        filterBudget (Prelude.not . fits sCpu sMem) (Prelude.not . fits pCpu pMem) b
+      findNonFitting =
+        filterBudget (Prelude.not . fits sCpu sMem) (Prelude.not . fits pCpu pMem)
 
       fits cpuLimit memLimit (ExBudget cpu' mem') =
         cpu' <= cpuLimit && mem' <= memLimit

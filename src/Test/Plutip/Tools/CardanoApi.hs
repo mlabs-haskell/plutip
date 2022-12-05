@@ -1,5 +1,6 @@
 {-# LANGUAGE PartialTypeSignatures #-}
 {-# OPTIONS_GHC -Wno-partial-type-signatures #-}
+
 -- | Helpers based on Cardano.Api (do not use `cardano-cli` executable)
 module Test.Plutip.Tools.CardanoApi (
   currentBlock,

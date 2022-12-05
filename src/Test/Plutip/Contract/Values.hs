@@ -17,7 +17,7 @@ import Data.Row (Row)
 import Data.Text (Text)
 import Data.Text qualified as Text
 import Data.Text.Encoding (decodeUtf8')
-import Ledger (Address,   DecoratedTxOut (PublicKeyDecoratedTxOut, ScriptDecoratedTxOut) )
+import Ledger (Address, DecoratedTxOut (PublicKeyDecoratedTxOut, ScriptDecoratedTxOut))
 import Ledger.Ada qualified as Ada
 import Ledger.Value (CurrencySymbol (unCurrencySymbol), TokenName (unTokenName), Value)
 import Ledger.Value qualified as Value

@@ -7,8 +7,8 @@ import Data.Text (Text)
 import Ledger (
   Address,
   CardanoTx,
-  DecoratedTxOut,
   CurrencySymbol,
+  DecoratedTxOut,
   PaymentPubKeyHash (PaymentPubKeyHash),
   ScriptContext (scriptContextTxInfo),
   TxId,

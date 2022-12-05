@@ -28,7 +28,6 @@ import Ledger (
   unitDatum,
  )
 import Ledger.Ada qualified as Ada
-import Plutus.Script.Utils.V2.Typed.Scripts (validatorHash)
 import Ledger.Constraints qualified as Constraints
 import Ledger.Typed.Scripts (mkUntypedValidator)
 import Plutus.Contract (Contract, awaitTxConfirmed, submitTx, submitTxConstraintsWith)
@@ -36,6 +35,7 @@ import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
 import Plutus.Script.Utils.V1.Address (mkValidatorAddress)
 import Plutus.Script.Utils.V1.Typed.Scripts.Validators qualified as Validators
+import Plutus.Script.Utils.V2.Typed.Scripts (validatorHash)
 import Plutus.V1.Ledger.Interval (member)
 import PlutusTx qualified
 import PlutusTx.Prelude

@@ -70,16 +70,15 @@
         "typed-protocols": "typed-protocols"
       },
       "locked": {
-        "lastModified": 1669290725,
+        "lastModified": 1669375834,
         "narHash": "sha256-E3Xcl9ZHuS5ZToxWbPuC1pYIdjvtHocAzq6DscAHiwI=",
         "owner": "mlabs-haskell",
         "repo": "bot-plutus-interface",
-        "rev": "b337b858dd89c0dff1f1fb5d554581fbb9c7c688",
+        "rev": "a1f1d0ec7112b5ecde5ac31471c1a75b67b9dd9d",
         "type": "github"
       },
       "original": {
         "owner": "mlabs-haskell",
-        "ref": "sam/add-vasil-features",
         "repo": "bot-plutus-interface",
         "type": "github"
       }

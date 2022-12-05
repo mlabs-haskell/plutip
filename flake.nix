@@ -11,7 +11,7 @@
       flake = false;
     };
     bot-plutus-interface.url =
-      "github:mlabs-haskell/bot-plutus-interface/sam/add-vasil-features";
+      "github:mlabs-haskell/bot-plutus-interface";
   };
 
   outputs =

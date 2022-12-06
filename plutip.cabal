@@ -204,9 +204,9 @@ test-suite plutip-tests
     Spec.TestContract.AlwaysFail
     Spec.TestContract.LockSpendMint
     Spec.TestContract.MintAndPay
+    Spec.TestContract.MustBeSignedBy
     Spec.TestContract.SimpleContracts
     Spec.TestContract.ValidateTimeRange
-    Spec.TestContract.MustBeSignedBy
     Spec.TestContract.VasilFeatures
 
   default-extensions:
@@ -260,8 +260,11 @@ executable plutip-server
 executable local-cluster
   main-is:       local-cluster/Main.hs
   build-depends:
+    , aeson
     , base
     , cardano-ledger-core
+    , cardano-wallet-launcher
+    , containers
     , data-default
     , mtl
     , optparse-applicative
@@ -269,9 +272,6 @@ executable local-cluster
     , positive
     , time
     , unix
-    , containers
-    , aeson
-    , cardano-wallet-launcher
 
   ghc-options:   -Wall -threaded -rtsopts
 

@@ -155,5 +155,8 @@
               mkdir $out
             '';
         });
+
+      # Instruction for the Hercules CI to build on x86_64-linux only, to avoid errors about systems without agents.
+      herculesCI.ciSystems = [ "x86_64-linux" ];
     };
 }

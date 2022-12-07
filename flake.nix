@@ -11,7 +11,7 @@
       flake = false;
     };
     bot-plutus-interface.url =
-      "github:mlabs-haskell/bot-plutus-interface?ref=2f4b4c5104bd573039995d6d7eef0c9235ddbc32";
+      "github:mlabs-haskell/bot-plutus-interface";
   };
 
   outputs =
@@ -155,5 +155,8 @@
               mkdir $out
             '';
         });
+
+      # Instruction for the Hercules CI to build on x86_64-linux only, to avoid errors about systems without agents.
+      herculesCI.ciSystems = [ "x86_64-linux" ];
     };
 }

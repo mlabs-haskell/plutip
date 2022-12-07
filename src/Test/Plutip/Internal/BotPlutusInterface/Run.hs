@@ -118,9 +118,9 @@ runContractWithLogLvl logLvl cEnv bpiWallet contract = do
       pure
       (chainIndexUrl cEnv)
 
-  contactEnv <- mkEnv (mkPabConfig pparams chIndexUrl)
+  contractEnv <- mkEnv (mkPabConfig pparams chIndexUrl)
 
-  runContract' contactEnv
+  runContract' contractEnv
   where
     mkEnv pabConf =
       liftIO $

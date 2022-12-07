@@ -4,10 +4,13 @@ import BotPlutusInterface.Types (LogContext (ContractLog), LogLevel (Error), Log
 import Control.Exception (ErrorCall, Exception (fromException))
 import Control.Monad (void)
 import Data.Default (Default (def))
+import Data.Kind (Type)
 import Data.List.NonEmpty (NonEmpty)
 import Data.Map qualified as Map
 import Data.Maybe (isJust)
+import Data.Row (Row)
 import Data.Text (Text, isInfixOf, pack)
+import Data.Typeable (Typeable)
 import Ledger.Ada (lovelaceValueOf)
 import Ledger.Constraints (MkTxError (OwnPubKeyMissing))
 import Plutus.Contract (
@@ -19,6 +22,7 @@ import Spec.TestContract.AdjustTx (runAdjustTest)
 import Spec.TestContract.AlwaysFail (lockThenFailToSpend)
 import Spec.TestContract.LockSpendMint (lockThenSpend)
 import Spec.TestContract.MintAndPay (zeroAdaOutTestContract)
+import Spec.TestContract.MustBeSignedBy qualified as MustBeSignedBy
 import Spec.TestContract.SimpleContracts (
   getUtxos,
   getUtxosThrowsErr,
@@ -28,6 +32,7 @@ import Spec.TestContract.SimpleContracts (
   payTo,
  )
 import Spec.TestContract.ValidateTimeRange (failingTimeContract, successTimeContract)
+import Spec.TestContract.VasilFeatures qualified as VasilFeatures
 import Test.Plutip.Config (PlutipConfig (extraConfig))
 import Test.Plutip.Contract (
   TestWallets,
@@ -220,8 +225,28 @@ test =
           , -- Test `adjustUnbalancedTx`
             runAdjustTest
           , testBugMintAndPay
+          , runSimpleTest "MustBeSignedBy: Signed by Self and requires Others should succeed" MustBeSignedBy.testSignedBySelfAndRequiresOthers
+          , runSimpleTest "MustBeSignedBy: Signed by none and requires Others should succeed" MustBeSignedBy.testSignedByNoneAndRequireOthers
+          , runSimpleTest "VasilFeatures: Send inline datum to script" VasilFeatures.testSendInlineDatum
+          , runSimpleTest "VasilFeatures: Spend inline datum from script" VasilFeatures.testSpendInlineDatum
+          , runSimpleTest "VasilFeatures: Include reference input with inline datum in transaction with v2 script" VasilFeatures.testSpendReferenceInput
+          , runSimpleTest "VasilFeatures: Send reference script to script address" VasilFeatures.testSendReferenceScript
+          , runSimpleTest "VasilFeatures: Use reference script from script address" VasilFeatures.testSpendReferenceScript
           ]
           ++ testValueAssertionsOrderCorrectness
+
+runSimpleTest ::
+  forall (s :: Row Type) (a :: Type).
+  (Show a, Typeable a) =>
+  String ->
+  Contract.Contract Text s Text a ->
+  (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)
+runSimpleTest msg contract =
+  assertExecution @Text
+    msg
+    (initAda [100])
+    (withContract $ const contract)
+    [shouldSucceed]
 
 -- https://github.com/mlabs-haskell/plutip/issues/138
 testBugMintAndPay :: (TestWallets, IO (ClusterEnv, NonEmpty BpiWallet) -> TestTree)

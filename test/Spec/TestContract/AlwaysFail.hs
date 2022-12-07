@@ -1,26 +1,32 @@
 module Spec.TestContract.AlwaysFail (lockThenFailToSpend) where
 
+import BotPlutusInterface.Constraints (submitBpiTxConstraintsWith)
 import Control.Monad (void)
 import Data.Map qualified as Map
 import Data.Text (Text)
 import Data.Text qualified as Text
+import Data.Void (Void)
 import Ledger (
   Address,
+  Language (PlutusV1),
   ScriptContext,
-  Validator,
+  Validator (Validator),
+  Versioned (Versioned),
+  fromCompiledCode,
   getCardanoTxId,
+  scriptHashAddress,
   unitDatum,
   unitRedeemer,
   validatorHash,
  )
 import Ledger.Ada qualified as Ada
+import Ledger.Constraints (otherData)
 import Ledger.Constraints qualified as Constraints
 import Ledger.Typed.Scripts (TypedValidator, ValidatorTypes (DatumType, RedeemerType))
 import Ledger.Typed.Scripts qualified as Scripts
-import Plutus.Contract (Contract, awaitTxConfirmed, submitTx, submitTxConstraintsWith)
+import Plutus.Contract (Contract, awaitTxConfirmed, submitTxConstraintsWith)
 import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
-import Plutus.Script.Utils.V1.Address (mkValidatorAddress)
 import PlutusTx qualified
 import PlutusTx.Prelude
 import Prelude qualified as Hask
@@ -36,11 +42,12 @@ lockThenFailToSpend = do
 lockAtScript :: Contract () EmptySchema Text ()
 lockAtScript = do
   let constr =
-        Constraints.mustPayToOtherScript
+        Constraints.mustPayToOtherScriptWithDatumInTx -- WARN: at the moment `mustPayToOtherScript` causes `DatumNotFound` error during constraints resolution
           (validatorHash validator)
           unitDatum
           (Ada.adaValueOf 10)
-  tx <- submitTx constr
+      lookups = otherData unitDatum
+  tx <- submitBpiTxConstraintsWith @Void lookups constr []
   awaitTxConfirmed $ getCardanoTxId tx
 
 spendFromScript :: Contract () EmptySchema Text ()
@@ -52,7 +59,7 @@ spendFromScript = do
 
           lkps =
             Hask.mconcat
-              [ Constraints.plutusV1OtherScript validator
+              [ Constraints.otherScript validator
               , Constraints.unspentOutputs (Map.fromList utxos)
               ]
       tx <- submitTxConstraintsWith @AlwaysFail lkps txc
@@ -77,8 +84,11 @@ typedValidator =
   where
     wrap = Scripts.mkUntypedValidator @() @()
 
-validator :: Validator
-validator = Scripts.validatorScript typedValidator
+compiled :: Validator
+compiled = Validator $ fromCompiledCode $$(PlutusTx.compile [||mkValidator||])
+
+validator :: Versioned Validator
+validator = Versioned compiled PlutusV1
 
 validatorAddr :: Address
-validatorAddr = mkValidatorAddress validator
+validatorAddr = scriptHashAddress (validatorHash validator)

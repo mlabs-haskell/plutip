@@ -73,7 +73,7 @@
             compiler-nix-name = "ghc8107";
 
             shell = {
-              withHoogle = false;
+              withHoogle = true;
               exactDeps = true;
 
               additional = ps: [ ps.bot-plutus-interface ];
@@ -152,5 +152,8 @@
               mkdir $out
             '';
         });
+
+      # Instruction for the Hercules CI to build on x86_64-linux only, to avoid errors about systems without agents.
+      herculesCI.ciSystems = [ "x86_64-linux" ];
     };
 }

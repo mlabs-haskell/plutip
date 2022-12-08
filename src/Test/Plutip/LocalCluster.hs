@@ -1,5 +1,6 @@
 module Test.Plutip.LocalCluster (
   BpiWallet,
+  RetryDelay,
   addSomeWallet,
   ada,
   waitSeconds,
@@ -10,17 +11,25 @@ module Test.Plutip.LocalCluster (
   withConfiguredCluster,
   startCluster,
   stopCluster,
+  plutusValueFromWallet,
 ) where
 
 import Control.Concurrent (threadDelay)
-import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Reader (ReaderT, ask)
+import Control.Monad.IO.Class (MonadIO, liftIO)
+import Control.Monad.Reader (MonadReader (ask), ReaderT, ask)
 import Data.Bifunctor (second)
 import Data.Default (def)
 import Data.List.NonEmpty (NonEmpty)
+import Data.List.NonEmpty qualified as NE
+import Ledger (Value)
 import Numeric.Natural (Natural)
-import Test.Plutip.Config (PlutipConfig)
-import Test.Plutip.Contract (TestWallet (twInitDistribuition), TestWallets (unTestWallets), ada)
+import Numeric.Positive (Positive)
+import Test.Plutip.Config (PlutipConfig (extraConfig))
+import Test.Plutip.Contract.Init (ada)
+import Test.Plutip.Contract.Types (
+  TestWallet (twInitDistribuition),
+  TestWallets (unTestWallets),
+ )
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   BpiWallet,
   addSomeWallet,
@@ -28,8 +37,11 @@ import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   ledgerPaymentPkh,
   mkMainnetAddress,
  )
+import Test.Plutip.Internal.Cluster.Extra.Types (ecSlotLength)
 import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)
 import Test.Plutip.Internal.Types (ClusterEnv)
+import Test.Plutip.Tools.CardanoApi (CardanoApiError, plutusValueFromAddress)
+import Test.Plutip.Tools.ChainIndex qualified as CI
 import Test.Tasty (testGroup, withResource)
 import Test.Tasty.Providers (TestTree)
 
@@ -87,13 +99,29 @@ withConfiguredCluster conf name testCases =
     setup :: ReaderT ClusterEnv IO (ClusterEnv, [NonEmpty BpiWallet])
     setup = do
       env <- ask
-
       wallets <-
         traverse
           (traverse addSomeWallet . fmap twInitDistribuition . unTestWallets . fst)
           testCases
-      waitSeconds 2 -- wait for transactions to submit
+      let waitDelay = ecSlotLength $ extraConfig conf
+      awaitFunds wallets waitDelay
       pure (env, wallets)
+
+    awaitFunds ws delay = do
+      let lastWallet = NE.last $ last ws
+      liftIO $ putStrLn "Waiting till all wallets will be funded to start tests..."
+      CI.awaitWalletFunded lastWallet delay
+
+type RetryDelay = Positive
 
 imap :: (Int -> a -> b) -> [a] -> [b]
 imap fn = zipWith fn [0 ..]
+
+-- Get total `Value` of all UTxOs at `BpiWallet` address.
+plutusValueFromWallet ::
+  MonadIO m =>
+  BpiWallet ->
+  ReaderT ClusterEnv m (Either CardanoApiError Value)
+plutusValueFromWallet bw = do
+  cEnv <- ask
+  liftIO . plutusValueFromAddress cEnv . cardanoMainnetAddress $ bw

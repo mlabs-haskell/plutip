@@ -7,18 +7,31 @@ module Test.Plutip.Tools.CardanoApi (
   utxosAtAddress,
   queryProtocolParams,
   queryTip,
+  awaitAddressFunded,
+  plutusValueFromAddress,
+  CardanoApiError,
 ) where
 
 import Cardano.Api qualified as C
-import Cardano.Api.Shelley (ProtocolParameters)
+import Cardano.Api.Shelley (ProtocolParameters, TxOut (TxOut), UTxO (UTxO, unUTxO), txOutValueToValue)
 import Cardano.Launcher.Node (nodeSocketFile)
 import Cardano.Slotting.Slot (WithOrigin)
-import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (RunningNode))
+import Test.Plutip.Internal.Cluster (RunningNode (RunningNode))
+
 import Control.Exception (Exception)
+import Control.Monad.Catch (MonadMask)
+import Control.Monad.IO.Class (MonadIO (liftIO))
+import Control.Monad.Reader (MonadReader (ask), ReaderT)
+import Control.Retry (constantDelay, limitRetries, recoverAll)
+import Data.Map qualified as Map
 import Data.Set qualified as Set
+import Data.Time (NominalDiffTime, nominalDiffTimeToSeconds)
 import GHC.Generics (Generic)
+import Ledger (Value)
+import Ledger.Tx.CardanoAPI (fromCardanoValue)
 import Ouroboros.Consensus.HardFork.Combinator.AcrossEras (EraMismatch)
 import Test.Plutip.Internal.Types (ClusterEnv (runningNode))
+import UnliftIO (throwString)
 
 newtype CardanoApiError
   = SomeError String
@@ -73,3 +86,40 @@ flattenQueryResult ::
 flattenQueryResult = \case
   Right (Right res) -> Right res
   err -> Left $ SomeError (show err)
+
+-- | Waits till specified address is funded using `CardanoApi` query.
+-- Performs 60 tries with `retryDelay` seconds between tries.
+awaitAddressFunded ::
+  (MonadIO m, MonadMask m) =>
+  C.AddressAny ->
+  NominalDiffTime ->
+  ReaderT ClusterEnv m ()
+awaitAddressFunded addr retryDelay = do
+  cEnv <- ask
+  recoverAll policy $ \_ -> do
+    utxo <- liftIO $ utxosAtAddress cEnv addr
+    checkUtxo utxo
+  where
+    delay = truncate $ nominalDiffTimeToSeconds retryDelay * 1000000
+    policy = constantDelay delay <> limitRetries 60
+
+    checkUtxo = \case
+      Left e ->
+        throwString $
+          "Failed to get UTxO from address via cardano API query: "
+            <> show e
+      Right (UTxO utxo')
+        | Map.null utxo' ->
+          throwString "No UTxOs returned by cardano API query for address"
+      _ -> pure ()
+
+-- | Get total `Value` of all UTxOs at address.
+plutusValueFromAddress ::
+  ClusterEnv ->
+  C.AddressAny ->
+  IO (Either CardanoApiError Value)
+plutusValueFromAddress cEnv addr = do
+  let getValues = mconcat . fmap extract . (Map.elems . unUTxO)
+      extract (TxOut _ txoV _ _) = fromCardanoValue $ txOutValueToValue txoV
+  res <- utxosAtAddress cEnv addr
+  return $ getValues <$> res

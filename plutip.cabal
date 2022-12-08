@@ -21,22 +21,31 @@ data-files:
 common common-imports
   build-depends:
     , aeson
+    , aeson-qq
     , ansi-terminal
     , async
     , base
+    , base58-bytestring
+    , bech32
+    , bech32-th
     , bot-plutus-interface
     , bytestring
     , cardano-addresses
     , cardano-api
+    , cardano-binary
+    , cardano-cli
     , cardano-crypto
     , cardano-crypto-wrapper
     , cardano-ledger-core
+    , cardano-ledger-shelley
     , cardano-slotting
     , cardano-wallet
     , cardano-wallet-cli
     , cardano-wallet-core
     , cardano-wallet-core-integration
     , cardano-wallet-launcher
+    , cardano-wallet-test-utils
+    , cborg
     , containers
     , contra-tracer
     , data-default
@@ -44,9 +53,12 @@ common common-imports
     , either
     , exceptions
     , filepath
+    , generic-lens
     , http-client
     , http-types
+    , int-cast
     , iohk-monitoring
+    , lens
     , memory
     , mtl
     , openapi3
@@ -75,11 +87,13 @@ common common-imports
     , tasty-hunit
     , text
     , text-class
+    , time
     , transformers-except
     , typed-process
     , unliftio
     , unliftio-core
     , uuid
+    , yaml
 
 common common-language
   default-extensions:
@@ -148,12 +162,15 @@ library
     Test.Plutip.Internal.BotPlutusInterface.Setup
     Test.Plutip.Internal.BotPlutusInterface.Types
     Test.Plutip.Internal.BotPlutusInterface.Wallet
+    Test.Plutip.Internal.ChainIndex
+    Test.Plutip.Internal.Cluster
+    Test.Plutip.Internal.Cluster.Extra.Types
+    Test.Plutip.Internal.Cluster.Extra.Utils
     Test.Plutip.Internal.LocalCluster
     Test.Plutip.Internal.Types
     Test.Plutip.LocalCluster
     Test.Plutip.Options
     Test.Plutip.Predicate
-    Test.Plutip.Tools
     Test.Plutip.Tools.Address
     Test.Plutip.Tools.CardanoApi
     Test.Plutip.Tools.ChainIndex
@@ -184,10 +201,14 @@ test-suite plutip-tests
   other-modules:
     Spec.Integration
     Spec.Test.Plutip.BotPlutusInterface
+    Spec.TestContract.AdjustTx
     Spec.TestContract.AlwaysFail
     Spec.TestContract.LockSpendMint
+    Spec.TestContract.MintAndPay
+    Spec.TestContract.MustBeSignedBy
     Spec.TestContract.SimpleContracts
     Spec.TestContract.ValidateTimeRange
+    Spec.TestContract.VasilFeatures
 
   default-extensions:
     OverloadedStrings
@@ -207,6 +228,7 @@ executable plutip-server
     , base16-bytestring
     , bytestring
     , cardano-api
+    , cardano-ledger-core
     , cardano-wallet
     , cardano-wallet-launcher
     , data-default
@@ -222,6 +244,7 @@ executable plutip-server
     , servant-server
     , stm
     , text
+    , time
     , unliftio
     , wai
     , wai-cors
@@ -238,11 +261,43 @@ executable plutip-server
 executable local-cluster
   main-is:       local-cluster/Main.hs
   build-depends:
+    , aeson
     , base
+    , cardano-ledger-core
+    , cardano-wallet-launcher
+    , containers
     , data-default
     , mtl
     , optparse-applicative
     , plutip
     , positive
+    , time
+    , unix
 
   ghc-options:   -Wall -threaded -rtsopts
+
+executable contract-execution
+  import:         common-language
+  import:         common-ghc-options
+  hs-source-dirs: contract-execution
+  main-is:        Main.hs
+  build-depends:
+    , base
+    , cardano-ledger-core
+    , containers
+    , data-default
+    , lens
+    , mtl
+    , optparse-applicative
+    , plutip
+    , plutus-contract
+    , plutus-ledger
+    , plutus-ledger-constraints
+    , plutus-pab
+    , positive
+    , pretty-simple
+    , text
+    , time
+
+  other-modules:  ExampleContracts
+  ghc-options:    -Wall -threaded -rtsopts

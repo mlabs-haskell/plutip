@@ -61,17 +61,17 @@
         ]
       },
       "locked": {
-        "lastModified": 1670009096,
-        "narHash": "sha256-tTHS9/dW1gk3/0j6cLlYeQeRB+bSoTIvfY3wERin1pY=",
+        "lastModified": 1670496765,
+        "narHash": "sha256-5feLJXmLFwTnGEoYmRFcGiViYU1egIlzuKbwlilTa7g=",
         "owner": "mlabs-haskell",
         "repo": "bot-plutus-interface",
-        "rev": "c0a4ae59405d717afa38e44a7e0f6d2ff9242701",
+        "rev": "e80680777a761109eea6d47c8370aa55d318734d",
         "type": "github"
       },
       "original": {
         "owner": "mlabs-haskell",
         "repo": "bot-plutus-interface",
-        "rev": "c0a4ae59405d717afa38e44a7e0f6d2ff9242701",
+        "rev": "e80680777a761109eea6d47c8370aa55d318734d",
         "type": "github"
       }
     },

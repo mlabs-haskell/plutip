@@ -188,7 +188,7 @@ test =
           (initAda [100])
           (withContract $ const failingTimeContract)
           [shouldFail] -- FIXME: add check that "OutsideValidityIntervalUTxO" is in error message
-          -- [shouldSucceed] 
+          -- [shouldSucceed]
       , assertExecution
           "Passes validation with exact time range checks"
           (initAda [100])

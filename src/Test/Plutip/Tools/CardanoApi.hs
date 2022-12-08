@@ -4,6 +4,8 @@ module Test.Plutip.Tools.CardanoApi (
   utxosAtAddress,
   queryProtocolParams,
   queryTip,
+  awaitWalletFunded,
+  AwaitWalletFundedError (AwaitingCapiError, AwaitingTimeoutError),
 ) where
 
 import Cardano.Api qualified as C
@@ -11,7 +13,11 @@ import Cardano.Api.Shelley (ProtocolParameters)
 import Cardano.Launcher.Node (nodeSocketFile)
 import Cardano.Slotting.Slot (WithOrigin)
 import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (RunningNode))
+import Control.Arrow (right)
 import Control.Exception (Exception)
+import Control.Retry (constantDelay, limitRetries, retrying)
+import Data.Either (fromRight)
+import Data.Map qualified as M
 import Data.Set qualified as Set
 import GHC.Generics (Generic)
 import Ouroboros.Consensus.HardFork.Combinator.AcrossEras (EraMismatch)
@@ -71,3 +77,36 @@ flattenQueryResult ::
 flattenQueryResult = \case
   Right (Right res) -> Right res
   err -> Left $ SomeError (show err)
+
+data AwaitWalletFundedError
+  = AwaitingCapiError CardanoApiError
+  | AwaitingTimeoutError
+
+instance Show AwaitWalletFundedError where
+  show (AwaitingCapiError (SomeError e)) = e
+  show AwaitingTimeoutError = "Awaiting funding transaction timed out."
+
+-- | Waits till specified address is funded using cardano-node query.
+-- Performs 20 tries with 0.2 seconds between tries, which should be a sane default.
+-- Waits till there's any utxos at an address - works for us as funds will be send with tx per address.
+awaitWalletFunded ::
+  ClusterEnv ->
+  C.AddressAny ->
+  IO (Either AwaitWalletFundedError ())
+awaitWalletFunded cenv addr = toErrorMsg <$> retrying policy checkResponse action
+  where
+    -- With current defaults the slot length is 0.2s and block gets produced about every second slot.
+    -- We are expected to wait 0.4s, waiting 4s we are almost guaranteed (p>0.9999)
+    delay = 200_000 -- in microseconds, 0.2s.
+    policy = constantDelay delay <> limitRetries 20
+
+    action _ = right (M.null . C.unUTxO) <$> utxosAtAddress cenv addr
+
+    checkResponse _ = return . fromRight False
+
+    toErrorMsg = \case
+      Left e -> Left $ AwaitingCapiError e
+      Right noUtxos ->
+        if noUtxos
+          then Left AwaitingTimeoutError
+          else Right ()

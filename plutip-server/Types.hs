@@ -37,14 +37,7 @@ import Data.Text (Text)
 import GHC.Generics (Generic)
 import Network.Wai.Handler.Warp (Port)
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet)
-import Test.Plutip.Internal.LocalCluster (
-  ClusterStatus (
-    ClusterClosed,
-    ClusterClosing,
-    ClusterStarted,
-    ClusterStarting
-  ),
- )
+import Test.Plutip.Internal.LocalCluster (ClusterStatus)
 import Test.Plutip.Internal.Types (ClusterEnv)
 import UnliftIO.STM (TVar)
 

@@ -20,7 +20,7 @@ import Plutus.Contract (Contract, awaitTxConfirmed, submitTx, submitTxConstraint
 import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
 import Plutus.Script.Utils.V1.Address (mkValidatorAddress)
-import Plutus.Script.Utils.V2.Typed.Scripts (validatorHash)
+import Plutus.Script.Utils.V1.Scripts qualified as ScriptUtils
 import PlutusTx qualified
 import PlutusTx.Prelude
 import Prelude qualified as Hask
@@ -36,8 +36,8 @@ lockThenFailToSpend = do
 lockAtScript :: Contract () EmptySchema Text ()
 lockAtScript = do
   let constr =
-        Constraints.mustPayToOtherScriptWithDatumHash
-          (validatorHash typedValidator)
+        Constraints.mustPayToOtherScriptWithDatumInTx 
+          (ScriptUtils.validatorHash validator)
           unitDatum
           (Ada.adaValueOf 10)
   tx <- submitTx constr
@@ -81,4 +81,4 @@ validator :: Validator
 validator = Scripts.validatorScript typedValidator
 
 validatorAddr :: Address
-validatorAddr = mkValidatorAddress validator
+validatorAddr = scriptHashAddress (ScriptUtils.validatorHash validator)

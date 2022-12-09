@@ -31,7 +31,6 @@ import Spec.TestContract.SimpleContracts (
   payTo,
  )
 import Spec.TestContract.ValidateTimeRange (failingTimeContract, successTimeContract)
-import Spec.TestContract.VasilFeatures qualified as VasilFeatures
 import Test.Plutip.Config (PlutipConfig (extraConfig))
 import Test.Plutip.Contract (
   TestWallets,
@@ -225,11 +224,6 @@ test =
           , testBugMintAndPay
           , runSimpleTest "MustBeSignedBy: Signed by Self and requires Others should succeed" MustBeSignedBy.testSignedBySelfAndRequiresOthers
           , runSimpleTest "MustBeSignedBy: Signed by none and requires Others should succeed" MustBeSignedBy.testSignedByNoneAndRequireOthers
-          , runSimpleTest "VasilFeatures: Send inline datum to script" VasilFeatures.testSendInlineDatum
-          , runSimpleTest "VasilFeatures: Spend inline datum from script" VasilFeatures.testSpendInlineDatum
-          , runSimpleTest "VasilFeatures: Include reference input with inline datum in transaction with v2 script" VasilFeatures.testSpendReferenceInput
-          , runSimpleTest "VasilFeatures: Send reference script to script address" VasilFeatures.testSendReferenceScript
-          , runSimpleTest "VasilFeatures: Use reference script from script address" VasilFeatures.testSpendReferenceScript
           ]
           ++ testValueAssertionsOrderCorrectness
 

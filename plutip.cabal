@@ -208,7 +208,6 @@ test-suite plutip-tests
     Spec.TestContract.MustBeSignedBy
     Spec.TestContract.SimpleContracts
     Spec.TestContract.ValidateTimeRange
-    Spec.TestContract.VasilFeatures
 
   default-extensions:
     OverloadedStrings

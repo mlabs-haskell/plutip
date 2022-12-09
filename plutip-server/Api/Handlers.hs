@@ -7,7 +7,9 @@ import Cardano.Api (serialiseToCBOR)
 import Cardano.Launcher.Node (nodeSocketFile)
 import Test.Plutip.Tools.CardanoApi qualified as Tools
 
-import Control.Concurrent.MVar (isEmptyMVar, putMVar, takeMVar)
+import Control.Concurrent (threadDelay)
+import Control.Concurrent.Async (race)
+import Control.Concurrent.MVar (isEmptyMVar, putMVar, tryTakeMVar)
 import Control.Monad (unless)
 import Control.Monad.Except (runExceptT, throwError)
 import Control.Monad.Extra (unlessM)

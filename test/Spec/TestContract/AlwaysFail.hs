@@ -26,7 +26,7 @@ import Ledger.Typed.Scripts qualified as Scripts
 import Plutus.Contract (Contract, awaitTxConfirmed, submitTxConstraintsWith)
 import Plutus.Contract qualified as Contract
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
-import Plutus.Script.Utils.V2.Typed.Scripts (validatorHash)
+import Plutus.Script.Utils.V1.Scripts qualified as ScriptUtils
 import PlutusTx qualified
 import PlutusTx.Prelude
 import Prelude qualified as Hask
@@ -42,8 +42,8 @@ lockThenFailToSpend = do
 lockAtScript :: Contract () EmptySchema Text ()
 lockAtScript = do
   let constr =
-        Constraints.mustPayToOtherScriptWithDatumHash -- WARN: at the moment `mustPayToOtherScript` causes `DatumNotFound` error during constraints resolution
-          (validatorHash typedValidator)
+        Constraints.mustPayToOtherScriptWithDatumInTx -- WARN: at the moment `mustPayToOtherScript` causes `DatumNotFound` error during constraints resolution
+          (ScriptUtils.validatorHash validator)
           unitDatum
           (Ada.adaValueOf 10)
       lookups = otherData unitDatum
@@ -59,7 +59,7 @@ spendFromScript = do
 
           lkps =
             Hask.mconcat
-              [ Constraints.otherScript validator
+              [ Constraints.plutusV1OtherScript validator
               , Constraints.unspentOutputs (Map.fromList utxos)
               ]
       tx <- submitTxConstraintsWith @AlwaysFail lkps txc
@@ -87,8 +87,8 @@ typedValidator =
 compiled :: Validator
 compiled = Validator $ fromCompiledCode $$(PlutusTx.compile [||mkValidator||])
 
-validator :: Versioned Validator
-validator = Versioned compiled PlutusV1
+validator :: Validator
+validator = Scripts.validatorScript typedValidator
 
 validatorAddr :: Address
-validatorAddr = scriptHashAddress (validatorHash typedValidator)
+validatorAddr = scriptHashAddress (ScriptUtils.validatorHash validator)

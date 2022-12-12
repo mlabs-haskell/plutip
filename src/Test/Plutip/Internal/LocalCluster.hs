@@ -15,15 +15,20 @@ import Cardano.Api qualified as CAPI
 import Cardano.BM.Data.Severity qualified as Severity
 import Cardano.BM.Data.Tracer (HasPrivacyAnnotation, HasSeverityAnnotation (getSeverityAnnotation))
 import Cardano.CLI (LogOutput (LogToFile), withLoggingNamed)
+import Cardano.Launcher (ProcessHasExited (ProcessHasExited))
 import Cardano.Startup (installSignalHandlers, setDefaultFilePermissions, withUtf8Encoding)
 import Cardano.Wallet.Logging (stdoutTextTracer, trMessageText)
 import Cardano.Wallet.Shelley.Launch (TempDirLog, withSystemTempDir)
+
+-- import Cardano.Wallet.Shelley.Launch.Cluster (ClusterLog, localClusterConfigFromEnv, testMinSeverityFromEnv, walletMinSeverityFromEnv, withCluster)
+import Control.Concurrent.Async (cancel)
 import Control.Monad (unless, void, when)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.IO.Unlift (MonadUnliftIO)
 import Control.Monad.Reader (ReaderT (runReaderT))
-import Control.Retry (constantDelay, limitRetries, recoverAll)
+import Control.Retry (constantDelay, limitRetries, logRetries, recoverAll, recovering)
 import Control.Tracer (Tracer, contramap, traceWith)
+import Data.ByteString.Char8 qualified as B
 import Data.Foldable (for_)
 import Data.Kind (Type)
 import Data.Maybe (catMaybes, fromMaybe, isJust)
@@ -44,7 +49,7 @@ import System.Directory (
 import System.Environment (setEnv)
 import System.Exit (die)
 import System.FilePath ((</>))
-import System.IO (IOMode (WriteMode), hClose, openFile, stdout)
+import System.IO (IOMode (WriteMode), hClose, openFile, stderr, stdout)
 import Test.Plutip.Config (
   PlutipConfig (
     chainIndexMode,
@@ -125,22 +130,25 @@ withPlutusInterface :: forall (a :: Type). PlutipConfig -> (ClusterEnv -> IO a) 
 withPlutusInterface conf action = do
   -- current setup requires `cardano-node` and `cardano-cli` as external processes
   checkProcessesAvailable ["cardano-node", "cardano-cli"]
-
   withLocalClusterSetup conf $ \dir clusterLogs _walletLogs nodeConfigLogHdl -> do
     result <- withLoggingNamed "cluster" clusterLogs $ \(_, (_, trCluster)) -> do
       let tr' = contramap MsgCluster $ trMessageText trCluster
       clusterCfg <- localClusterConfigWithExtraConf (extraConfig conf)
       withRedirectedStdoutHdl nodeConfigLogHdl $ \restoreStdout ->
-        withCluster tr' dir clusterCfg mempty $ \rn -> do
-          restoreStdout $ runActionWthSetup rn dir trCluster action
+        retryClusterFailedStartup $
+          withCluster tr' dir clusterCfg mempty $ \rn -> do
+            restoreStdout $ runActionWthSetup rn dir trCluster action
     handleLogs dir conf
     return result
   where
-    runActionWthSetup rn dir trCluster userActon = do
+    runActionWthSetup rn dir trCluster userAction = do
       let tracer' = trMessageText trCluster
       waitForRelayNode tracer' rn
-      maybePort <- handleChainIndexLaunch (chainIndexMode conf) rn dir
-      let cEnv =
+      mChainStarted <- handleChainIndexLaunch (chainIndexMode conf) rn dir
+      let maybePort = fst <$> mChainStarted
+          maybeRunning = snd <$> mChainStarted
+          maybeCancelChainIndex = maybe id (\chain io -> io `finally` cancel chain) maybeRunning
+          cEnv =
             ClusterEnv
               { runningNode = rn
               , chainIndexUrl = (\p -> BaseUrl Http "localhost" p mempty) <$> maybePort
@@ -151,7 +159,17 @@ withPlutusInterface conf action = do
               }
 
       BotSetup.runSetup cEnv -- run preparations to use `bot-plutus-interface`
-      userActon cEnv -- executing user action on cluster
+      maybeCancelChainIndex $ userAction cEnv -- executing user action on cluster
+    retryClusterFailedStartup =
+      let msg err = B.pack $ "Retrying cluster startup due to: " <> show err <> "\n"
+          shouldRetry =
+            pure . \case
+              ProcessHasExited _ _ -> True
+              _ -> False
+       in recovering
+            (limitRetries 5)
+            [logRetries shouldRetry (\_ y _ -> B.hPutStr stderr $ msg y)]
+            . const
 
 -- Redirect stdout to a provided handle providing mask to temporarily revert back to initial stdout.
 withRedirectedStdoutHdl :: Handle -> ((forall b. IO b -> IO b) -> IO a) -> IO a

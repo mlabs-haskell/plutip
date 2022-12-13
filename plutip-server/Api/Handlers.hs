@@ -113,21 +113,21 @@ startClusterHandler
         wallets <- do
           for keysToGenerate $ \lovelaceAmounts -> do
             addSomeWallet (fromInteger . unLovelace <$> lovelaceAmounts)
+        return (env, wallets)
 
-        -- wait for confirmation of funding txs, throw the first error if there's any
-        waitForFundingTxs clusterEnv wallets = do
-          res <- for wallets $ \w ->
-            awaitWalletFunded clusterEnv (ecSlotLength $ extraConfig $ plutipConf env) (cardanoMainnetAddress w)
-          return $
-            firstJust
-              ( \case
-                  Left (AwaitingCapiError e) -> Just $ show e
-                  Left AwaitingTimeoutError -> Nothing
-                  Right () -> Nothing
-              )
-              res
-
-        pure (env, wallets)
+       -- wait for confirmation of funding txs, throw the first error if there's any
+      waitForFundingTxs clusterEnv wallets = do
+        env <- ask
+        res <- for wallets $ \w ->
+          awaitWalletFunded clusterEnv (ecSlotLength $ extraConfig $ plutipConf env) (cardanoMainnetAddress w)
+        return $
+          firstJust
+            ( \case
+                Left (AwaitingCapiError e) -> Just $ show e
+                Left AwaitingTimeoutError -> Nothing
+                Right () -> Nothing
+            )
+            res
 
       getNodeSocketFile (runningNode -> RunningNode conn _ _ _) = nodeSocketFile conn
       getNodeConfigFile =

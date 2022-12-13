@@ -8,6 +8,8 @@ import Cardano.Launcher.Node (nodeSocketFile)
 import Test.Plutip.Tools.CardanoApi qualified as Tools
 
 import Control.Concurrent.MVar (isEmptyMVar, putMVar, tryTakeMVar)
+import Control.Concurrent (threadDelay)
+import Control.Concurrent.Async (race)
 import Control.Monad (unless)
 import Control.Monad.Except (runExceptT, throwError)
 import Control.Monad.Extra (unlessM)
@@ -16,6 +18,8 @@ import Control.Monad.Reader (ReaderT, ask, asks)
 import Data.ByteString.Base16 qualified as Base16
 import Data.Default (def)
 import Data.Foldable (for_)
+import Data.Either (fromRight)
+import Data.List.Extra (firstJust)
 import Data.Text.Encoding qualified as Text
 import Data.Traversable (for)
 import System.Directory (doesFileExist)
@@ -36,6 +40,7 @@ import Test.Plutip.Internal.Cluster (RunningNode (RunningNode))
 import Test.Plutip.Internal.Cluster.Extra.Types (ExtraConfig (ExtraConfig, ecSlotLength))
 import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)
 import Test.Plutip.Internal.Types (ClusterEnv (plutipConf, runningNode))
+import Test.Plutip.Tools.CardanoApi (AwaitWalletFundedError (AwaitingCapiError, AwaitingTimeoutError), awaitWalletFunded)
 import Types (
   AppM,
   ClusterStartupFailureReason (
@@ -67,6 +72,7 @@ import Types (
   StopClusterRequest (StopClusterRequest),
   StopClusterResponse (StopClusterFailure, StopClusterSuccess),
  )
+import UnliftIO.Exception (throwString)
 
 startClusterHandler :: ServerOptions -> StartClusterRequest -> AppM StartClusterResponse
 startClusterHandler
@@ -85,6 +91,10 @@ startClusterHandler
 
     (statusTVar, (clusterEnv, wallets)) <- liftIO $ startCluster cfg setup
     liftIO $ putMVar statusMVar statusTVar
+    res <- liftIO $ race (threadDelay 2_000_000) $ waitForFundingTxs clusterEnv wallets extraConf
+    -- throw Exception for cardano-cli errors.
+    -- Ignore wait timeout error - return from this handler doesn't guarantee funded wallets immedietely.
+    maybe (return ()) throwString $ fromRight Nothing res
     let nodeConfigPath = getNodeConfigFile clusterEnv
     -- safeguard against directory tree structure changes
     unlessM (liftIO $ doesFileExist nodeConfigPath) $ throwError NodeConfigNotFound
@@ -103,9 +113,21 @@ startClusterHandler
         wallets <- do
           for keysToGenerate $ \lovelaceAmounts -> do
             addSomeWallet (fromInteger . unLovelace <$> lovelaceAmounts)
-        liftIO $ putStrLn "Waiting for wallets to be funded..."
-        awaitFunds wallets (ecSlotLength $ extraConfig $ plutipConf env)
-        pure (env, wallets)
+        return (env, wallets)
+
+       -- wait for confirmation of funding txs, throw the first error if there's any
+      waitForFundingTxs clusterEnv wallets extraConfig = do
+        res <- for wallets $ \w ->
+          awaitWalletFunded clusterEnv (cardanoMainnetAddress w) extraConfig
+        return $
+          firstJust
+            ( \case
+                Left (AwaitingCapiError e) -> Just $ show e
+                Left AwaitingTimeoutError -> Nothing
+                Right () -> Nothing
+            )
+            res
+
       getNodeSocketFile (runningNode -> RunningNode conn _ _ _) = nodeSocketFile conn
       getNodeConfigFile =
         -- assumption is that node.config lies in the same directory as node.socket
@@ -113,12 +135,6 @@ startClusterHandler
       getWalletPrivateKey :: BpiWallet -> PrivateKey
       getWalletPrivateKey = Text.decodeUtf8 . Base16.encode . serialiseToCBOR . signKey
       interpret = fmap (either ClusterStartupFailure id) . runExceptT
-
-      -- waits for the last wallet to be funded
-      awaitFunds ws delay = do
-        let lastWalletPkh = cardanoMainnetAddress $ last ws
-        liftIO $ putStrLn "Waiting till all wallets will be funded..."
-        Tools.awaitAddressFunded lastWalletPkh delay
 
 stopClusterHandler :: StopClusterRequest -> AppM StopClusterResponse
 stopClusterHandler StopClusterRequest = do

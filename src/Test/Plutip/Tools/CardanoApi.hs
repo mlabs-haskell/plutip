@@ -35,6 +35,7 @@ import Ledger (Value)
 import Ledger.Tx.CardanoAPI (fromCardanoValue)
 import Ouroboros.Consensus.HardFork.Combinator.AcrossEras (EraMismatch)
 import Test.Plutip.Internal.Types (ClusterEnv (runningNode))
+import Test.Plutip.Internal.Cluster.Extra.Types (ExtraConfig (ecSlotLength))
 import UnliftIO (throwString)
 
 newtype CardanoApiError
@@ -141,10 +142,11 @@ instance Show AwaitWalletFundedError where
 awaitWalletFunded ::
   ClusterEnv ->
   C.AddressAny ->
-  NominalDiffTime ->
+   ExtraConfig ->
   IO (Either AwaitWalletFundedError ())
-awaitWalletFunded cenv addr retryDelay = toErrorMsg <$> retrying policy checkResponse action
+awaitWalletFunded cenv addr extraConfig = toErrorMsg <$> retrying policy checkResponse action
   where
+    retryDelay = ecSlotLength $ extraConfig
     delay = truncate $ nominalDiffTimeToSeconds retryDelay * 1000000
     policy = constantDelay delay <> limitRetries 60
 

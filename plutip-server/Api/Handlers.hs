@@ -113,7 +113,7 @@ startClusterHandler
         wallets <- do
           for keysToGenerate $ \lovelaceAmounts -> do
             addSomeWallet (fromInteger . unLovelace <$> lovelaceAmounts)
-        pure (env, wallets)
+        return (env, wallets)
 
        -- wait for confirmation of funding txs, throw the first error if there's any
       waitForFundingTxs clusterEnv wallets = do

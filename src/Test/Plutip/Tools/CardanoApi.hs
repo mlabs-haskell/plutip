@@ -8,8 +8,10 @@ module Test.Plutip.Tools.CardanoApi (
   queryProtocolParams,
   queryTip,
   awaitAddressFunded,
+  awaitWalletFunded,
   plutusValueFromAddress,
   CardanoApiError,
+  AwaitWalletFundedError (AwaitingCapiError, AwaitingTimeoutError),
 ) where
 
 import Cardano.Api qualified as C
@@ -19,10 +21,12 @@ import Cardano.Slotting.Slot (WithOrigin)
 import Test.Plutip.Internal.Cluster (RunningNode (RunningNode))
 
 import Control.Exception (Exception)
+import Control.Arrow (right)
 import Control.Monad.Catch (MonadMask)
 import Control.Monad.IO.Class (MonadIO (liftIO))
 import Control.Monad.Reader (MonadReader (ask), ReaderT)
-import Control.Retry (constantDelay, limitRetries, recoverAll)
+import Control.Retry (constantDelay, limitRetries, recoverAll, retrying)
+import Data.Either (fromRight)
 import Data.Map qualified as Map
 import Data.Set qualified as Set
 import Data.Time (NominalDiffTime, nominalDiffTimeToSeconds)
@@ -123,3 +127,34 @@ plutusValueFromAddress cEnv addr = do
       extract (TxOut _ txoV _ _) = fromCardanoValue $ txOutValueToValue txoV
   res <- utxosAtAddress cEnv addr
   return $ getValues <$> res
+
+data AwaitWalletFundedError
+  = AwaitingCapiError CardanoApiError
+  | AwaitingTimeoutError
+
+instance Show AwaitWalletFundedError where
+  show (AwaitingCapiError (SomeError e)) = e
+  show AwaitingTimeoutError = "Awaiting funding transaction timed out."
+
+-- | Waits till specified address is funded using cardano-node query.
+-- Performs 60 tries with `retryDelay` seconds between tries.
+awaitWalletFunded ::
+  ClusterEnv ->
+  C.AddressAny ->
+  NominalDiffTime ->
+  IO (Either AwaitWalletFundedError ())
+awaitWalletFunded cenv addr retryDelay = toErrorMsg <$> retrying policy checkResponse action
+  where
+    delay = truncate $ nominalDiffTimeToSeconds retryDelay * 1000000
+    policy = constantDelay delay <> limitRetries 60
+
+    action _ = right (Map.null . C.unUTxO) <$> utxosAtAddress cenv addr
+
+    checkResponse _ = return . fromRight False
+
+    toErrorMsg = \case
+      Left e -> Left $ AwaitingCapiError e
+      Right noUtxos ->
+        if noUtxos
+          then Left AwaitingTimeoutError
+          else Right ()

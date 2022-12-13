@@ -119,7 +119,7 @@ startClusterHandler
       waitForFundingTxs clusterEnv wallets = do
         env <- ask
         res <- for wallets $ \w ->
-          awaitWalletFunded clusterEnv (ecSlotLength $ extraConfig $ plutipConf env) (cardanoMainnetAddress w)
+          awaitWalletFunded clusterEnv (cardanoMainnetAddress w) (ecSlotLength $ extraConfig $ plutipConf env)
         return $
           firstJust
             ( \case

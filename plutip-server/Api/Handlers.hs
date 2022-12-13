@@ -91,10 +91,6 @@ startClusterHandler
 
     (statusTVar, (clusterEnv, wallets)) <- liftIO $ startCluster cfg setup
     liftIO $ putMVar statusMVar statusTVar
-    res <- liftIO $ race (threadDelay 2_000_000) $ waitForFundingTxs clusterEnv wallets
-    -- throw Exception for cardano-cli errors.
-    -- Ignore wait timeout error - return from this handler doesn't guarantee funded wallets immedietely.
-    maybe (return ()) throwString $ fromRight Nothing res
     let nodeConfigPath = getNodeConfigFile clusterEnv
     -- safeguard against directory tree structure changes
     unlessM (liftIO $ doesFileExist nodeConfigPath) $ throwError NodeConfigNotFound
@@ -113,11 +109,14 @@ startClusterHandler
         wallets <- do
           for keysToGenerate $ \lovelaceAmounts -> do
             addSomeWallet (fromInteger . unLovelace <$> lovelaceAmounts)
+        res <- liftIO $ race (threadDelay 2_000_000) $ waitForFundingTxs clusterEnv wallets
+        -- throw Exception for cardano-cli errors.
+        -- Ignore wait timeout error - return from this handler doesn't guarantee funded wallets immedietely.
+        maybe (return ()) throwString $ fromRight Nothing res
         return (env, wallets)
 
        -- wait for confirmation of funding txs, throw the first error if there's any
       waitForFundingTxs clusterEnv wallets = do
-        env <- ask
         res <- for wallets $ \w ->
           awaitWalletFunded clusterEnv (cardanoMainnetAddress w) (ecSlotLength $ extraConfig $ plutipConf env)
         return $

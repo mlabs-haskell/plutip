@@ -55,7 +55,11 @@ instance
     result <- runResult
     pure $
       bool
-        (testFailed $ debugInfo predicate result)
+        ( testFailed $
+            debugInfo predicate result
+              <> "\n\n"
+              <> "Use assertExecutionWith to show contract logs or budgets."
+        )
         (testPassed "")
         (pCheck predicate result)
 
@@ -68,8 +72,10 @@ data TestWallet = TestWallet
   { twInitDistribuition :: [Positive]
   , twExpected :: Maybe (ValueOrdering, Value)
   }
+  deriving stock (Show)
 
 data ValueOrdering = VEq | VGt | VLt | VGEq | VLEq
+  deriving stock (Show)
 
 -- | Value doesn't have an Ord instance, so we cannot use `compare`
 compareValuesWith :: ValueOrdering -> Value -> Value -> Bool

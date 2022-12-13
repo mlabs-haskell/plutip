@@ -5,17 +5,18 @@
     haskell-nix.follows = "bot-plutus-interface/haskell-nix";
     nixpkgs.follows = "bot-plutus-interface/haskell-nix/nixpkgs";
     iohk-nix.follows = "bot-plutus-interface/iohk-nix";
+    CHaP.follows = "bot-plutus-interface/CHaP";
 
     flake-compat = {
       url = "github:edolstra/flake-compat";
       flake = false;
     };
-    bot-plutus-interface.url =
-      "github:mlabs-haskell/bot-plutus-interface?rev=7ac4f6fe11ae32edc5d5894077fedcd552e180b8";
+
+    bot-plutus-interface.url = github:mlabs-haskell/bot-plutus-interface/e80680777a761109eea6d47c8370aa55d318734d;
   };
 
   outputs =
-    { self, bot-plutus-interface, nixpkgs, haskell-nix, iohk-nix, ... }@inputs:
+    { self, bot-plutus-interface, nixpkgs, haskell-nix, CHaP, iohk-nix, ... }@inputs:
     let
       defaultSystems = [ "x86_64-linux" "x86_64-darwin" ];
 
@@ -29,11 +30,6 @@
           inherit system;
         };
       nixpkgsFor' = system: import nixpkgs { inherit system; };
-
-      extraSources = inputs.bot-plutus-interface.extraSources ++ [{
-        src = inputs.bot-plutus-interface;
-        subdirs = [ "." ];
-      }];
 
       haskellModules = bot-plutus-interface.haskellModules ++ [
         ({ config, pkgs, ... }: {
@@ -71,10 +67,13 @@
           project = pkgs.haskell-nix.cabalProject {
             name = "plutip";
             src = ./.;
+            inputMap = {
+              "https://input-output-hk.github.io/cardano-haskell-packages" = CHaP;
+            };
             compiler-nix-name = "ghc8107";
 
             shell = {
-              withHoogle = false;
+              withHoogle = true;
               exactDeps = true;
 
               additional = ps: [ ps.bot-plutus-interface ];
@@ -102,16 +101,14 @@
               ];
             };
 
-            inherit (bot-plutus-interface) cabalProjectLocal;
-            inherit extraSources;
+            inherit (bot-plutus-interface);
             modules = haskellModules;
           };
         in
         project;
     in
     {
-      inherit extraSources haskellModules;
-      inherit (bot-plutus-interface) cabalProjectLocal;
+      inherit haskellModules;
 
       project = perSystem projectFor;
       flake = perSystem (system: (projectFor system).flake { });
@@ -155,5 +152,8 @@
               mkdir $out
             '';
         });
+
+      # Instruction for the Hercules CI to build on x86_64-linux only, to avoid errors about systems without agents.
+      herculesCI.ciSystems = [ "x86_64-linux" ];
     };
 }

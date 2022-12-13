@@ -11,7 +11,7 @@ module Types (
   PlutipServerError (PlutipServerError),
   PrivateKey,
   ServerOptions (ServerOptions, nodeLogs, port),
-  StartClusterRequest (StartClusterRequest, keysToGenerate),
+  StartClusterRequest (StartClusterRequest, keysToGenerate, slotLength, epochSize),
   StartClusterResponse (
     ClusterStartupSuccess,
     ClusterStartupFailure
@@ -27,6 +27,7 @@ module Types (
   StopClusterResponse (StopClusterSuccess, StopClusterFailure),
 ) where
 
+import Cardano.Ledger.Slot (EpochSize)
 import Control.Concurrent.MVar (MVar)
 import Control.Monad.Catch (Exception, MonadThrow)
 import Control.Monad.IO.Class (MonadIO)
@@ -34,6 +35,7 @@ import Control.Monad.Reader (MonadReader, ReaderT)
 import Data.Aeson (FromJSON, ToJSON, parseJSON)
 import Data.Kind (Type)
 import Data.Text (Text)
+import Data.Time (NominalDiffTime)
 import GHC.Generics (Generic)
 import Network.Wai.Handler.Warp (Port)
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet)
@@ -90,8 +92,10 @@ instance FromJSON Lovelace where
       then fail "Lovelace value must not be negative"
       else pure $ Lovelace value
 
-newtype StartClusterRequest = StartClusterRequest
-  { -- | Lovelace amounts for each UTXO of each wallet
+data StartClusterRequest = StartClusterRequest
+  { slotLength :: NominalDiffTime
+  , epochSize :: EpochSize
+  , -- | Lovelace amounts for each UTXO of each wallet
     keysToGenerate :: [[Lovelace]]
   }
   deriving stock (Show, Eq, Generic)

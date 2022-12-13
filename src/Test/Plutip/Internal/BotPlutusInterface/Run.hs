@@ -108,23 +108,34 @@ runContractWithLogLvl logLvl cEnv bpiWallet contract = do
     fromRight (error "Could not read protocol parameters file.")
       <$> liftIO (eitherDecodeFileStrict' (BIS.pParamsFile cEnv))
 
-  contactEnv <- liftIO $ mkEnv (mkPabConfig pparams)
+  chIndexUrl <-
+    maybe
+      ( error
+          "To run the contract with Plutip Chain Index must be launched, \
+          \ but it seems to be off.\
+          \ Check `ChainIndexMode` in `PlutipConfig`"
+      )
+      pure
+      (chainIndexUrl cEnv)
 
-  runContract' contactEnv
+  contractEnv <- mkEnv (mkPabConfig pparams chIndexUrl)
+
+  runContract' contractEnv
   where
     mkEnv pabConf =
-      ContractEnvironment pabConf
-        <$> ContractInstanceId
-        <$> UUID.nextRandom
-        <*> newTVarIO (ContractState Active (mempty :: w))
-        <*> newTVarIO mempty
-        <*> newTVarIO mempty
-        <*> (Bpi.CollateralVar <$> newTVarIO Nothing)
+      liftIO $
+        ContractEnvironment pabConf
+          <$> ContractInstanceId
+          <$> UUID.nextRandom
+          <*> newTVarIO (ContractState Active (mempty :: w))
+          <*> newTVarIO mempty
+          <*> newTVarIO mempty
+          <*> (Bpi.CollateralVar <$> newTVarIO Nothing)
 
-    mkPabConfig pparams =
+    mkPabConfig pparams chIndexUrl =
       PABConfig
         { pcCliLocation = Local
-        , pcChainIndexUrl = chainIndexUrl cEnv
+        , pcChainIndexUrl = chIndexUrl
         , pcNetwork = networkId cEnv
         , pcProtocolParams = pparams
         , pcScriptFileDir = Text.pack $ BIS.scriptsDir cEnv

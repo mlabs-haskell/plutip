@@ -14,7 +14,9 @@ import BotPlutusInterface.Types (ContractStats, LogsList, TxBudget, estimatedBud
 import Cardano.Api (NetworkId)
 import Cardano.BM.Tracing (Trace)
 import Cardano.Launcher.Node (CardanoNodeConn)
-import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (RunningNode))
+
+-- import Cardano.Wallet.Shelley.Launch.Cluster (RunningNode (RunningNode))
+
 import Control.Exception (SomeException)
 import Data.Either (isRight)
 import Data.Map (Map)
@@ -22,11 +24,12 @@ import Data.Text (Text)
 import Ledger qualified
 import Servant.Client (BaseUrl)
 import Test.Plutip.Config (PlutipConfig)
+import Test.Plutip.Internal.Cluster (RunningNode (RunningNode))
 
 -- | Environment for actions that use local cluster
 data ClusterEnv = ClusterEnv
   { runningNode :: RunningNode
-  , chainIndexUrl :: !BaseUrl
+  , chainIndexUrl :: !(Maybe BaseUrl)
   , networkId :: !NetworkId
   , -- | this directory atm used to store all node related files,
     -- files created by `cardano-cli`, `chain-index` and `bot-plutus-interface`

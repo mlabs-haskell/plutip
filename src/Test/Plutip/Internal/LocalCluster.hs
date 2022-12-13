@@ -10,18 +10,18 @@ module Test.Plutip.Internal.LocalCluster (
   ),
 ) where
 
+import Cardano.Api (ChainTip (ChainTip), SlotNo (SlotNo))
 import Cardano.Api qualified as CAPI
-import Cardano.BM.Configuration.Model qualified as CM
 import Cardano.BM.Data.Severity qualified as Severity
 import Cardano.BM.Data.Tracer (HasPrivacyAnnotation, HasSeverityAnnotation (getSeverityAnnotation))
 import Cardano.CLI (LogOutput (LogToFile), withLoggingNamed)
 import Cardano.Launcher (ProcessHasExited (ProcessHasExited))
-import Cardano.Launcher.Node (nodeSocketFile)
 import Cardano.Startup (installSignalHandlers, setDefaultFilePermissions, withUtf8Encoding)
 import Cardano.Wallet.Logging (stdoutTextTracer, trMessageText)
 import Cardano.Wallet.Shelley.Launch (TempDirLog, withSystemTempDir)
-import Cardano.Wallet.Shelley.Launch.Cluster (ClusterLog, localClusterConfigFromEnv, testMinSeverityFromEnv, walletMinSeverityFromEnv, withCluster)
-import Control.Concurrent.Async (Async, async, cancel)
+
+-- import Cardano.Wallet.Shelley.Launch.Cluster (ClusterLog, localClusterConfigFromEnv, testMinSeverityFromEnv, walletMinSeverityFromEnv, withCluster)
+import Control.Concurrent.Async (cancel)
 import Control.Monad (unless, void, when)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.IO.Unlift (MonadUnliftIO)
@@ -32,31 +32,42 @@ import Data.ByteString.Char8 qualified as B
 import Data.Foldable (for_)
 import Data.Kind (Type)
 import Data.Maybe (catMaybes, fromMaybe, isJust)
-import Data.Text (Text, pack)
+import Data.Text (Text)
 import Data.Text.Class (ToText (toText))
 import GHC.IO.Handle (Handle, hDuplicate, hDuplicateTo, hFlush)
 import GHC.Stack.Types (HasCallStack)
 import Paths_plutip (getDataFileName)
-import Plutus.ChainIndex.App qualified as ChainIndex
-import Plutus.ChainIndex.Config (ChainIndexConfig (cicNetworkId, cicPort), cicDbPath, cicSocketPath)
-import Plutus.ChainIndex.Config qualified as ChainIndex
-import Plutus.ChainIndex.Logging (defaultConfig)
 import Servant.Client (BaseUrl (BaseUrl), Scheme (Http))
-import System.Directory (canonicalizePath, copyFile, createDirectoryIfMissing, doesPathExist, findExecutable, removeDirectoryRecursive)
+import System.Directory (
+  canonicalizePath,
+  copyFile,
+  createDirectoryIfMissing,
+  doesPathExist,
+  findExecutable,
+  removeDirectoryRecursive,
+ )
 import System.Environment (setEnv)
 import System.Exit (die)
 import System.FilePath ((</>))
 import System.IO (IOMode (WriteMode), hClose, openFile, stderr, stdout)
 import Test.Plutip.Config (
   PlutipConfig (
-    chainIndexPort,
+    chainIndexMode,
     clusterDataDir,
     clusterWorkingDir,
+    extraConfig,
     relayNodeLogs
   ),
   WorkingDirectory (Fixed, Temporary),
  )
 import Test.Plutip.Internal.BotPlutusInterface.Setup qualified as BotSetup
+import Test.Plutip.Internal.Cluster (
+  ClusterLog,
+  RunningNode,
+  testMinSeverityFromEnv,
+  walletMinSeverityFromEnv,
+  withCluster,
+ )
 import Test.Plutip.Internal.Types (
   ClusterEnv (
     ClusterEnv,
@@ -67,13 +78,15 @@ import Test.Plutip.Internal.Types (
     supportDir,
     tracer
   ),
-  RunningNode (RunningNode),
  )
 import Test.Plutip.Tools.CardanoApi qualified as Tools
 import Text.Printf (printf)
 import UnliftIO.Concurrent (forkFinally, myThreadId, throwTo)
-import UnliftIO.Exception (bracket, catchIO, finally)
+import UnliftIO.Exception (bracket, catchIO, finally, throwString)
 import UnliftIO.STM (TVar, atomically, newTVarIO, readTVar, retrySTM, writeTVar)
+
+import Test.Plutip.Internal.ChainIndex (handleChainIndexLaunch)
+import Test.Plutip.Internal.Cluster.Extra.Utils (localClusterConfigWithExtraConf)
 
 -- | Starting a cluster with a setup action
 -- We're heavily depending on cardano-wallet local cluster tooling, however they don't allow the
@@ -120,40 +133,33 @@ withPlutusInterface conf action = do
   withLocalClusterSetup conf $ \dir clusterLogs _walletLogs nodeConfigLogHdl -> do
     result <- withLoggingNamed "cluster" clusterLogs $ \(_, (_, trCluster)) -> do
       let tr' = contramap MsgCluster $ trMessageText trCluster
-      clusterCfg <- localClusterConfigFromEnv
+      clusterCfg <- localClusterConfigWithExtraConf (extraConfig conf)
       withRedirectedStdoutHdl nodeConfigLogHdl $ \restoreStdout ->
         retryClusterFailedStartup $
-          withCluster
-            tr'
-            dir
-            clusterCfg
-            []
-            (\rn -> restoreStdout $ runActionWthSetup rn dir trCluster action)
+          withCluster tr' dir clusterCfg mempty $ \rn -> do
+            restoreStdout $ runActionWthSetup rn dir trCluster action
     handleLogs dir conf
     return result
   where
     runActionWthSetup rn dir trCluster userAction = do
       let tracer' = trMessageText trCluster
       waitForRelayNode tracer' rn
-      -- launch chain index in seperate thread, logs to stdout
-      (ciPort, runningChainIndex) <- launchChainIndex conf rn dir
-      traceWith tracer' (ChaiIndexStartedAt ciPort)
-      let cEnv =
+      mChainStarted <- handleChainIndexLaunch (chainIndexMode conf) rn dir
+      let maybePort = fst <$> mChainStarted
+          maybeRunning = snd <$> mChainStarted
+          maybeCancelChainIndex = maybe id (\chain io -> io `finally` cancel chain) maybeRunning
+          cEnv =
             ClusterEnv
               { runningNode = rn
-              , chainIndexUrl = BaseUrl Http "localhost" ciPort mempty
+              , chainIndexUrl = (\p -> BaseUrl Http "localhost" p mempty) <$> maybePort
               , networkId = CAPI.Mainnet
               , supportDir = dir
-              , tracer = trCluster
+              , tracer = trCluster -- TODO: do we really need it?
               , plutipConf = conf
               }
 
       BotSetup.runSetup cEnv -- run preparations to use `bot-plutus-interface`
-      userAction cEnv `finally` cancel runningChainIndex -- executing user action on cluster
-
-    -- withCluster has a race condition between checking for available ports and claiming the ports.
-    -- This may cause failure at the cluster startup (the "resource busy (Address already in use)" error)
-    -- Given this is rare and the problem root sits in cardano-wallet, lets simply retry the startup few times full of hope.
+      maybeCancelChainIndex $ userAction cEnv -- executing user action on cluster
     retryClusterFailedStartup =
       let msg err = B.pack $ "Retrying cluster startup due to: " <> show err <> "\n"
           shouldRetry =
@@ -205,8 +211,6 @@ withLocalClusterSetup ::
   (FilePath -> [LogOutput] -> [LogOutput] -> Handle -> IO a) ->
   IO a
 withLocalClusterSetup conf action = do
-  -- Setting required environment variables
-  setEnv "NO_POOLS" "1"
   setClusterDataDir
 
   -- Handle SIGTERM properly
@@ -248,32 +252,20 @@ checkProcessesAvailable requiredProcesses = do
         <> show (catMaybes results)
 
 waitForRelayNode :: Tracer IO TestsLog -> RunningNode -> IO ()
-waitForRelayNode trCluster rn = do
-  liftIO $ recoverAll policy (const getTip)
+waitForRelayNode trCluster rn =
+  liftIO $ do
+    recoverAll policy wait
   where
-    policy = constantDelay 500000 <> limitRetries 5
-    getTip = trace >> void (Tools.queryTip rn)
+    -- TODO: move this to config
+    policy = constantDelay 1_000_000 <> limitRetries 60
+    getTip = trace >> Tools.queryTip rn
     trace = traceWith trCluster WaitingRelayNode
-
--- | Launch the chain index in a separate thread.
-launchChainIndex :: PlutipConfig -> RunningNode -> FilePath -> IO (Int, Async ())
-launchChainIndex conf (RunningNode sp _block0 (_gp, _vData) _) dir = do
-  config <- defaultConfig
-  CM.setMinSeverity config Severity.Notice
-  let dbPath = dir </> "chain-index.db"
-      chainIndexConfig =
-        ChainIndex.defaultConfig
-          { cicSocketPath = nodeSocketFile sp
-          , cicDbPath = dbPath
-          , cicNetworkId = CAPI.Mainnet
-          , cicPort =
-              maybe
-                (cicPort ChainIndex.defaultConfig)
-                fromEnum
-                (chainIndexPort conf)
-          }
-  running <- async $ ChainIndex.runMainWithLog (const $ return ()) config chainIndexConfig
-  return (cicPort chainIndexConfig, running)
+    wait _ = do
+      tip <- getTip
+      case tip of
+        ChainTip (SlotNo _) _ _ -> pure ()
+        a -> throwString $ "Timeout waiting for node to start. Last 'tip' response:\n" <> show a
+      pure ()
 
 handleLogs :: HasCallStack => FilePath -> PlutipConfig -> IO ()
 handleLogs clusterDir conf =
@@ -285,7 +277,7 @@ handleLogs clusterDir conf =
           Path partially hardcoded in Cardano.Wallet.Shelley.Launch.Cluster by
          `withRelayNode` ("node" subdir) and `genConfig` (file name)
         -}
-        (clusterDir </> "node" </> "cardano-node.log")
+        (clusterDir </> "pool-1" </> "cardano-node.log")
         toFile
 
 data ClusterStatus (a :: Type)
@@ -301,7 +293,6 @@ data TestsLog
   | MsgSettingUpFaucet
   | MsgCluster ClusterLog
   | WaitingRelayNode
-  | ChaiIndexStartedAt Int
   deriving stock (Show)
 
 instance ToText TestsLog where
@@ -318,7 +309,6 @@ instance ToText TestsLog where
     MsgSettingUpFaucet -> "Setting up faucet..."
     MsgCluster msg -> toText msg
     WaitingRelayNode -> "Waiting for relay node up and running"
-    ChaiIndexStartedAt ciPort -> "Chain-index started at port " <> pack (show ciPort)
 
 instance HasPrivacyAnnotation TestsLog
 
@@ -328,4 +318,3 @@ instance HasSeverityAnnotation TestsLog where
     MsgBaseUrl {} -> Severity.Notice
     MsgCluster msg -> getSeverityAnnotation msg
     WaitingRelayNode -> Severity.Notice
-    ChaiIndexStartedAt {} -> Severity.Notice

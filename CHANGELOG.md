@@ -4,9 +4,45 @@ This format is based on [Keep A Changelog](https://keepachangelog.com/en/1.0.0).
 
 ## Unreleased
 
+- Wallets with Base Address support
+- Lookups for wallets in tasty integration
+- Update BPI to support Vasil features
+- Add `dump-info-json` to local-cluster
+
+## [1.3.1] - 2022-11-04
+
+### Fixed
+
+- collateral creation - happens now before user contract execution
+
+### Added
+
+- collateral handling documentation
+
+## [1.3.0] - 2022-10-26
+
+### Added
+
+- control on `chain-index` launch
+  - `chainIndexPort` in `PlutipConfig` replaced with `chainIndexMode :: ChainIndexMode`
+  - `local-cluster` options added: `--chain-index-port`, `--no-index`
+
+## [1.2.1] - 2022-10-25
+
+### Fixed
+
+- eDSL function to await till wallet is funded `awaitWalletFunded`
+
+### Added
+
+- package with example of how to execute arbitrary contract on private network from Haskell
+
+## [1.2.0] - 2022-10-21
+
 ### Added
 
 - `Plutip` configuration
+  - Ability to set slot length and epoch size
   - Ability to add custom keys constant across runs, e.g. to use them as extra signers
   - Ability to set custom file where relay node log can be saved after tests run
   - Ability to set to set custom port for `chain-idex`

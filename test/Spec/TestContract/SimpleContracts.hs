@@ -17,11 +17,12 @@ import Plutus.Contract qualified as Contract
 
 import Ledger (
   CardanoTx,
-  ChainIndexTxOut,
+  DecoratedTxOut,
   PaymentPubKeyHash,
   TxOutRef,
   Value,
-  ciTxOutValue,
+  decoratedTxOutValue,
+  getCardanoTxId,
  )
 
 import Data.Map (Map)
@@ -31,28 +32,30 @@ import Control.Lens ((^.))
 import Control.Monad (void)
 import Data.List.NonEmpty qualified as NonEmpty
 import Data.Text (Text)
-import Ledger.Constraints (MkTxError (OwnPubKeyMissing))
+import Ledger.Constraints (MkTxError (CannotSatisfyAny))
 import Ledger.Constraints qualified as Constraints
 import Plutus.PAB.Effects.Contract.Builtin (EmptySchema)
 
-getUtxos :: Contract [Value] EmptySchema Text (Map TxOutRef ChainIndexTxOut)
+getUtxos :: Contract [Value] EmptySchema Text (Map TxOutRef DecoratedTxOut)
 getUtxos = do
   addr <- NonEmpty.head <$> Contract.ownAddresses
   utxosAt addr
 
-getUtxosThrowsErr :: Contract () EmptySchema ContractError (Map TxOutRef ChainIndexTxOut)
+getUtxosThrowsErr :: Contract () EmptySchema ContractError (Map TxOutRef DecoratedTxOut)
 getUtxosThrowsErr =
-  Contract.throwError $ ConstraintResolutionContractError OwnPubKeyMissing
+  Contract.throwError $ ConstraintResolutionContractError CannotSatisfyAny
 
-getUtxosThrowsEx :: Contract () EmptySchema Text (Map TxOutRef ChainIndexTxOut)
+getUtxosThrowsEx :: Contract () EmptySchema Text (Map TxOutRef DecoratedTxOut)
 getUtxosThrowsEx = error "This Exception was thrown intentionally in Contract.\n"
 
 payTo :: PaymentPubKeyHash -> Integer -> Contract () EmptySchema Text CardanoTx
-payTo toPkh amt =
-  submitTx (Constraints.mustPayToPubKey toPkh (Ada.lovelaceValueOf amt))
+payTo toPkh amt = do
+  tx <- submitTx (Constraints.mustPayToPubKey toPkh (Ada.lovelaceValueOf amt))
+  _ <- Contract.awaitTxConfirmed (getCardanoTxId tx)
+  pure tx
 
 ownValue :: Contract [Value] EmptySchema Text Value
-ownValue = foldMap (^. ciTxOutValue) <$> getUtxos
+ownValue = foldMap (^. decoratedTxOutValue) <$> getUtxos
 
 -- this Contract fails, but state should change in expected way
 ownValueToState :: Contract [Value] EmptySchema Text ()

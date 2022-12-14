@@ -5,6 +5,7 @@ module Test.Plutip.Internal.Cluster.Extra.Types (
 import Cardano.Ledger.Slot (EpochSize)
 import Data.Default (Default (def))
 import Data.Time (NominalDiffTime)
+import Numeric.Natural (Natural)
 
 -- | Extra configuration options to set slot length and epoch size for local network.
 --   `ExtraConfig` used both in `PlutipConfig` and `LocalClusterConfig` to pass
@@ -16,8 +17,9 @@ import Data.Time (NominalDiffTime)
 data ExtraConfig = ExtraConfig
   { ecSlotLength :: NominalDiffTime
   , ecEpochSize :: EpochSize
+  , ecMaxTxSize :: Natural
   }
   deriving stock (Show)
 
 instance Default ExtraConfig where
-  def = ExtraConfig 0.2 160
+  def = ExtraConfig 0.2 80 16384

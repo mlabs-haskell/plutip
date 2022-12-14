@@ -23,7 +23,7 @@
 {-# OPTIONS_GHC -Wwarn=missing-deriving-strategies #-}
 {-# OPTIONS_GHC -Wwarn=name-shadowing #-}
 
--- | 
+-- |
 -- This module is modified copy of https://github.com/input-output-hk/cardano-wallet/blob/1952de13f1cd954514cfa1cb02e628cfc9fde675/lib/shelley/src/Cardano/Wallet/Shelley/Launch/Cluster.hs
 -- which is
 -- Copyright: © 2018-2020 IOHK
@@ -270,7 +270,7 @@ import qualified Data.Text.Encoding.Error as T
 import qualified Data.Yaml as Yaml
 
 import Data.Default (def)
-import Test.Plutip.Internal.Cluster.Extra.Types (ExtraConfig, ecSlotLength, ecEpochSize)
+import Test.Plutip.Internal.Cluster.Extra.Types (ExtraConfig, ecSlotLength, ecEpochSize, ecMaxTxSize)
 
 -- | Returns the shelley test data path, which is usually relative to the
 -- package sources, but can be overridden by the @SHELLEY_TEST_DATA@ environment
@@ -912,7 +912,7 @@ generateGenesis dir systemStart initialFunds addPoolsToGenesis extraConf = do
 
             , _maxBBSize = 239857
             , _maxBHSize = 217569
-            , _maxTxSize = 16384
+            , _maxTxSize = ecMaxTxSize extraConf
 
             , _minPoolCost = Ledger.Coin 0
 

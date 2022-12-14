@@ -11,7 +11,7 @@ module Types (
   PlutipServerError (PlutipServerError),
   PrivateKey,
   ServerOptions (ServerOptions, nodeLogs, port),
-  StartClusterRequest (StartClusterRequest, keysToGenerate, slotLength, epochSize),
+  StartClusterRequest (StartClusterRequest, keysToGenerate, slotLength, epochSize, maxTxSize),
   StartClusterResponse (
     ClusterStartupSuccess,
     ClusterStartupFailure
@@ -36,6 +36,7 @@ import Data.Aeson (FromJSON, ToJSON, parseJSON)
 import Data.Kind (Type)
 import Data.Text (Text)
 import Data.Time (NominalDiffTime)
+import Numeric.Natural (Natural)
 import GHC.Generics (Generic)
 import Network.Wai.Handler.Warp (Port)
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet)
@@ -95,6 +96,7 @@ instance FromJSON Lovelace where
 data StartClusterRequest = StartClusterRequest
   { slotLength :: NominalDiffTime
   , epochSize :: EpochSize
+  , maxTxSize :: Natural
   , -- | Lovelace amounts for each UTXO of each wallet
     keysToGenerate :: [[Lovelace]]
   }

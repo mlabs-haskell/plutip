@@ -23,7 +23,7 @@
 {-# OPTIONS_GHC -Wwarn=missing-deriving-strategies #-}
 {-# OPTIONS_GHC -Wwarn=name-shadowing #-}
 
--- | 
+-- |
 -- This module is modified copy of https://github.com/input-output-hk/cardano-wallet/blob/1952de13f1cd954514cfa1cb02e628cfc9fde675/lib/shelley/src/Cardano/Wallet/Shelley/Launch/Cluster.hs
 -- which is
 -- Copyright: © 2018-2020 IOHK
@@ -921,7 +921,7 @@ generateGenesis dir systemStart initialFunds addPoolsToGenesis extraConf = do
             -- There are a few smaller features/fixes which are enabled based on
             -- the protocol version rather than just the era, so we need to
             -- set it to a realisitic value.
-            , _protocolVersion = Ledger.ProtVer 7 0
+            , _protocolVersion = Ledger.ProtVer 8 0
 
             -- Sensible pool & reward parameters:
             , _nOpt = 3

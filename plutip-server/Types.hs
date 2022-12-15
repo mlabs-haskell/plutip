@@ -13,6 +13,7 @@ module Types (
   ServerOptions (ServerOptions, nodeLogs, port),
   StartClusterRequest
     ( StartClusterRequest
+    , StartClusterRequestWithConfig
     , keysToGenerate
     , slotLength
     , epochSize
@@ -99,14 +100,15 @@ instance FromJSON Lovelace where
       then fail "Lovelace value must not be negative"
       else pure $ Lovelace value
 
-data StartClusterRequest = StartClusterRequest
-  { slotLength :: NominalDiffTime
-  , epochSize :: EpochSize
-  , maxTxSize :: Natural
-  , increasedExUnits :: Bool
-  , -- | Lovelace amounts for each UTXO of each wallet
-    keysToGenerate :: [[Lovelace]]
-  }
+data StartClusterRequest =
+    StartClusterRequest { keysToGenerate :: [[Lovelace]] } -- | Lovelace amounts for each UTXO of each wallet
+  | StartClusterRequestWithConfig
+      { slotLength :: NominalDiffTime
+      , epochSize :: EpochSize
+      , maxTxSize :: Natural
+      , increasedExUnits :: Bool
+      , keysToGenerate :: [[Lovelace]]
+      }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
 

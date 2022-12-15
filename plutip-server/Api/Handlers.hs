@@ -15,6 +15,7 @@ import Control.Monad.Except (runExceptT, throwError)
 import Control.Monad.Extra (unlessM)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ReaderT, ask, asks)
+import Data.Default (def)
 import Data.ByteString.Base16 qualified as Base16
 import Data.Default (def)
 import Data.Foldable (for_)
@@ -61,6 +62,7 @@ import Types (
   ServerOptions (ServerOptions, nodeLogs),
   StartClusterRequest (
     StartClusterRequest,
+    StartClusterRequestWithConfig,
     epochSize,
     maxTxSize,
     keysToGenerate,
@@ -79,19 +81,23 @@ import UnliftIO.Exception (throwString)
 startClusterHandler :: ServerOptions -> StartClusterRequest -> AppM StartClusterResponse
 startClusterHandler
   ServerOptions {nodeLogs}
-  StartClusterRequest {slotLength, epochSize, maxTxSize, keysToGenerate, increasedExUnits} = interpret $ do
+  clusterReq = interpret $ do
+    let (keysToGen, extraConf) = case clusterReq of
+            StartClusterRequest {keysToGenerate} -> (keysToGenerate, def)
+            StartClusterRequestWithConfig {..} ->
+              let extraConfig = ExtraConfig slotLength epochSize maxTxSize increasedExUnits
+              in (keysToGenerate,extraConfig)
     -- Check that lovelace amounts are positive
-    for_ keysToGenerate $ \lovelaceAmounts -> do
+    for_ keysToGen $ \lovelaceAmounts -> do
       for_ lovelaceAmounts $ \lovelaces -> do
         unless (unLovelace lovelaces > 0) $ do
           throwError NegativeLovelaces
     statusMVar <- asks status
     isClusterDown <- liftIO $ isEmptyMVar statusMVar
     unless isClusterDown $ throwError ClusterIsRunningAlready
-    let extraConf = ExtraConfig slotLength epochSize maxTxSize increasedExUnits
-        cfg = def {relayNodeLogs = nodeLogs, chainIndexMode = NotNeeded, extraConfig = extraConf}
+    let cfg = def {relayNodeLogs = nodeLogs, chainIndexMode = NotNeeded, extraConfig = extraConf}
 
-    (statusTVar, (clusterEnv, wallets)) <- liftIO $ startCluster cfg setup
+    (statusTVar, (clusterEnv, wallets)) <- liftIO $ startCluster cfg $ setup keysToGen
     liftIO $ putMVar statusMVar statusTVar
     res <- liftIO $ race (threadDelay 2_000_000) $ waitForFundingTxs clusterEnv wallets extraConf
     -- throw Exception for cardano-cli errors.
@@ -109,11 +115,11 @@ startClusterHandler
           , keysDirectory = keysDir clusterEnv
           }
     where
-      setup :: ReaderT ClusterEnv IO (ClusterEnv, [BpiWallet])
-      setup = do
+      setup :: [[Lovelace]] -> ReaderT ClusterEnv IO (ClusterEnv, [BpiWallet])
+      setup keysToGen = do
         env <- ask
         wallets <- do
-          for keysToGenerate $ \lovelaceAmounts -> do
+          for keysToGen $ \lovelaceAmounts -> do
             addSomeWallet (fromInteger . unLovelace <$> lovelaceAmounts)
         return (env, wallets)
 

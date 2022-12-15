@@ -101,7 +101,9 @@ instance FromJSON Lovelace where
       else pure $ Lovelace value
 
 data StartClusterRequest =
-    StartClusterRequest { keysToGenerate :: [[Lovelace]] } -- | Lovelace amounts for each UTXO of each wallet
+    StartClusterRequest
+      { -- | Lovelace amounts for each UTXO of each wallet
+        keysToGenerate :: [[Lovelace]] }
   | StartClusterRequestWithConfig
       { slotLength :: NominalDiffTime
       , epochSize :: EpochSize

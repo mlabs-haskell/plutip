@@ -11,7 +11,13 @@ module Types (
   PlutipServerError (PlutipServerError),
   PrivateKey,
   ServerOptions (ServerOptions, nodeLogs, port),
-  StartClusterRequest (StartClusterRequest, keysToGenerate, slotLength, epochSize, maxTxSize),
+  StartClusterRequest
+    ( StartClusterRequest
+    , keysToGenerate
+    , slotLength
+    , epochSize
+    , maxTxSize
+    , increasedExUnits),
   StartClusterResponse (
     ClusterStartupSuccess,
     ClusterStartupFailure
@@ -97,6 +103,7 @@ data StartClusterRequest = StartClusterRequest
   { slotLength :: NominalDiffTime
   , epochSize :: EpochSize
   , maxTxSize :: Natural
+  , increasedExUnits :: Bool
   , -- | Lovelace amounts for each UTXO of each wallet
     keysToGenerate :: [[Lovelace]]
   }

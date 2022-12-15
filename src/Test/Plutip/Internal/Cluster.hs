@@ -270,7 +270,12 @@ import qualified Data.Text.Encoding.Error as T
 import qualified Data.Yaml as Yaml
 
 import Data.Default (def)
-import Test.Plutip.Internal.Cluster.Extra.Types (ExtraConfig, ecSlotLength, ecEpochSize, ecMaxTxSize)
+import Test.Plutip.Internal.Cluster.Extra.Types
+    ( ExtraConfig
+    , ecSlotLength
+    , ecEpochSize
+    , ecMaxTxSize
+    , ecIncreasedExUnits)
 
 -- | Returns the shelley test data path, which is usually relative to the
 -- package sources, but can be overridden by the @SHELLEY_TEST_DATA@ environment
@@ -896,7 +901,10 @@ generateGenesis
     -> IO GenesisFiles
 generateGenesis dir systemStart initialFunds addPoolsToGenesis extraConf = do
     source <- getShelleyTestDataPath
-    Yaml.decodeFileThrow @_ @Aeson.Value (source </> "alonzo-genesis.yaml")
+    let alonzoGenesis = if (ecIncreasedExUnits extraConf)
+                        then "alonzo-genesis-increased-exUnits.yaml"
+                        else "alonzo-genesis.yaml"
+    Yaml.decodeFileThrow @_ @Aeson.Value (source </> alonzoGenesis)
         >>= Aeson.encodeFile (dir </> "genesis.alonzo.json")
 
     let startTime = round @_ @Int . utcTimeToPOSIXSeconds $ systemStart

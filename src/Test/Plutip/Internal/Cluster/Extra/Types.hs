@@ -18,8 +18,9 @@ data ExtraConfig = ExtraConfig
   { ecSlotLength :: NominalDiffTime
   , ecEpochSize :: EpochSize
   , ecMaxTxSize :: Natural
+  , ecIncreasedExUnits :: Bool
   }
   deriving stock (Show)
 
 instance Default ExtraConfig where
-  def = ExtraConfig 0.2 80 16384
+  def = ExtraConfig 0.2 80 16384 False

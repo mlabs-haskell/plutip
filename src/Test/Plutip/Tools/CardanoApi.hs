@@ -20,8 +20,8 @@ import Cardano.Launcher.Node (nodeSocketFile)
 import Cardano.Slotting.Slot (WithOrigin)
 import Test.Plutip.Internal.Cluster (RunningNode (RunningNode))
 
-import Control.Exception (Exception)
 import Control.Arrow (right)
+import Control.Exception (Exception)
 import Control.Monad.Catch (MonadMask)
 import Control.Monad.IO.Class (MonadIO (liftIO))
 import Control.Monad.Reader (MonadReader (ask), ReaderT)
@@ -34,8 +34,8 @@ import GHC.Generics (Generic)
 import Ledger (Value)
 import Ledger.Tx.CardanoAPI (fromCardanoValue)
 import Ouroboros.Consensus.HardFork.Combinator.AcrossEras (EraMismatch)
-import Test.Plutip.Internal.Types (ClusterEnv (runningNode))
 import Test.Plutip.Internal.Cluster.Extra.Types (ExtraConfig (ecSlotLength))
+import Test.Plutip.Internal.Types (ClusterEnv (runningNode))
 import UnliftIO (throwString)
 
 newtype CardanoApiError
@@ -142,7 +142,7 @@ instance Show AwaitWalletFundedError where
 awaitWalletFunded ::
   ClusterEnv ->
   C.AddressAny ->
-   ExtraConfig ->
+  ExtraConfig ->
   IO (Either AwaitWalletFundedError ())
 awaitWalletFunded cenv addr extraConfig = toErrorMsg <$> retrying policy checkResponse action
   where

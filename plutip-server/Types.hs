@@ -11,14 +11,15 @@ module Types (
   PlutipServerError (PlutipServerError),
   PrivateKey,
   ServerOptions (ServerOptions, nodeLogs, port),
-  StartClusterRequest
-    ( StartClusterRequest
-    , StartClusterRequestWithConfig
-    , keysToGenerate
-    , slotLength
-    , epochSize
-    , maxTxSize
-    , increasedExUnits),
+  StartClusterRequest (
+    StartClusterRequest,
+    StartClusterRequestWithConfig,
+    keysToGenerate,
+    slotLength,
+    epochSize,
+    maxTxSize,
+    increasedExUnits
+  ),
   StartClusterResponse (
     ClusterStartupSuccess,
     ClusterStartupFailure
@@ -43,9 +44,9 @@ import Data.Aeson (FromJSON, ToJSON, parseJSON)
 import Data.Kind (Type)
 import Data.Text (Text)
 import Data.Time (NominalDiffTime)
-import Numeric.Natural (Natural)
 import GHC.Generics (Generic)
 import Network.Wai.Handler.Warp (Port)
+import Numeric.Natural (Natural)
 import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet)
 import Test.Plutip.Internal.LocalCluster (ClusterStatus)
 import Test.Plutip.Internal.Types (ClusterEnv)
@@ -100,15 +101,16 @@ instance FromJSON Lovelace where
       then fail "Lovelace value must not be negative"
       else pure $ Lovelace value
 
-data StartClusterRequest =
-    StartClusterRequest
+data StartClusterRequest
+  = StartClusterRequest
       { -- | Lovelace amounts for each UTXO of each wallet
-        keysToGenerate :: [[Lovelace]] }
+        keysToGenerate :: [[Lovelace]]
+      }
   | StartClusterRequestWithConfig
       { slotLength :: NominalDiffTime
       , epochSize :: EpochSize
       , maxTxSize :: Natural
-      , increasedExUnits :: Bool
+      , increasedExUnits :: Natural
       , keysToGenerate :: [[Lovelace]]
       }
   deriving stock (Show, Eq, Generic)

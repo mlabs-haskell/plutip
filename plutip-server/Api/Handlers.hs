@@ -7,19 +7,18 @@ import Cardano.Api (serialiseToCBOR)
 import Cardano.Launcher.Node (nodeSocketFile)
 import Test.Plutip.Tools.CardanoApi qualified as Tools
 
-import Control.Concurrent.MVar (isEmptyMVar, putMVar, tryTakeMVar)
 import Control.Concurrent (threadDelay)
 import Control.Concurrent.Async (race)
+import Control.Concurrent.MVar (isEmptyMVar, putMVar, tryTakeMVar)
 import Control.Monad (unless)
 import Control.Monad.Except (runExceptT, throwError)
 import Control.Monad.Extra (unlessM)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (ReaderT, ask, asks)
-import Data.Default (def)
 import Data.ByteString.Base16 qualified as Base16
 import Data.Default (def)
-import Data.Foldable (for_)
 import Data.Either (fromRight)
+import Data.Foldable (for_)
 import Data.List.Extra (firstJust)
 import Data.Text.Encoding qualified as Text
 import Data.Traversable (for)
@@ -64,10 +63,10 @@ import Types (
     StartClusterRequest,
     StartClusterRequestWithConfig,
     epochSize,
-    maxTxSize,
+    increasedExUnits,
     keysToGenerate,
-    slotLength,
-    increasedExUnits
+    maxTxSize,
+    slotLength
   ),
   StartClusterResponse (
     ClusterStartupFailure,
@@ -83,10 +82,10 @@ startClusterHandler
   ServerOptions {nodeLogs}
   clusterReq = interpret $ do
     let (keysToGen, extraConf) = case clusterReq of
-            StartClusterRequest {keysToGenerate} -> (keysToGenerate, def)
-            StartClusterRequestWithConfig {..} ->
-              let extraConfig = ExtraConfig slotLength epochSize maxTxSize increasedExUnits
-              in (keysToGenerate,extraConfig)
+          StartClusterRequest {keysToGenerate} -> (keysToGenerate, def)
+          StartClusterRequestWithConfig {..} ->
+            let extraConfig = ExtraConfig slotLength epochSize maxTxSize increasedExUnits
+             in (keysToGenerate, extraConfig)
     -- Check that lovelace amounts are positive
     for_ keysToGen $ \lovelaceAmounts -> do
       for_ lovelaceAmounts $ \lovelaces -> do
@@ -123,7 +122,7 @@ startClusterHandler
             addSomeWallet (fromInteger . unLovelace <$> lovelaceAmounts)
         return (env, wallets)
 
-       -- wait for confirmation of funding txs, throw the first error if there's any
+      -- wait for confirmation of funding txs, throw the first error if there's any
       waitForFundingTxs clusterEnv wallets extraConfig = do
         res <- for wallets $ \w ->
           awaitWalletFunded clusterEnv (cardanoMainnetAddress w) extraConfig

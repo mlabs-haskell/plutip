@@ -275,7 +275,10 @@ import Test.Plutip.Internal.Cluster.Extra.Types
     , ecSlotLength
     , ecEpochSize
     , ecMaxTxSize
-    , ecIncreasedExUnits)
+    , ecIncreasedExUnits
+    , standardBlockExUnits
+    , standardTxExUnits
+    , increaseExUnits)
 
 -- | Returns the shelley test data path, which is usually relative to the
 -- package sources, but can be overridden by the @SHELLEY_TEST_DATA@ environment
@@ -901,10 +904,11 @@ generateGenesis
     -> IO GenesisFiles
 generateGenesis dir systemStart initialFunds addPoolsToGenesis extraConf = do
     source <- getShelleyTestDataPath
-    let alonzoGenesis = if (ecIncreasedExUnits extraConf)
-                        then "alonzo-genesis-increased-exUnits.yaml"
-                        else "alonzo-genesis.yaml"
-    Yaml.decodeFileThrow @_ @Aeson.Value (source </> alonzoGenesis)
+    let maxTxExUnits = increaseExUnits standardTxExUnits $ ecIncreasedExUnits extraConf
+        maxBlockExUnits = increaseExUnits standardBlockExUnits $ ecIncreasedExUnits extraConf
+    Yaml.decodeFileThrow @_ @Aeson.Value (source </> "alonzo-genesis.yaml")
+        >>= withAddedKey "maxTxExUnits" maxTxExUnits
+        >>= withAddedKey "maxBlockExUnits" maxBlockExUnits
         >>= Aeson.encodeFile (dir </> "genesis.alonzo.json")
 
     let startTime = round @_ @Int . utcTimeToPOSIXSeconds $ systemStart

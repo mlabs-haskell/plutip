@@ -270,6 +270,7 @@ import qualified Data.Text.Encoding.Error as T
 import qualified Data.Yaml as Yaml
 
 import Data.Default (def)
+import Numeric.Natural (Natural)
 import Test.Plutip.Internal.Cluster.Extra.Types
     ( ExtraConfig
     , ecSlotLength
@@ -278,7 +279,8 @@ import Test.Plutip.Internal.Cluster.Extra.Types
     , ecIncreasedExUnits
     , standardBlockExUnits
     , standardTxExUnits
-    , increaseExUnits)
+    , increaseExUnits
+    , ecNoCollateral)
 
 -- | Returns the shelley test data path, which is usually relative to the
 -- package sources, but can be overridden by the @SHELLEY_TEST_DATA@ environment
@@ -906,9 +908,12 @@ generateGenesis dir systemStart initialFunds addPoolsToGenesis extraConf = do
     source <- getShelleyTestDataPath
     let maxTxExUnits = increaseExUnits standardTxExUnits $ ecIncreasedExUnits extraConf
         maxBlockExUnits = increaseExUnits standardBlockExUnits $ ecIncreasedExUnits extraConf
+        collateral :: Natural
+        collateral = if ecNoCollateral extraConf then 0 else 150
     Yaml.decodeFileThrow @_ @Aeson.Value (source </> "alonzo-genesis.yaml")
         >>= withAddedKey "maxTxExUnits" maxTxExUnits
         >>= withAddedKey "maxBlockExUnits" maxBlockExUnits
+        >>= withAddedKey "collateralPercentage" collateral
         >>= Aeson.encodeFile (dir </> "genesis.alonzo.json")
 
     let startTime = round @_ @Int . utcTimeToPOSIXSeconds $ systemStart

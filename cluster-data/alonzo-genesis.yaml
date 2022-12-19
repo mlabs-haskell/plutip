@@ -9,7 +9,6 @@ executionPrices:
     numerator: 577
     denominator: 10000
 maxValueSize: 5000
-collateralPercentage: 150
 maxCollateralInputs: 3
 costModels:
   PlutusV1:

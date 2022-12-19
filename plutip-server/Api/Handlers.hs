@@ -80,12 +80,14 @@ import UnliftIO.Exception (throwString)
 startClusterHandler :: ServerOptions -> StartClusterRequest -> AppM StartClusterResponse
 startClusterHandler
   ServerOptions {nodeLogs}
-  clusterReq = interpret $ do
-    let (keysToGen, extraConf) = case clusterReq of
-          StartClusterRequest {keysToGenerate} -> (keysToGenerate, def)
-          StartClusterRequestWithConfig {..} ->
-            let extraConfig = ExtraConfig slotLength epochSize maxTxSize increasedExUnits
-             in (keysToGenerate, extraConfig)
+  StartClusterRequestWithConfig
+      { keysToGenerate
+      , slotLength
+      , epochSize
+      , maxTxSize
+      , increasedExUnits
+      , noCollateral
+      } = interpret $ do
     -- Check that lovelace amounts are positive
     for_ keysToGen $ \lovelaceAmounts -> do
       for_ lovelaceAmounts $ \lovelaces -> do
@@ -94,7 +96,13 @@ startClusterHandler
     statusMVar <- asks status
     isClusterDown <- liftIO $ isEmptyMVar statusMVar
     unless isClusterDown $ throwError ClusterIsRunningAlready
-    let cfg = def {relayNodeLogs = nodeLogs, chainIndexMode = NotNeeded, extraConfig = extraConf}
+    let extraConf = ExtraConfig
+                       (getValue slotLength)
+                       (getValue epochSize)
+                       (getValue maxTxSize)
+                       (getValue increasedExUnits)
+                       noCollateral
+        cfg = def {relayNodeLogs = nodeLogs, chainIndexMode = NotNeeded, extraConfig = extraConf}
 
     (statusTVar, (clusterEnv, wallets)) <- liftIO $ startCluster cfg $ setup keysToGen
     liftIO $ putMVar statusMVar statusTVar
@@ -143,6 +151,9 @@ startClusterHandler
       getWalletPrivateKey = Text.decodeUtf8 . Base16.encode . serialiseToCBOR . signKey
       interpret = fmap (either ClusterStartupFailure id) . runExceptT
 
+      getValue :: Maybe a -> a
+      getValue = fromMaybe def
+
 stopClusterHandler :: StopClusterRequest -> AppM StopClusterResponse
 stopClusterHandler StopClusterRequest = do
   statusMVar <- asks status
@@ -152,3 +163,4 @@ stopClusterHandler StopClusterRequest = do
     Just statusTVar -> do
       liftIO $ stopCluster statusTVar
       pure StopClusterSuccess
+

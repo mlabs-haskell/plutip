@@ -25,6 +25,7 @@ data ExtraConfig = ExtraConfig
   , ecEpochSize :: EpochSize
   , ecMaxTxSize :: Natural
   , ecIncreasedExUnits :: Natural
+  , ecNoCollateral :: Bool
   }
   deriving stock (Show)
 
@@ -57,4 +58,4 @@ increaseExUnits exUnits factor =
     }
 
 instance Default ExtraConfig where
-  def = ExtraConfig 0.1 80 16384 1
+  def = ExtraConfig 0.1 80 16384 1 False

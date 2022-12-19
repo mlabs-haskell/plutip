@@ -20,6 +20,7 @@ import Data.Default (def)
 import Data.Either (fromRight)
 import Data.Foldable (for_)
 import Data.List.Extra (firstJust)
+import Data.Maybe (fromMaybe)
 import Data.Text.Encoding qualified as Text
 import Data.Traversable (for)
 import System.Directory (doesFileExist)
@@ -37,10 +38,21 @@ import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   cardanoMainnetAddress,
  )
 import Test.Plutip.Internal.Cluster (RunningNode (RunningNode))
-import Test.Plutip.Internal.Cluster.Extra.Types (ExtraConfig (ExtraConfig, ecSlotLength))
+import Test.Plutip.Internal.Cluster.Extra.Types (
+  ExtraConfig (
+    ExtraConfig,
+    ecEpochSize,
+    ecIncreasedExUnits,
+    ecMaxTxSize,
+    ecSlotLength
+  ),
+ )
 import Test.Plutip.Internal.LocalCluster (startCluster, stopCluster)
 import Test.Plutip.Internal.Types (ClusterEnv (plutipConf, runningNode))
-import Test.Plutip.Tools.CardanoApi (AwaitWalletFundedError (AwaitingCapiError, AwaitingTimeoutError), awaitWalletFunded)
+import Test.Plutip.Tools.CardanoApi (
+  AwaitWalletFundedError (AwaitingCapiError, AwaitingTimeoutError),
+  awaitWalletFunded,
+ )
 import Types (
   AppM,
   ClusterStartupFailureReason (
@@ -61,11 +73,11 @@ import Types (
   ServerOptions (ServerOptions, nodeLogs),
   StartClusterRequest (
     StartClusterRequest,
-    StartClusterRequestWithConfig,
     epochSize,
     increasedExUnits,
     keysToGenerate,
     maxTxSize,
+    noCollateral,
     slotLength
   ),
   StartClusterResponse (
@@ -80,31 +92,25 @@ import UnliftIO.Exception (throwString)
 startClusterHandler :: ServerOptions -> StartClusterRequest -> AppM StartClusterResponse
 startClusterHandler
   ServerOptions {nodeLogs}
-  StartClusterRequestWithConfig
-      { keysToGenerate
-      , slotLength
-      , epochSize
-      , maxTxSize
-      , increasedExUnits
-      , noCollateral
-      } = interpret $ do
+  StartClusterRequest
+    { keysToGenerate
+    , slotLength
+    , epochSize
+    , maxTxSize
+    , increasedExUnits
+    , noCollateral
+    } = interpret $ do
     -- Check that lovelace amounts are positive
-    for_ keysToGen $ \lovelaceAmounts -> do
+    for_ keysToGenerate $ \lovelaceAmounts -> do
       for_ lovelaceAmounts $ \lovelaces -> do
         unless (unLovelace lovelaces > 0) $ do
           throwError NegativeLovelaces
     statusMVar <- asks status
     isClusterDown <- liftIO $ isEmptyMVar statusMVar
     unless isClusterDown $ throwError ClusterIsRunningAlready
-    let extraConf = ExtraConfig
-                       (getValue slotLength)
-                       (getValue epochSize)
-                       (getValue maxTxSize)
-                       (getValue increasedExUnits)
-                       noCollateral
-        cfg = def {relayNodeLogs = nodeLogs, chainIndexMode = NotNeeded, extraConfig = extraConf}
+    let cfg = def {relayNodeLogs = nodeLogs, chainIndexMode = NotNeeded, extraConfig = extraConf}
 
-    (statusTVar, (clusterEnv, wallets)) <- liftIO $ startCluster cfg $ setup keysToGen
+    (statusTVar, (clusterEnv, wallets)) <- liftIO $ startCluster cfg setup
     liftIO $ putMVar statusMVar statusTVar
     res <- liftIO $ race (threadDelay 2_000_000) $ waitForFundingTxs clusterEnv wallets extraConf
     -- throw Exception for cardano-cli errors.
@@ -122,11 +128,11 @@ startClusterHandler
           , keysDirectory = keysDir clusterEnv
           }
     where
-      setup :: [[Lovelace]] -> ReaderT ClusterEnv IO (ClusterEnv, [BpiWallet])
-      setup keysToGen = do
+      setup :: ReaderT ClusterEnv IO (ClusterEnv, [BpiWallet])
+      setup = do
         env <- ask
         wallets <- do
-          for keysToGen $ \lovelaceAmounts -> do
+          for keysToGenerate $ \lovelaceAmounts -> do
             addSomeWallet (fromInteger . unLovelace <$> lovelaceAmounts)
         return (env, wallets)
 
@@ -147,12 +153,20 @@ startClusterHandler
       getNodeConfigFile =
         -- assumption is that node.config lies in the same directory as node.socket
         flip replaceFileName "node.config" . getNodeSocketFile
+
       getWalletPrivateKey :: BpiWallet -> PrivateKey
       getWalletPrivateKey = Text.decodeUtf8 . Base16.encode . serialiseToCBOR . signKey
       interpret = fmap (either ClusterStartupFailure id) . runExceptT
 
-      getValue :: Maybe a -> a
-      getValue = fromMaybe def
+      extraConf :: ExtraConfig
+      extraConf =
+        let defConfig = def
+         in ExtraConfig
+              (fromMaybe (ecSlotLength defConfig) slotLength)
+              (fromMaybe (ecEpochSize defConfig) epochSize)
+              (fromMaybe (ecMaxTxSize defConfig) maxTxSize)
+              (fromMaybe (ecIncreasedExUnits defConfig) increasedExUnits)
+              noCollateral
 
 stopClusterHandler :: StopClusterRequest -> AppM StopClusterResponse
 stopClusterHandler StopClusterRequest = do
@@ -163,4 +177,3 @@ stopClusterHandler StopClusterRequest = do
     Just statusTVar -> do
       liftIO $ stopCluster statusTVar
       pure StopClusterSuccess
-

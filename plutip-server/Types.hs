@@ -13,12 +13,12 @@ module Types (
   ServerOptions (ServerOptions, nodeLogs, port),
   StartClusterRequest (
     StartClusterRequest,
-    StartClusterRequestWithConfig,
     keysToGenerate,
     slotLength,
     epochSize,
     maxTxSize,
-    increasedExUnits
+    increasedExUnits,
+    noCollateral
   ),
   StartClusterResponse (
     ClusterStartupSuccess,
@@ -101,21 +101,20 @@ instance FromJSON Lovelace where
       then fail "Lovelace value must not be negative"
       else pure $ Lovelace value
 
-data StartClusterRequest
-  = StartClusterRequest
-      { -- | Lovelace amounts for each UTXO of each wallet
-        keysToGenerate :: [[Lovelace]]
-        -- | Set the SlotLength. If set to Nothing use the default
-      , slotLength :: Maybe NominalDiffTime
-      -- | Set the EpochSize. If set to Nothing use the default
-      , epochSize :: Maybe EpochSize
-      -- | Set The maxTxSize. If set to Nothing use the default
-      , maxTxSize :: Maybe Natural
-      -- | Increase the standard exUnits by a factor. If set to Nothing use the default
-      , increasedExUnits :: Maybe Natural
-      -- | Remove the restrictions on Collateral for debugging.
-      , noCollateral :: Bool
-      }
+data StartClusterRequest = StartClusterRequest
+  { -- | Lovelace amounts for each UTXO of each wallet
+    keysToGenerate :: [[Lovelace]]
+  , -- | Set the SlotLength. If set to Nothing use the default
+    slotLength :: Maybe NominalDiffTime
+  , -- | Set the EpochSize. If set to Nothing use the default
+    epochSize :: Maybe EpochSize
+  , -- | Set The maxTxSize. If set to Nothing use the default
+    maxTxSize :: Maybe Natural
+  , -- | Increase the standard exUnits by a factor. If set to Nothing use the default
+    increasedExUnits :: Maybe Natural
+  , -- | Remove the restrictions on Collateral for debugging.
+    noCollateral :: Bool
+  }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)
 

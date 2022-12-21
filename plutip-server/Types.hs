@@ -111,9 +111,7 @@ data StartClusterRequest = StartClusterRequest
   , -- | Set The maxTxSize. If set to Nothing use the default
     maxTxSize :: Maybe Natural
   , -- | Increase the standard exUnits by a factor. If set to Nothing use the default
-    increasedExUnits :: Maybe Natural
-  , -- | Remove the restrictions on Collateral for debugging.
-    noCollateral :: Bool
+    raiseExUnitsToMax :: Maybe Bool
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)

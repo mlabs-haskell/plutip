@@ -276,11 +276,11 @@ import Test.Plutip.Internal.Cluster.Extra.Types
     , ecSlotLength
     , ecEpochSize
     , ecMaxTxSize
-    , ecIncreasedExUnits
-    , standardBlockExUnits
-    , standardTxExUnits
-    , increaseExUnits
-    , ecNoCollateral)
+    , ecRaiseExUnitsToMax
+    , stdBlockExUnits
+    , calculateCollateral
+    , stdTxExUnits
+    , maxExUnits)
 
 -- | Returns the shelley test data path, which is usually relative to the
 -- package sources, but can be overridden by the @SHELLEY_TEST_DATA@ environment
@@ -895,6 +895,7 @@ unsafePositiveUnitInterval x = fromMaybe
         (error $ "unsafeNonNegativeInterval: " <> show x <> " is out of bounds")
         (boundRational x)
 
+
 -- altered
 generateGenesis
     :: FilePath
@@ -906,10 +907,10 @@ generateGenesis
     -> IO GenesisFiles
 generateGenesis dir systemStart initialFunds addPoolsToGenesis extraConf = do
     source <- getShelleyTestDataPath
-    let maxTxExUnits = increaseExUnits standardTxExUnits $ ecIncreasedExUnits extraConf
-        maxBlockExUnits = increaseExUnits standardBlockExUnits $ ecIncreasedExUnits extraConf
-        collateral :: Natural
-        collateral = if ecNoCollateral extraConf then 0 else 150
+    let (maxTxExUnits, maxBlockExUnits) = if ecRaiseExUnitsToMax extraConf
+           then (maxExUnits, maxExUnits)
+           else (stdTxExUnits, stdBlockExUnits)
+        collateral = calculateCollateral $ ecMaxTxSize extraConf
     Yaml.decodeFileThrow @_ @Aeson.Value (source </> "alonzo-genesis.yaml")
         >>= withAddedKey "maxTxExUnits" maxTxExUnits
         >>= withAddedKey "maxBlockExUnits" maxBlockExUnits

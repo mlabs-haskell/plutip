@@ -165,8 +165,7 @@ startClusterHandler
               (fromMaybe (ecSlotLength defConfig) slotLength)
               (fromMaybe (ecEpochSize defConfig) epochSize)
               (fromMaybe (ecMaxTxSize defConfig) maxTxSize)
-              (fromMaybe (ecIncreasedExUnits defConfig) increasedExUnits)
-              noCollateral
+              (fromMaybe (ecRaiseExUnitsToMax defConfig) raiseExUnitsToMax)
 
 stopClusterHandler :: StopClusterRequest -> AppM StopClusterResponse
 stopClusterHandler StopClusterRequest = do

@@ -1,17 +1,20 @@
 module Test.Plutip.Internal.Cluster.Extra.Types (
   ExtraConfig (..),
-  MaxExUnits (..),
-  standardBlockExUnits,
-  standardTxExUnits,
-  increaseExUnits,
+  stdBlockExUnits,
+  stdTxExUnits,
+  stdTxSize,
+  maxExUnits,
+  stdCollateral,
+  calculateCollateral,
 ) where
 
 import Cardano.Ledger.Slot (EpochSize)
-import Data.Aeson (FromJSON, ToJSON)
 import Data.Default (Default (def))
+import Data.Ratio ((%))
 import Data.Time (NominalDiffTime)
-import GHC.Generics (Generic)
 import Numeric.Natural (Natural)
+import PlutusCore.Evaluation.Machine.ExBudget (ExBudget (ExBudget))
+import PlutusCore.Evaluation.Machine.ExMemory (ExCPU (ExCPU), ExMemory (ExMemory))
 
 -- | Extra configuration options to set slot length and epoch size for local network.
 --   `ExtraConfig` used both in `PlutipConfig` and `LocalClusterConfig` to pass
@@ -24,38 +27,32 @@ data ExtraConfig = ExtraConfig
   { ecSlotLength :: NominalDiffTime
   , ecEpochSize :: EpochSize
   , ecMaxTxSize :: Natural
-  , ecIncreasedExUnits :: Natural
-  , ecNoCollateral :: Bool
+  , ecRaiseExUnitsToMax :: Bool
   }
   deriving stock (Show)
 
-data MaxExUnits = MaxExUnits
-  { exUnitsMem :: Natural
-  , exUnitsSteps :: Natural
-  }
-  deriving stock (Show, Eq, Generic)
-  deriving anyclass (FromJSON, ToJSON)
+-- below from https://github.com/input-output-hk/cardano-node/blob/master/configuration/cardano/mainnet-alonzo-genesis.json
+stdTxExUnits :: ExBudget
+stdTxExUnits = ExBudget (ExCPU 10000000000) (ExMemory 10000000)
 
-standardTxExUnits :: MaxExUnits
-standardTxExUnits =
-  MaxExUnits
-    { exUnitsMem = 10000000
-    , exUnitsSteps = 10000000000
-    }
+stdBlockExUnits :: ExBudget
+stdBlockExUnits = ExBudget (ExCPU 40000000000) (ExMemory 50000000)
 
-standardBlockExUnits :: MaxExUnits
-standardBlockExUnits =
-  MaxExUnits
-    { exUnitsMem = 50000000
-    , exUnitsSteps = 40000000000
-    }
+maxExUnits :: ExBudget
+maxExUnits = ExBudget (ExCPU maxBound) (ExMemory maxBound)
 
-increaseExUnits :: MaxExUnits -> Natural -> MaxExUnits
-increaseExUnits exUnits factor =
-  MaxExUnits
-    { exUnitsMem = factor * (exUnitsMem exUnits)
-    , exUnitsSteps = factor * (exUnitsSteps exUnits)
-    }
+stdCollateral :: Natural
+stdCollateral = 150
+
+stdTxSize :: Natural
+stdTxSize = 16384
+
+-- | Necessary when increasing TxSize so as not raise collateral above expected.
+calculateCollateral :: Natural -> Natural
+calculateCollateral maxTxSize =
+  if maxTxSize > stdTxSize
+    then truncate $ stdCollateral * stdTxSize % maxTxSize
+    else stdCollateral
 
 instance Default ExtraConfig where
-  def = ExtraConfig 0.1 80 16384 1 False
+  def = ExtraConfig 0.1 80 stdTxSize False

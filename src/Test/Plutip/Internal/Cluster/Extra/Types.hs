@@ -1,5 +1,6 @@
 module Test.Plutip.Internal.Cluster.Extra.Types (
   ExtraConfig (..),
+  ExBudget (..),
   stdBlockExUnits,
   stdTxExUnits,
   stdTxSize,
@@ -12,8 +13,9 @@ import Cardano.Ledger.Slot (EpochSize)
 import Data.Default (Default (def))
 import Data.Ratio ((%))
 import Data.Time (NominalDiffTime)
+import GHC.Generics (Generic)
+import Data.Aeson (FromJSON, ToJSON)
 import Numeric.Natural (Natural)
-import PlutusCore.Evaluation.Machine.ExBudget (ExBudget (ExBudget))
 import PlutusCore.Evaluation.Machine.ExMemory (ExCPU (ExCPU), ExMemory (ExMemory))
 
 -- | Extra configuration options to set slot length and epoch size for local network.
@@ -31,15 +33,22 @@ data ExtraConfig = ExtraConfig
   }
   deriving stock (Show)
 
+data ExBudget = ExBudget
+  { exUnitsMem :: ExMemory
+  , exUnitsSteps :: ExCPU
+  }
+  deriving stock (Show, Eq, Generic)
+  deriving anyclass (FromJSON, ToJSON)
+
 -- below from https://github.com/input-output-hk/cardano-node/blob/master/configuration/cardano/mainnet-alonzo-genesis.json
 stdTxExUnits :: ExBudget
-stdTxExUnits = ExBudget (ExCPU 10000000000) (ExMemory 10000000)
+stdTxExUnits = ExBudget (ExMemory 10000000) (ExCPU 10000000000)
 
 stdBlockExUnits :: ExBudget
-stdBlockExUnits = ExBudget (ExCPU 40000000000) (ExMemory 50000000)
+stdBlockExUnits = ExBudget (ExMemory 50000000) (ExCPU 40000000000)
 
 maxExUnits :: ExBudget
-maxExUnits = ExBudget (ExCPU maxBound) (ExMemory maxBound)
+maxExUnits = ExBudget (ExMemory maxBound) (ExCPU maxBound)
 
 stdCollateral :: Natural
 stdCollateral = 150

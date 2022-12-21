@@ -18,10 +18,10 @@
 
 -- Warnings turned off intetnionally to keep module close to the original
 -- as much as possible for easier maintenance.
-{-# OPTIONS_GHC -Wwarn=missing-import-lists #-}
-{-# OPTIONS_GHC -Wwarn=incomplete-uni-patterns #-}
-{-# OPTIONS_GHC -Wwarn=missing-deriving-strategies #-}
-{-# OPTIONS_GHC -Wwarn=name-shadowing #-}
+{-# OPTIONS_GHC -Wno-missing-import-lists #-}
+{-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
+{-# OPTIONS_GHC -Wno-missing-deriving-strategies #-}
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
 
 -- |
 -- This module is modified copy of https://github.com/input-output-hk/cardano-wallet/blob/1952de13f1cd954514cfa1cb02e628cfc9fde675/lib/shelley/src/Cardano/Wallet/Shelley/Launch/Cluster.hs
@@ -270,7 +270,6 @@ import qualified Data.Text.Encoding.Error as T
 import qualified Data.Yaml as Yaml
 
 import Data.Default (def)
-import Numeric.Natural (Natural)
 import Test.Plutip.Internal.Cluster.Extra.Types
     ( ExtraConfig
     , ecSlotLength

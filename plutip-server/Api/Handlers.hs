@@ -42,8 +42,8 @@ import Test.Plutip.Internal.Cluster.Extra.Types (
   ExtraConfig (
     ExtraConfig,
     ecEpochSize,
-    ecIncreasedExUnits,
     ecMaxTxSize,
+    ecRaiseExUnitsToMax,
     ecSlotLength
   ),
  )
@@ -74,10 +74,9 @@ import Types (
   StartClusterRequest (
     StartClusterRequest,
     epochSize,
-    increasedExUnits,
     keysToGenerate,
     maxTxSize,
-    noCollateral,
+    raiseExUnitsToMax,
     slotLength
   ),
   StartClusterResponse (
@@ -97,8 +96,7 @@ startClusterHandler
     , slotLength
     , epochSize
     , maxTxSize
-    , increasedExUnits
-    , noCollateral
+    , raiseExUnitsToMax
     } = interpret $ do
     -- Check that lovelace amounts are positive
     for_ keysToGenerate $ \lovelaceAmounts -> do

@@ -17,8 +17,7 @@ module Types (
     slotLength,
     epochSize,
     maxTxSize,
-    increasedExUnits,
-    noCollateral
+    raiseExUnitsToMax
   ),
   StartClusterResponse (
     ClusterStartupSuccess,
@@ -110,7 +109,8 @@ data StartClusterRequest = StartClusterRequest
     epochSize :: Maybe EpochSize
   , -- | Set The maxTxSize. If set to Nothing use the default
     maxTxSize :: Maybe Natural
-  , -- | Increase the standard exUnits by a factor. If set to Nothing use the default
+  , -- | Raise the execustion units to the maxbound when true.
+    -- If set to Nothing use the default
     raiseExUnitsToMax :: Maybe Bool
   }
   deriving stock (Show, Eq, Generic)

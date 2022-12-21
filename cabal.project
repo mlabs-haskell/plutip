@@ -76,9 +76,9 @@ source-repository-package
 
 source-repository-package
   type: git
-  location: https://github.com/gege251/cardano-wallet
-  tag: ee5fd7d201ed7d6b2deaf1557f492d04ded5f1a6
-  --sha256: 14z1n1562bds5wjbzq9bm3wk8b0xma3i8si23l8z7hq8zzrwiql6
+  location: https://github.com/input-output-hk/cardano-wallet
+  tag: 18a931648550246695c790578d4a55ee2f10463e
+  --sha256: 0i40hp1mdbljjcj4pn3n6zahblkb2jmpm8l4wnb36bya1pzf66fx
   subdir:
     lib/cli
     lib/core

@@ -93,6 +93,7 @@ common common-imports
     , unliftio-core
     , uuid
     , yaml
+    , cardano-crypto-class
 
 common common-language
   default-extensions:

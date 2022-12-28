@@ -11,7 +11,9 @@
       flake = false;
     };
     bot-plutus-interface.url =
-      "github:mlabs-haskell/bot-plutus-interface";
+      # "github:mlabs-haskell/bot-plutus-interface";
+      # "/home/mike/dev/mlabs/embedano-project/embedano-bpi";
+      "github:mikekeke/bot-plutus-interface?rev=2f99a596ee42cfc7fec16ee41ad4a51e7e3fec69";
   };
 
   outputs =

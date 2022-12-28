@@ -9,29 +9,33 @@ import Control.Monad.Reader (ReaderT (ReaderT), ask)
 import Data.Default (def)
 import Data.Monoid (Last (getLast))
 import Data.Text.Lazy qualified as T
-import ExampleContracts (ownValueToState)
-import Test.Plutip.Config (
-  PlutipConfig (extraConfig),
- )
+import ExampleContracts (payTo)
+import Ledger ()
+import Test.Plutip.Config
+  ( PlutipConfig (clusterWorkingDir, extraConfig),
+    WorkingDirectory (Fixed),
+  )
 import Test.Plutip.Contract (runContract)
-import Test.Plutip.Internal.BotPlutusInterface.Wallet (
-  BpiWallet,
-  addSomeWallet,
-  mkMainnetAddress,
-  walletPkh,
- )
-import Test.Plutip.Internal.Cluster.Extra.Types (
-  ExtraConfig (ecSlotLength),
- )
-import Test.Plutip.Internal.LocalCluster (
-  startCluster,
-  stopCluster,
- )
-import Test.Plutip.Internal.Types (
-  ClusterEnv,
-  ExecutionResult (contractState, outcome),
-  nodeSocket,
- )
+import Test.Plutip.Internal.BotPlutusInterface.Wallet
+  ( BpiWallet,
+    addSlip14Wallet,
+    addSomeWallet,
+    mkMainnetAddress,
+    paymentPkh,
+    walletPkh,
+  )
+import Test.Plutip.Internal.Cluster.Extra.Types
+  ( ExtraConfig (ecSlotLength),
+  )
+import Test.Plutip.Internal.LocalCluster
+  ( startCluster,
+    stopCluster,
+  )
+import Test.Plutip.Internal.Types
+  ( ClusterEnv,
+    ExecutionResult (contractState, outcome),
+    nodeSocket,
+  )
 import Test.Plutip.Tools.ChainIndex qualified as CI
 import Text.Pretty.Simple (pShow)
 
@@ -39,24 +43,34 @@ main :: IO ()
 main = do
   let slotLen = 1
       extraConf = def {ecSlotLength = slotLen}
-      plutipConfig = def {extraConfig = extraConf}
+      plutipConfig =
+        def
+          { extraConfig = extraConf,
+            clusterWorkingDir = Fixed "/home/mike/dev/mlabs/embedano-project/plutip-made-keys" True
+          }
 
-      addSomeWalletWithCollateral funds =
-        addSomeWallet (toAda 10 : funds)
+      withCollateral mkWallet funds =
+        mkWallet (toAda 10 : funds)
 
   putStrLn "Starting cluster..."
   (st, _) <- startCluster plutipConfig $ do
-    w <- addSomeWalletWithCollateral [toAda 100]
+    -- PKH: 80f9e2c88e6c817008f3a812ed889b4a4da8e0bd103f86e7335422aa
+    slip14w <- withCollateral addSlip14Wallet [toAda 1000]
+    liftIO $ putStrLn "Waiting slip14 wallets to be funded..."
+    CI.awaitWalletFunded slip14w slotLen
+
+    w1 <- withCollateral addSomeWallet [toAda 1000]
     liftIO $ putStrLn "Waiting for wallets to be funded..."
-    CI.awaitWalletFunded w slotLen
+    CI.awaitWalletFunded w1 slotLen
 
     separate
-    printWallet (w, 1)
+    printWallet (slip14w, 1)
+    printWallet (w1, 2)
     printNodeRelatedInfo
 
     separate
-    res <- executeContract w ownValueToState
-    printResult res
+    res <- executeContract slip14w (payTo (paymentPkh w1) 111_000_000)
+    liftIO $ print (outcome res)
 
     separate
 

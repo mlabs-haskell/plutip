@@ -57,10 +57,3 @@ serverOptionsParser =
           <> Options.value 8082
           <> Options.metavar "INT"
       )
-    <*> Options.option
-      Options.auto
-      ( Options.long "node-logs"
-          <> Options.help "Relay node log file to write to"
-          <> Options.showDefault
-          <> Options.value Nothing
-      )

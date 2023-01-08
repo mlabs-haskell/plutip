@@ -4,9 +4,8 @@ import Api.Handlers (
   startClusterHandler,
   stopClusterHandler,
  )
-import Control.Monad.Catch (try)
 import Control.Monad.IO.Class (liftIO)
-import Control.Monad.Reader (ReaderT, runReaderT)
+import Control.Monad.Reader (runReaderT)
 import Data.Kind (Type)
 import Network.Wai.Middleware.Cors qualified as Cors
 import Servant (
@@ -18,18 +17,14 @@ import Servant (
   ReqBody,
   Server,
   ServerT,
-  err400,
-  errBody,
   hoistServer,
   serve,
-  throwError,
   (:<|>) ((:<|>)),
   (:>),
  )
 import Types (
   AppM (AppM),
   Env (Env),
-  PlutipServerError (PlutipServerError),
   ServerOptions,
   StartClusterRequest,
   StartClusterResponse,
@@ -69,18 +64,4 @@ appServer env@Env {options} =
   hoistServer api appHandler (server options)
   where
     appHandler :: forall (a :: Type). AppM a -> Handler a
-    appHandler (AppM x) = tryServer x >>= either handleError pure
-      where
-        tryServer ::
-          ReaderT Env IO a ->
-          Handler (Either PlutipServerError a)
-        tryServer =
-          liftIO
-            . try @_ @PlutipServerError
-            . flip runReaderT env
-
-        handleError ::
-          PlutipServerError ->
-          Handler a
-        handleError PlutipServerError =
-          throwError err400 {errBody = "Server error"}
+    appHandler (AppM x) = liftIO $ runReaderT x env

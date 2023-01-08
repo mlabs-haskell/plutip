@@ -2,11 +2,17 @@
 
 This format is based on [Keep A Changelog](https://keepachangelog.com/en/1.0.0).
 
-## Unreleased
 
-- Wallets with Base Address support
-- Lookups for wallets in tasty integration
-- Update BPI to support Vasil features
+## Unreleased (Plutip-Core)
+- No functionality to run test contracts with `Plutip.Contract`
+- No setup for BPI from cluster setup
+- No copying of relay node logs
+- No tracer in ClusterEnv
+- No collateral utxo initialization in `local-cluster`
+- No `relayNodeLogs`, `chainIndexMode`, `budgetMultiplier`, `extraSigners` parameters in `PlutipConfig`
+- No `NegativeLovelaces` in `ClusterStartupFailureReason`
+- Moved saving keys into 'signing-keys' (before: 'bot-plutus-interface/signing-keys')
+- New: withFundedCluster, withCluster (previously withPlutusInterface)
 - Add `dump-info-json` to local-cluster
 
 ## [1.3.1] - 2022-11-04

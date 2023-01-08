@@ -1,4 +1,4 @@
-module Test.Plutip.Internal.Cluster.Extra.Types (
+module Plutip.Launch.Extra.Types (
   ExtraConfig (..),
 ) where
 

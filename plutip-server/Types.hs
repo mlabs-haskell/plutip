@@ -2,15 +2,13 @@ module Types (
   AppM (AppM),
   ClusterStartupFailureReason (
     ClusterIsRunningAlready,
-    NegativeLovelaces,
     NodeConfigNotFound
   ),
   Env (Env, status, options),
   ErrorMessage,
   Lovelace (unLovelace),
-  PlutipServerError (PlutipServerError),
   PrivateKey,
-  ServerOptions (ServerOptions, nodeLogs, port),
+  ServerOptions (ServerOptions, port),
   StartClusterRequest (StartClusterRequest, keysToGenerate, slotLength, epochSize),
   StartClusterResponse (
     ClusterStartupSuccess,
@@ -29,7 +27,7 @@ module Types (
 
 import Cardano.Ledger.Slot (EpochSize)
 import Control.Concurrent.MVar (MVar)
-import Control.Monad.Catch (Exception, MonadThrow)
+import Control.Monad.Catch (MonadThrow)
 import Control.Monad.IO.Class (MonadIO)
 import Control.Monad.Reader (MonadReader, ReaderT)
 import Data.Aeson (FromJSON, ToJSON, parseJSON)
@@ -38,10 +36,7 @@ import Data.Text (Text)
 import Data.Time (NominalDiffTime)
 import GHC.Generics (Generic)
 import Network.Wai.Handler.Warp (Port)
-import Test.Plutip.Internal.BotPlutusInterface.Wallet (BpiWallet)
-import Test.Plutip.Internal.LocalCluster (ClusterStatus)
-import Test.Plutip.Internal.Types (ClusterEnv)
-import UnliftIO.STM (TVar)
+import Plutip.Cluster (StopClusterRef)
 
 -- TVar is used for signaling by 'startCluster'/'stopCluster' (STM is used
 -- for blocking).
@@ -49,7 +44,7 @@ import UnliftIO.STM (TVar)
 -- cluster at any given moment).
 -- This MVar is used by start/stop handlers.
 -- The payload of ClusterStatus is irrelevant.
-type ClusterStatusRef = MVar (TVar (ClusterStatus (ClusterEnv, [BpiWallet])))
+type ClusterStatusRef = MVar StopClusterRef
 
 data Env = Env
   { status :: ClusterStatusRef
@@ -58,7 +53,6 @@ data Env = Env
 
 data ServerOptions = ServerOptions
   { port :: Port
-  , nodeLogs :: Maybe FilePath
   }
   deriving stock (Generic)
 
@@ -72,24 +66,17 @@ newtype AppM (a :: Type) = AppM (ReaderT Env IO a)
     , MonadThrow
     )
 
-data PlutipServerError
-  = PlutipServerError
-  deriving stock (Show, Eq, Generic)
-  deriving anyclass (FromJSON, ToJSON)
-
-instance Exception PlutipServerError
-
 type ErrorMessage = Text
 
 newtype Lovelace = Lovelace {unLovelace :: Integer}
   deriving stock (Show, Eq, Generic)
-  deriving newtype (ToJSON, Num)
+  deriving newtype (ToJSON, Num, Enum, Ord, Real, Integral)
 
 instance FromJSON Lovelace where
   parseJSON json = do
     value <- parseJSON json
-    if value < 0
-      then fail "Lovelace value must not be negative"
+    if value <= 0
+      then fail "Lovelace value must be positive"
       else pure $ Lovelace value
 
 data StartClusterRequest = StartClusterRequest
@@ -106,7 +93,6 @@ type PrivateKey = Text
 
 data ClusterStartupFailureReason
   = ClusterIsRunningAlready
-  | NegativeLovelaces
   | NodeConfigNotFound
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)

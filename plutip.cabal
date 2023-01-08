@@ -26,9 +26,9 @@ common common-imports
     , async
     , base
     , base58-bytestring
+    , base16-bytestring
     , bech32
     , bech32-th
-    , bot-plutus-interface
     , bytestring
     , cardano-addresses
     , cardano-api
@@ -40,15 +40,14 @@ common common-imports
     , cardano-ledger-shelley
     , cardano-slotting
     , cardano-wallet
-    , cardano-wallet-cli
-    , cardano-wallet-core
-    , cardano-wallet-core-integration
+    , cardano-wallet-primitive
     , cardano-wallet-launcher
     , cardano-wallet-test-utils
     , cborg
     , containers
     , contra-tracer
     , data-default
+    , deepseq
     , directory
     , either
     , exceptions
@@ -64,15 +63,7 @@ common common-imports
     , openapi3
     , ouroboros-consensus
     , ouroboros-network
-    , plutus-chain-index
-    , plutus-chain-index-core
-    , plutus-contract
-    , plutus-core
-    , plutus-ledger
     , plutus-ledger-api
-    , plutus-ledger-constraints
-    , plutus-pab
-    , plutus-script-utils
     , plutus-tx
     , plutus-tx-plugin
     , positive
@@ -85,6 +76,7 @@ common common-imports
     , tagged
     , tasty
     , tasty-hunit
+    , temporary
     , text
     , text-class
     , time
@@ -148,36 +140,25 @@ library
   ghc-options:
     -Wall -Wcompat -Wincomplete-uni-patterns -Wredundant-constraints
     -Wmissing-export-lists -Wmissing-deriving-strategies
-    -Wmissing-import-lists -Werror
+    -Wmissing-import-lists 
+    -Werror
 
   hs-source-dirs:  src/
   exposed-modules:
-    Test.Plutip.Config
-    Test.Plutip.Contract
-    Test.Plutip.Contract.Init
-    Test.Plutip.Contract.Types
-    Test.Plutip.Contract.Values
-    Test.Plutip.Internal.BotPlutusInterface.Keys
-    Test.Plutip.Internal.BotPlutusInterface.Run
-    Test.Plutip.Internal.BotPlutusInterface.Setup
-    Test.Plutip.Internal.BotPlutusInterface.Types
-    Test.Plutip.Internal.BotPlutusInterface.Wallet
-    Test.Plutip.Internal.ChainIndex
-    Test.Plutip.Internal.Cluster
-    Test.Plutip.Internal.Cluster.Extra.Types
-    Test.Plutip.Internal.Cluster.Extra.Utils
-    Test.Plutip.Internal.LocalCluster
-    Test.Plutip.Internal.Types
-    Test.Plutip.LocalCluster
-    Test.Plutip.Options
-    Test.Plutip.Predicate
-    Test.Plutip.Tools.Address
-    Test.Plutip.Tools.CardanoApi
-    Test.Plutip.Tools.ChainIndex
-    Test.Plutip.Tools.DebugCli
-    Test.Plutip.Tools.Format
+    Plutip.Config
+    Plutip.DistributeFunds
+    Plutip.Keys
+    Plutip.Cluster
+    Plutip.Types
+    Plutip.CardanoApi
 
-  other-modules:   Paths_plutip
+  other-modules:   
+    Paths_plutip
+    Plutip.Launch.Cluster
+    Plutip.Launch.Extra.Types
+    Plutip.Launch.Extra.Utils
+    Plutip.Launch.FaucetFunds
+    Plutip.Launch.PoolConfigs
 
 test-suite plutip-tests
   import:             common-imports
@@ -199,15 +180,7 @@ test-suite plutip-tests
     , text
 
   other-modules:
-    Spec.Integration
-    Spec.Test.Plutip.BotPlutusInterface
-    Spec.TestContract.AdjustTx
-    Spec.TestContract.AlwaysFail
-    Spec.TestContract.LockSpendMint
-    Spec.TestContract.MintAndPay
-    Spec.TestContract.MustBeSignedBy
-    Spec.TestContract.SimpleContracts
-    Spec.TestContract.ValidateTimeRange
+    Spec.ClusterStartup
 
   default-extensions:
     OverloadedStrings
@@ -263,7 +236,6 @@ executable local-cluster
   build-depends:
     , aeson
     , base
-    , cardano-ledger-core
     , cardano-wallet-launcher
     , containers
     , data-default
@@ -275,29 +247,3 @@ executable local-cluster
     , unix
 
   ghc-options:   -Wall -threaded -rtsopts
-
-executable contract-execution
-  import:         common-language
-  import:         common-ghc-options
-  hs-source-dirs: contract-execution
-  main-is:        Main.hs
-  build-depends:
-    , base
-    , cardano-ledger-core
-    , containers
-    , data-default
-    , lens
-    , mtl
-    , optparse-applicative
-    , plutip
-    , plutus-contract
-    , plutus-ledger
-    , plutus-ledger-constraints
-    , plutus-pab
-    , positive
-    , pretty-simple
-    , text
-    , time
-
-  other-modules:  ExampleContracts
-  ghc-options:    -Wall -threaded -rtsopts

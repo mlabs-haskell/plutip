@@ -10,7 +10,7 @@ module Test.Plutip.Internal.BotPlutusInterface.Wallet
     showAddress,
     addSlip14Wallet,
     paymentPkh,
-  )
+  createSlipWallet)
 where
 
 -- import Cardano.Wallet.Shelley.Launch.Cluster (
@@ -28,8 +28,8 @@ import Cardano.Api.Shelley (VerificationKey (PaymentExtendedVerificationKey))
 import Cardano.BM.Data.Tracer (nullTracer)
 import Cardano.Mnemonic (SomeMnemonic)
 import Cardano.Mnemonic qualified as CAddr
-import Cardano.Wallet.Primitive.AddressDerivation (HardDerivation (deriveAccountPrivateKey, deriveAddressPrivateKey), Role (UtxoExternal), publicKey)
-import Cardano.Wallet.Primitive.AddressDerivation.Shelley (ShelleyKey (getKey), generateKeyFromSeed)
+import Cardano.Wallet.Primitive.AddressDerivation (HardDerivation (deriveAccountPrivateKey, deriveAddressPrivateKey), Role (UtxoExternal), publicKey, hex)
+import Cardano.Wallet.Primitive.AddressDerivation.Shelley (ShelleyKey (getKey, ShelleyKey), generateKeyFromSeed)
 import Cardano.Wallet.Primitive.Types.Coin (Coin (Coin))
 import Control.Arrow (ArrowChoice (left))
 import Control.Monad (void)
@@ -52,6 +52,14 @@ import Test.Plutip.Internal.Cluster
   ( sendFaucetFundsTo,
   )
 import Test.Plutip.Internal.Types (ClusterEnv, nodeSocket, supportDir)
+import Cardano.Address.Derivation (XPrv, xprvToBytes)
+import Cardano.Crypto.Wallet (unXPrv)
+import qualified Data.Text as T
+import qualified Data.Text.Encoding as T
+import Codec.Binary.Encoding qualified as Enc
+import Codec.Binary.Encoding (AbstractEncoding(EBech32))
+import Cardano.Wallet.Api.Types (WalletStyle(Shelley))
+import qualified Cardano.Codec.Bech32.Prefixes as CIP5
 
 -- | Wallet that can be used by bot interface,
 --  backed by `.skey` file when added to cluster with `addSomeWallet`
@@ -59,7 +67,9 @@ data BpiWallet = BpiWallet
   { walletPkh :: !PubKeyHash,
     vrfKey :: VerificationKey PaymentKey,
     signKey :: SigningKey PaymentExtendedKey,
-    rootExtendedKey :: SigningKey PaymentExtendedKey
+    rootExtendedKey :: SigningKey PaymentExtendedKey,
+    bech32XPrv :: Text
+
     -- todo: do we need something else?
   }
   deriving stock (Show)
@@ -117,6 +127,7 @@ addSomeWallet funds = do
 
 slip14Mnemonic :: Text
 slip14Mnemonic = "all all all all all all all all all all all all"
+-- slip14Mnemonic = "protect suffer patient treat depend crucial lady section shadow truth rabbit monkey"
 
 addSlip14Wallet :: MonadIO m => [Positive] -> ReaderT ClusterEnv m BpiWallet
 addSlip14Wallet funds = do
@@ -137,6 +148,12 @@ addSomeWalletDir funds wallDir = do
   mn <- getRandomMnemonic
   eitherAddSomeWalletDir mn funds wallDir >>= either (error . show) pure
 
+createSlipWallet :: IO ()
+createSlipWallet = 
+  let slipMnem = either (error . show) id $
+        CAddr.mkSomeMnemonic @'[12] (T.splitOn " " slip14Mnemonic)
+  in createWallet slipMnem >> pure ()
+
 createWallet :: MonadIO m => SomeMnemonic -> m BpiWallet
 createWallet mnemonic = do
   let pwd = mempty
@@ -146,15 +163,27 @@ createWallet mnemonic = do
       addrZeroXPrv = deriveAddressPrivateKey pwd accZeroXPrv UtxoExternal minBound
       addrZeroXPub = publicKey addrZeroXPrv
 
-  let vrfKey = castVerificationKey $ PaymentExtendedVerificationKey $ getKey addrZeroXPub
+  let pShow = T.unpack . T.decodeUtf8
+      k = pShow $ hex $ xprvToBytes $ getKey rootExtKey 
+      xprvKey = getKey rootExtKey
+      style =  EBech32 CIP5.root_xsk -- works for Shelley
+      enc = Enc.encode style (xprvToBytes xprvKey)
+      bech32XPrv = T.decodeUtf8 enc
 
-  return $
-    BpiWallet
-      { walletPkh = toPkh vrfKey,
-        vrfKey = vrfKey,
-        signKey = PaymentExtendedSigningKey $ getKey addrZeroXPrv,
-        rootExtendedKey = PaymentExtendedSigningKey $ getKey rootExtKey
-      }
+  liftIO $ putStrLn $ "ROOT EXT: " ++ k
+  liftIO $ putStrLn $ "ROOT ADDR BECH: " ++ pShow enc
+
+  let vrfKey = castVerificationKey $ PaymentExtendedVerificationKey $ getKey addrZeroXPub
+      wallet = BpiWallet
+        { walletPkh = toPkh vrfKey,
+          vrfKey = vrfKey,
+          signKey = PaymentExtendedSigningKey $ getKey addrZeroXPrv,
+          rootExtendedKey = PaymentExtendedSigningKey $ getKey rootExtKey,
+          bech32XPrv = bech32XPrv
+        }
+
+  return wallet
+    
   where
     toPkh =
       PubKeyHash
@@ -178,7 +207,7 @@ saveWallets bpiw fp = do
 
 -- | Save the wallet to a specific directory.
 saveWalletDir :: MonadIO m => BpiWallet -> FilePath -> m (Either BpiError ())
-saveWalletDir (BpiWallet pkh vk sk rootExtSk) wallDir = do
+saveWalletDir (BpiWallet pkh vk sk rootExtSk _) wallDir = do
   liftIO $ createDirectoryIfMissing True wallDir
   let pkhStr = Text.unpack (encodeByteString (fromBuiltin (LAPI.getPubKeyHash pkh)))
       pathVk = wallDir </> "verification-key-" ++ pkhStr <.> "vkey"
@@ -191,7 +220,7 @@ saveWalletDir (BpiWallet pkh vk sk rootExtSk) wallDir = do
 
 -- | Make `AnyAddress` for mainnet
 cardanoMainnetAddress :: BpiWallet -> AddressAny
-cardanoMainnetAddress (BpiWallet _ vk _ _) =
+cardanoMainnetAddress (BpiWallet _ vk _ _ _) =
   CAPI.toAddressAny $
     CAPI.makeShelleyAddress
       CAPI.Mainnet

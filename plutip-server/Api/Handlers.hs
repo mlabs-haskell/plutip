@@ -12,6 +12,7 @@ import Control.Monad.Extra (unlessM)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (asks)
 import Data.Default (def)
+import Data.Foldable (for_)
 import Plutip.Cluster (startFundedCluster, stopCluster)
 import Plutip.Config (
   ExtraConfig (ExtraConfig),
@@ -25,6 +26,7 @@ import Types (
   AppM,
   ClusterStartupFailureReason (
     ClusterIsRunningAlready,
+    NegativeLovelaces,
     NodeConfigNotFound
   ),
   ClusterStartupParameters (
@@ -35,6 +37,7 @@ import Types (
     privateKeys
   ),
   Env (status),
+  Lovelace (unLovelace),
   ServerOptions,
   StartClusterRequest (
     StartClusterRequest,
@@ -54,6 +57,11 @@ startClusterHandler :: ServerOptions -> StartClusterRequest -> AppM StartCluster
 startClusterHandler
   _
   StartClusterRequest {slotLength, epochSize, keysToGenerate} = interpret $ do
+    -- Check that lovelace amounts are positive
+    for_ keysToGenerate $ \lovelaceAmounts -> do
+      for_ lovelaceAmounts $ \lovelaces -> do
+        unless (unLovelace lovelaces > 0) $ do
+          throwError NegativeLovelaces
     statusMVar <- asks status
     isClusterDown <- liftIO $ isEmptyMVar statusMVar
     unless isClusterDown $ throwError ClusterIsRunningAlready

@@ -2,6 +2,7 @@ module Types (
   AppM (AppM),
   ClusterStartupFailureReason (
     ClusterIsRunningAlready,
+    NegativeLovelaces,
     NodeConfigNotFound
   ),
   Env (Env, status, options),
@@ -74,10 +75,7 @@ newtype Lovelace = Lovelace {unLovelace :: Integer}
 
 instance FromJSON Lovelace where
   parseJSON json = do
-    value <- parseJSON json
-    if value <= 0
-      then fail "Lovelace value must be positive"
-      else pure $ Lovelace value
+    Lovelace <$> parseJSON json
 
 data StartClusterRequest = StartClusterRequest
   { slotLength :: NominalDiffTime
@@ -93,6 +91,7 @@ type PrivateKey = Text
 
 data ClusterStartupFailureReason
   = ClusterIsRunningAlready
+  | NegativeLovelaces
   | NodeConfigNotFound
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)

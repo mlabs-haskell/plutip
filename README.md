@@ -5,13 +5,8 @@
 [herc badge]: https://img.shields.io/badge/ci--by--hercules-green.svg
 [herc link]: https://hercules-ci.com/github/mlabs-haskell/plutip
 
-Plutip is Cardano tool that aims to help dApp developers with integration testing and contracts debugging.
-
-Plutip can serve several purposes:
-
-* start up disposable private network with arbitrary amount of funded addresses (providing keys for that addresses as well)
-* build tests with `tasty` Haskell framework where user can run Plutus contracts (`Contract w s e a`) using mentioned above private network
-* with a bit of additional instrumentation run contracts in REPL on local network
+Plutip is Cardano tool for spawning local clusters.
+Use it to start up disposable private network with arbitrary amount of funded addresses (providing keys for that addresses as well).
 
 ## Requirements
 
@@ -38,17 +33,22 @@ And the following ghc flag must to be set for the test execution: `-Wall -thread
 
 ## NOTES
 
-⚠️ This branch launches local network in `Vasil`. It was tested with node `1.35.3` (this node version used in nix environment as well). Please use appropriate node version when setting up own binaries in `PATH`.
+⚠️ This branch launches local network in `Vasil`. It was tested with node `1.35.4` (this node version used in nix environment as well). Please use appropriate node version when setting up own binaries in `PATH`.
 
-⚠️ [Collateral handling](./docs/collateral-handling.md)
+## Quick start
+
+Launch local cluster with plutip with:
+```
+withCluster :: PlutipConfig -> (ClusterEnv -> IO a) -> IO a
+```
+Use `withFundedCluster` to additionaly receive pre-funded keys.
+
+Cluster shutdowns when the user action completes. Use `startCluster`/`startFundedCluster` and `stopCluster` variants to keep cluster running.
 
 ## Tutorials
 
 * [Running disposable local network and building own runners](./local-cluster/README.md)
-* [Running chain-index](./docs/running-chain-index.md)
-* [Tasty integration](./docs/tasty-integration.md)
 * [Running Contracts is REPL](./docs/interactive-plutip.md)
-* [Providing constant keys](./docs/constant-keys.md)
 
 ## Advanced network setup
 
@@ -59,6 +59,14 @@ And the following ghc flag must to be set for the test execution: `-Wall -thread
 
 * [Starting private network from Haskell and executing contract](./contract-execution/Main.hs)
 * [Template for setting a Nix flake that includes Plutip](https://github.com/MitchyCola/plutip-flake). Kudos to @MitchyCola
+
+## Plutip for integration testing smart contracts
+
+If your goal is to:
+* build tests with `tasty` Haskell framework where user can run Plutus contracts (`Contract w s e a`) using mentioned above private network
+* run contracts in REPL on local network
+
+then check out [CTL](https://github.com/Plutonomicon/cardano-transaction-lib) or legacy plutip revision.
 
 ## Maintenance
 

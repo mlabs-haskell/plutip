@@ -42,7 +42,7 @@ FOURMOLU_EXTENSIONS := -o -XTypeApplications -o -XTemplateHaskell -o -XImportQua
 excluded := src/Test/Plutip/Internal/Cluster.hs
 format:
 	@ echo "> Formatting all .hs files"
-	fourmolu $(FOURMOLU_EXTENSIONS) --mode inplace --check-idempotence $$(find src/ test/ plutip-server/ local-cluster/ contract-execution/ -iregex ".*.hs" -not -path "${excluded}")
+	fourmolu $(FOURMOLU_EXTENSIONS) --mode inplace --check-idempotence $$(find src/ test/ plutip-server/ local-cluster/ -iregex ".*.hs" -not -path "${excluded}")
 
 format_check:
 	@ echo "> Checking format of all .hs files"

@@ -22,7 +22,6 @@ common common-imports
   build-depends:
     , aeson
     , aeson-qq
-    , ansi-terminal
     , async
     , base
     , base58-bytestring
@@ -50,7 +49,6 @@ common common-imports
     , deepseq
     , directory
     , either
-    , exceptions
     , filepath
     , generic-lens
     , http-client
@@ -60,32 +58,19 @@ common common-imports
     , lens
     , memory
     , mtl
-    , openapi3
     , ouroboros-consensus
     , ouroboros-network
-    , plutus-ledger-api
-    , plutus-tx
-    , plutus-tx-plugin
     , plutus-core
-    , positive
-    , pretty-show
-    , prettyprinter
     , retry
-    , row-types
     , servant-client
     , stm
-    , tagged
-    , tasty
-    , tasty-hunit
     , temporary
     , text
     , text-class
     , time
-    , transformers-except
     , typed-process
     , unliftio
     , unliftio-core
-    , uuid
     , yaml
 
 common common-language
@@ -172,12 +157,9 @@ test-suite plutip-tests
   ghc-options:        -Wall -threaded -rtsopts
   build-depends:
     , base
-    , lens
     , plutip
     , tasty
-    , tasty-expected-failure
     , tasty-hunit
-    , tasty-quickcheck
     , text
 
   other-modules:
@@ -243,8 +225,6 @@ executable local-cluster
     , mtl
     , optparse-applicative
     , plutip
-    , positive
     , time
-    , unix
 
   ghc-options:   -Wall -threaded -rtsopts

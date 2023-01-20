@@ -164,14 +164,15 @@ createWallet mnemonic = do
       addrZeroXPub = publicKey addrZeroXPrv
 
   let pShow = T.unpack . T.decodeUtf8
-      k = pShow $ hex $ xprvToBytes $ getKey rootExtKey 
+      accKey = pShow $ hex $ xprvToBytes $ getKey accZeroXPrv 
+      addrKey = pShow $ hex $ xprvToBytes $ getKey addrZeroXPrv 
       xprvKey = getKey rootExtKey
       style =  EBech32 CIP5.root_xsk -- works for Shelley
       enc = Enc.encode style (xprvToBytes xprvKey)
       bech32XPrv = T.decodeUtf8 enc
 
-  liftIO $ putStrLn $ "ROOT EXT: " ++ k
-  liftIO $ putStrLn $ "ROOT ADDR BECH: " ++ pShow enc
+  liftIO $ putStrLn $ "accZeroXPrv: " ++ accKey
+  liftIO $ putStrLn $ "addrZeroXPrv: " ++ addrKey
 
   let vrfKey = castVerificationKey $ PaymentExtendedVerificationKey $ getKey addrZeroXPub
       wallet = BpiWallet
@@ -181,7 +182,8 @@ createWallet mnemonic = do
           rootExtendedKey = PaymentExtendedSigningKey $ getKey rootExtKey,
           bech32XPrv = bech32XPrv
         }
-
+  
+  liftIO $ putStrLn $ "pub: " ++ show wallet
   return wallet
     
   where

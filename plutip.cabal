@@ -153,6 +153,7 @@ library
   hs-source-dirs:  src/
   exposed-modules:
     Test.Plutip.Config
+    Test.Plutip.Crypto
     Test.Plutip.Contract
     Test.Plutip.Contract.Init
     Test.Plutip.Contract.Types

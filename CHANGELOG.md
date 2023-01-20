@@ -14,6 +14,7 @@ This format is based on [Keep A Changelog](https://keepachangelog.com/en/1.0.0).
 - Moved saving keys into 'signing-keys' (before: 'bot-plutus-interface/signing-keys')
 - New: withFundedCluster, withCluster (previously withPlutusInterface)
 - Add `dump-info-json` to local-cluster
+- Add configurable MaxTxSize and MaxExUnits to `ExtraConfig`
 
 ## [1.3.1] - 2022-11-04
 

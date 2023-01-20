@@ -8,14 +8,7 @@ executionPrices:
   prMem:
     numerator: 577
     denominator: 10000
-maxTxExUnits:
-  exUnitsMem: 10000000
-  exUnitsSteps: 10000000000
-maxBlockExUnits:
-  exUnitsMem: 50000000
-  exUnitsSteps: 40000000000
 maxValueSize: 5000
-collateralPercentage: 150
 maxCollateralInputs: 3
 costModels:
   PlutusV1:

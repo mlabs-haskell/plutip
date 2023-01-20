@@ -28,9 +28,10 @@ import Plutip.Cluster (
  )
 import Plutip.Config (
   EpochSize (EpochSize),
-  ExtraConfig (ExtraConfig),
   PlutipConfig (clusterWorkingDir, extraConfig),
   WorkingDirectory (Fixed, Temporary),
+  ecEpochSize,
+  ecSlotLength,
  )
 import Plutip.DistributeFunds (Lovelace)
 import Plutip.Keys (KeyPair, mainnetAddress, saveKeyPair, showPkh)
@@ -44,8 +45,8 @@ main = do
     Right amt -> do
       let ClusterConfig {numWallets, dirWallets, numUtxos, workDir, slotLength, epochSize} = config
           workingDir = maybe Temporary (`Fixed` False) workDir
-
-          extraConf = ExtraConfig slotLength epochSize
+          -- todo: if needed pipe remaining extraConfig options from command line args
+          extraConf = def {ecSlotLength = slotLength, ecEpochSize = epochSize}
           plutipConfig = def {clusterWorkingDir = workingDir, extraConfig = extraConf}
 
       putStrLn "Starting cluster..."
@@ -185,7 +186,7 @@ pEpochSize =
         ( Options.long "epoch-size"
             <> Options.short 'e'
             <> Options.metavar "EPOCH_SIZE"
-            <> Options.value 160
+            <> Options.value 80
         )
 
 pInfoJson :: Parser (Maybe FilePath)

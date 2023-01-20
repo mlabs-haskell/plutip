@@ -18,10 +18,10 @@
 
 -- Warnings turned off intetnionally to keep module close to the original
 -- as much as possible for easier maintenance.
-{-# OPTIONS_GHC -Wwarn=missing-import-lists #-}
-{-# OPTIONS_GHC -Wwarn=incomplete-uni-patterns #-}
-{-# OPTIONS_GHC -Wwarn=missing-deriving-strategies #-}
-{-# OPTIONS_GHC -Wwarn=name-shadowing #-}
+{-# OPTIONS_GHC -Wno-missing-import-lists #-}
+{-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
+{-# OPTIONS_GHC -Wno-missing-deriving-strategies #-}
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 
 -- |
@@ -272,7 +272,6 @@ import qualified Data.Text.Encoding.Error as T
 import qualified Data.Yaml as Yaml
 
 import Data.Default (def)
-import Plutip.Launch.Extra.Types (ExtraConfig, ecSlotLength, ecEpochSize)
 import Plutip.Launch.FaucetFunds (faucetFunds)
 import GHC.TypeLits (Symbol)
 import Cardano.BM.Data.LogItem (LoggerName)
@@ -283,7 +282,16 @@ import qualified Cardano.BM.Data.Backend as CM
 import Cardano.BM.Configuration.Static (defaultConfigStdout)
 import Cardano.BM.Trace (logDebug, appendName)
 import Plutip.Launch.PoolConfigs (PoolRecipe (PoolRecipe, operatorKeys), defaultPoolConfigs)
-
+import Plutip.Launch.Extra.Types
+    ( ExtraConfig
+    , ecSlotLength
+    , ecEpochSize
+    , ecMaxTxSize
+    , ecRaiseExUnitsToMax
+    , stdBlockExUnits
+    , calculateCollateral
+    , stdTxExUnits
+    , maxExUnits)
 data LogOutput
     = LogToStdStreams Severity
     -- ^ Log to console, with the given minimum 'Severity'.
@@ -740,6 +748,7 @@ unsafePositiveUnitInterval x = fromMaybe
         (error $ "unsafeNonNegativeInterval: " <> show x <> " is out of bounds")
         (boundRational x)
 
+
 -- altered
 generateGenesis
     :: FilePath
@@ -751,7 +760,14 @@ generateGenesis
     -> IO GenesisFiles
 generateGenesis dir systemStart initialFunds addPoolsToGenesis extraConf = do
     source <- getShelleyTestDataPath
+    let (maxTxExUnits, maxBlockExUnits) = if ecRaiseExUnitsToMax extraConf
+           then (maxExUnits, maxExUnits)
+           else (stdTxExUnits, stdBlockExUnits)
+        collateral = calculateCollateral $ ecMaxTxSize extraConf
     Yaml.decodeFileThrow @_ @Aeson.Value (source </> "alonzo-genesis.yaml")
+        >>= withAddedKey "maxTxExUnits" maxTxExUnits
+        >>= withAddedKey "maxBlockExUnits" maxBlockExUnits
+        >>= withAddedKey "collateralPercentage" collateral
         >>= Aeson.encodeFile (dir </> "genesis.alonzo.json")
 
     let startTime = round @_ @Int . utcTimeToPOSIXSeconds $ systemStart
@@ -767,7 +783,7 @@ generateGenesis dir systemStart initialFunds addPoolsToGenesis extraConf = do
 
             , _maxBBSize = 239857
             , _maxBHSize = 217569
-            , _maxTxSize = 16384
+            , _maxTxSize = ecMaxTxSize extraConf
 
             , _minPoolCost = Ledger.Coin 0
 

@@ -66,6 +66,7 @@ common common-imports
     , plutus-ledger-api
     , plutus-tx
     , plutus-tx-plugin
+    , plutus-core
     , positive
     , pretty-show
     , prettyprinter

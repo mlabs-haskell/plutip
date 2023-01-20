@@ -13,10 +13,12 @@ import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (asks)
 import Data.Default (def)
 import Data.Foldable (for_)
+import Data.Maybe (fromMaybe)
 import Plutip.Cluster (startFundedCluster, stopCluster)
 import Plutip.Config (
-  ExtraConfig (ExtraConfig),
+  ExtraConfig (ExtraConfig, ecEpochSize, ecMaxTxSize, ecSlotLength),
   PlutipConfig (extraConfig),
+  ecRaiseExUnitsToMax,
  )
 import Plutip.Keys (signKeyCBORHex)
 import Plutip.Types (ClusterEnv (runningNode), RunningNode (RunningNode), keysDir)
@@ -43,6 +45,8 @@ import Types (
     StartClusterRequest,
     epochSize,
     keysToGenerate,
+    maxTxSize,
+    raiseExUnitsToMax,
     slotLength
   ),
   StartClusterResponse (
@@ -56,7 +60,13 @@ import Types (
 startClusterHandler :: ServerOptions -> StartClusterRequest -> AppM StartClusterResponse
 startClusterHandler
   _
-  StartClusterRequest {slotLength, epochSize, keysToGenerate} = interpret $ do
+  StartClusterRequest
+    { keysToGenerate
+    , slotLength
+    , epochSize
+    , maxTxSize
+    , raiseExUnitsToMax
+    } = interpret $ do
     -- Check that lovelace amounts are positive
     for_ keysToGenerate $ \lovelaceAmounts -> do
       for_ lovelaceAmounts $ \lovelaces -> do
@@ -65,9 +75,8 @@ startClusterHandler
     statusMVar <- asks status
     isClusterDown <- liftIO $ isEmptyMVar statusMVar
     unless isClusterDown $ throwError ClusterIsRunningAlready
-    let extraConf = ExtraConfig slotLength epochSize
-        cfg = def {extraConfig = extraConf}
-        keysToGenerate' = map fromIntegral <$> keysToGenerate -- integers are positive, checked in json parsing
+    let cfg = def {extraConfig = extraConf}
+        keysToGenerate' = map fromIntegral <$> keysToGenerate
     (statusTVar, (clusterEnv, keys)) <- liftIO $ startFundedCluster cfg keysToGenerate' (curry pure)
     liftIO $ putMVar statusMVar statusTVar
 
@@ -88,6 +97,15 @@ startClusterHandler
         -- assumption is that node.config lies in the same directory as node.socket
         flip replaceFileName "node.config" . getNodeSocketFile
       interpret = fmap (either ClusterStartupFailure id) . runExceptT
+
+      extraConf :: ExtraConfig
+      extraConf =
+        let defConfig = def
+         in ExtraConfig
+              (fromMaybe (ecSlotLength defConfig) slotLength)
+              (fromMaybe (ecEpochSize defConfig) epochSize)
+              (fromMaybe (ecMaxTxSize defConfig) maxTxSize)
+              (fromMaybe (ecRaiseExUnitsToMax defConfig) raiseExUnitsToMax)
 
 stopClusterHandler :: StopClusterRequest -> AppM StopClusterResponse
 stopClusterHandler StopClusterRequest = do

@@ -10,7 +10,14 @@ module Types (
   Lovelace (unLovelace),
   PrivateKey,
   ServerOptions (ServerOptions, port),
-  StartClusterRequest (StartClusterRequest, keysToGenerate, slotLength, epochSize),
+  StartClusterRequest (
+    StartClusterRequest,
+    keysToGenerate,
+    slotLength,
+    epochSize,
+    maxTxSize,
+    raiseExUnitsToMax
+  ),
   StartClusterResponse (
     ClusterStartupSuccess,
     ClusterStartupFailure
@@ -37,6 +44,7 @@ import Data.Text (Text)
 import Data.Time (NominalDiffTime)
 import GHC.Generics (Generic)
 import Network.Wai.Handler.Warp (Port)
+import Numeric.Natural (Natural)
 import Plutip.Cluster (StopClusterRef)
 
 -- TVar is used for signaling by 'startCluster'/'stopCluster' (STM is used
@@ -78,10 +86,17 @@ instance FromJSON Lovelace where
     Lovelace <$> parseJSON json
 
 data StartClusterRequest = StartClusterRequest
-  { slotLength :: NominalDiffTime
-  , epochSize :: EpochSize
-  , -- | Lovelace amounts for each UTXO of each wallet
+  { -- | Lovelace amounts for each UTXO of each wallet
     keysToGenerate :: [[Lovelace]]
+  , -- | Set the SlotLength. If set to Nothing use the default
+    slotLength :: Maybe NominalDiffTime
+  , -- | Set the EpochSize. If set to Nothing use the default
+    epochSize :: Maybe EpochSize
+  , -- | Set The maxTxSize. If set to Nothing use the default
+    maxTxSize :: Maybe Natural
+  , -- | Raise the execustion units to the maxbound when true.
+    -- If set to Nothing use the default
+    raiseExUnitsToMax :: Maybe Bool
   }
   deriving stock (Show, Eq, Generic)
   deriving anyclass (FromJSON, ToJSON)

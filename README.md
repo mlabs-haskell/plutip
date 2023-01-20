@@ -37,7 +37,7 @@ And the following ghc flag must to be set for the test execution: `-Wall -thread
 
 ## Quick start
 
-Launch local cluster with plutip with:
+Launch local cluster with:
 ```
 withCluster :: PlutipConfig -> (ClusterEnv -> IO a) -> IO a
 ```

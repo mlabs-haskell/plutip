@@ -26,6 +26,7 @@ import Data.ByteString.Char8 qualified as B
 import Data.Foldable (for_)
 import Data.Kind (Type)
 import Data.Maybe (catMaybes, fromMaybe, isJust)
+import Data.List (isPrefixOf)
 import GHC.IO.Handle (Handle, hDuplicate, hDuplicateTo, hFlush)
 import Paths_plutip (getDataFileName)
 import Plutip.Config (
@@ -290,8 +291,3 @@ data ClusterStatus (a :: Type)
   | ClusterClosed
 
 data StopClusterRef = forall a. StopClusterRef (TVar (ClusterStatus a))
-
-isPrefixOf :: (Eq a) => [a] -> [a] -> Bool
-isPrefixOf [] _ = True
-isPrefixOf _ [] = False
-isPrefixOf (x : xs) (y : ys) = x == y && isPrefixOf xs ys

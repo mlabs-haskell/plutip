@@ -139,7 +139,7 @@ library
     Plutip.CardanoApi
 
   other-modules:   
-    Paths_plutip
+    Paths_plutip_core
     Plutip.Launch.Cluster
     Plutip.Launch.Extra.Types
     Plutip.Launch.Extra.Utils

@@ -28,7 +28,7 @@ import Data.Kind (Type)
 import Data.Maybe (catMaybes, fromMaybe, isJust)
 import Data.List (isPrefixOf)
 import GHC.IO.Handle (Handle, hDuplicate, hDuplicateTo, hFlush)
-import Paths_plutip (getDataFileName)
+import Paths_plutip_core (getDataFileName)
 import Plutip.Config (
   PlutipConfig (
     clusterDataDir,

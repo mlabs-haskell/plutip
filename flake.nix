@@ -1,5 +1,5 @@
 {
-  description = "plutip";
+  description = "plutip-core";
 
   inputs = {
     haskell-nix.url = "github:mlabs-haskell/haskell.nix";
@@ -70,21 +70,11 @@
           }
         )
         ({ config, pkgs, ... }: {
-          packages.plutip.components.tests."plutip-tests".build-tools = [
+          packages.plutip-core.components.tests."plutip-tests".build-tools = [
             config.hsPkgs.cardano-cli.components.exes.cardano-cli
             config.hsPkgs.cardano-node.components.exes.cardano-node
           ];
-          packages.plutip.components.exes.plutip-server = {
-            pkgconfig = [ [ pkgs.makeWrapper ] ];
-            postInstall = with pkgs; ''
-              wrapProgram $out/bin/plutip-server \
-                --prefix PATH : "${lib.makeBinPath [
-                  config.hsPkgs.cardano-cli.components.exes.cardano-cli
-                  config.hsPkgs.cardano-node.components.exes.cardano-node
-                ]}"
-            '';
-          };
-          packages.plutip.components.exes.local-cluster = {
+          packages.plutip-core.components.exes.local-cluster = {
             pkgconfig = [ [ pkgs.makeWrapper ] ];
             postInstall = with pkgs; ''
               wrapProgram $out/bin/local-cluster \
@@ -142,7 +132,7 @@
           pkgs = nixpkgsFor system;
           pkgs' = nixpkgsFor' system;
           project = pkgs.haskell-nix.cabalProject {
-            name = "plutip";
+            name = "plutip-core";
             src = ./.;
             inputMap = {
               "https://input-output-hk.github.io/cardano-haskell-packages" = CHaP;
@@ -154,7 +144,7 @@
               withHoogle = true;
               exactDeps = true;
 
-              packages = ps: [ ps.plutip ];
+              packages = ps: [ ps.plutip-core ];
 
               tools.haskell-language-server = "latest";
 

@@ -13,7 +13,7 @@ Use it to start up disposable private network with arbitrary amount of funded ad
 Best way of building and launching Plutip libraries is using `Nix` and `cabal`. E.g. to start local network with two funded addresses run
 
 ```bash
-nix build .#plutip:exe:local-cluster  
+nix build .#plutip-core:exe:local-cluster  
 ./result/bin/local-cluster -n 2
 ```
 

@@ -2046,25 +2046,6 @@ initTracer loggerName outputs = do
     -- TODO: see if we had it enabled anyway / if we want
     -- ekgEnabled >>= flip when (startCapturingMetrics tr)
     pure (sb, (cfg, tr))
-  where
-    -- -- https://github.com/input-output-hk/cardano-node/blob/f7d57e30c47028ba2aeb306a4f21b47bb41dec01/cardano-node/src/Cardano/Node/Configuration/Logging.hs#L224
-    -- startCapturingMetrics :: Trace IO Text -> IO ()
-    -- startCapturingMetrics trace0 = do
-    --   let trace = appendName "metrics" trace0
-    --       counters = [Obs.MemoryStats, Obs.ProcessStats
-    --         , Obs.NetStats, Obs.IOStats, Obs.GhcRtsStats, Obs.SysStats]
-    --   _ <- Async.async $ forever $ do
-    --     cts <- readCounters (ObservableTraceSelf counters)
-    --     traceCounters trace cts
-    --     threadDelay 30_000_000   -- 30 seconds
-    --   pure ()
-    --  where
-    --    traceCounters :: forall m a. MonadIO m => Trace m a -> [Counter] -> m ()
-    --    traceCounters _tr [] = return ()
-    --    traceCounters tr (c@(Counter _ct cn cv) : cs) = do
-    --      mle <- mkLOMeta Notice Confidential
-    --      traceNamedObject tr (mle, LogValue (nameCounter c <> "." <> cn) cv)
-    --      traceCounters tr cs
 
 -- | Run an action with logging available and configured. When the action is
 -- finished (normally or otherwise), log messages are flushed.

@@ -85,6 +85,7 @@ withFundedCluster :: PlutipConfig -> [[Lovelace]] -> (ClusterEnv -> [KeyPair] ->
 withFundedCluster conf distribution action = withCluster conf $ \cenv -> do
   keys <- for distribution (const genKeyPair)
   zipWithM_ (fundKey cenv) keys distribution
+  -- TODO: should we die here and below?
   for_ keys (fmap dieOnError . saveKeyPair (keysDir cenv))
   awaitUtxosNumber
     cenv
@@ -265,7 +266,7 @@ checkProcessesAvailable requiredProcesses = do
   results <- mapM findExecutable requiredProcesses
   unless (isJust `all` results) $
     die $
-      "This processes should be available in the environment:\n "
+      "These executables should be available in the environment:\n "
         <> show requiredProcesses
         <> "\n but only these were found:\n "
         <> show (catMaybes results)

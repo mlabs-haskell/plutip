@@ -25,8 +25,8 @@ import Control.Tracer (Tracer)
 import Data.ByteString.Char8 qualified as B
 import Data.Foldable (for_)
 import Data.Kind (Type)
-import Data.Maybe (catMaybes, fromMaybe, isJust)
 import Data.List (isPrefixOf)
+import Data.Maybe (catMaybes, fromMaybe, isJust)
 import GHC.IO.Handle (Handle, hDuplicate, hDuplicateTo, hFlush)
 import Paths_plutip_core (getDataFileName)
 import Plutip.Config (

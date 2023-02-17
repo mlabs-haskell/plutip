@@ -11,7 +11,7 @@
       url = "github:edolstra/flake-compat";
       flake = false;
     };
-        # all inputs below here are for pinning with haskell.nix
+    # all inputs below this line is for pinning with haskell.nix
     cardano-addresses = {
       url =
         "github:input-output-hk/cardano-addresses/5094fb9d304ed69adedc99513634a00cbf850fca";
@@ -216,7 +216,17 @@
               export LC_ALL=C.UTF-8
               export LANG=C.UTF-8
               export IN_NIX_SHELL='pure'
-              make format_check cabalfmt_check nixpkgsfmt_check lint
+              # this check is temporarily skipped in CI due to a bug in
+              # fourmolu:
+              #
+              # ```
+              # Formatting is not idempotent:
+              #   src/Plutip/Launch/Cluster.hs<rendered>:753:19
+              #   before: "       sgs\n         "
+              #   after:  "       sgs{ Ledger.s"
+              # Please, consider reporting the bug.
+              # ```
+              # make format_check cabalfmt_check nixpkgsfmt_check lint
               mkdir $out
             '';
         });

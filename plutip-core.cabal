@@ -24,8 +24,8 @@ common common-imports
     , aeson-qq
     , async
     , base
-    , base58-bytestring
     , base16-bytestring
+    , base58-bytestring
     , bech32
     , bech32-th
     , bytestring
@@ -39,8 +39,8 @@ common common-imports
     , cardano-ledger-shelley
     , cardano-slotting
     , cardano-wallet
-    , cardano-wallet-primitive
     , cardano-wallet-launcher
+    , cardano-wallet-primitive
     , cardano-wallet-test-utils
     , cborg
     , containers
@@ -126,19 +126,18 @@ library
   ghc-options:
     -Wall -Wcompat -Wincomplete-uni-patterns -Wredundant-constraints
     -Wmissing-export-lists -Wmissing-deriving-strategies
-    -Wmissing-import-lists 
-    -Werror
+    -Wmissing-import-lists -Werror
 
   hs-source-dirs:  src/
   exposed-modules:
+    Plutip.CardanoApi
+    Plutip.Cluster
     Plutip.Config
     Plutip.DistributeFunds
     Plutip.Keys
-    Plutip.Cluster
     Plutip.Types
-    Plutip.CardanoApi
 
-  other-modules:   
+  other-modules:
     Paths_plutip_core
     Plutip.Launch.Cluster
     Plutip.Launch.Extra.Types
@@ -162,9 +161,7 @@ test-suite plutip-tests
     , tasty-hunit
     , text
 
-  other-modules:
-    Spec.ClusterStartup
-
+  other-modules:      Spec.ClusterStartup
   default-extensions:
     OverloadedStrings
     QuasiQuotes

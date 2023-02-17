@@ -140,8 +140,6 @@ import Cardano.Pool.Metadata
     ( SMASHPoolId (..), HealthStatusSMASH )
 import Cardano.Startup
     ( restrictFileMode )
-import UnliftIO.Exception
-    ( bracket )
 import Cardano.BM.Setup ( setupTrace_, shutdown )
 import Cardano.Wallet.Logging
     ( BracketLog, bracketTracer, BracketLog'(BracketStart) )
@@ -244,7 +242,7 @@ import UnliftIO.Async
 import UnliftIO.Chan
     ( newChan, readChan, writeChan )
 import UnliftIO.Exception
-    ( SomeException, finally, handle, throwIO, throwString )
+    ( SomeException, bracket, finally, handle, throwIO, throwString )
 import UnliftIO.MVar
     ( MVar, modifyMVar, newMVar, swapMVar )
 
@@ -327,7 +325,7 @@ logFileConfigFromEnv
     -> IO LogFileConfig
 logFileConfigFromEnv subdir = LogFileConfig
     <$> nodeMinSeverityFromEnv
-    <*> (testLogDirFromEnv subdir)
+    <*> testLogDirFromEnv subdir
     <*> pure Info
 
 -- | The lower-case names of all 'Severity' values.
@@ -481,7 +479,7 @@ withPoolMetadataServer tr dir action = do
         action $ PoolMetadataServer
             { registerMetadataForPoolIndex = \i metadata -> do
                 let metadataBytes = Aeson.encode metadata
-                BL8.writeFile (metadir </> (metadataFileName i)) metadataBytes
+                BL8.writeFile (metadir </> metadataFileName i) metadataBytes
                 let hash = blake2b256 (BL.toStrict metadataBytes)
                 traceWith tr $
                     MsgRegisteringPoolMetadata
@@ -584,7 +582,8 @@ configurePool tr baseDir metadataServer recipe = do
             stakePubHash <- stakingKeyHashFromFile ownerPub
             pledgeAddr <- stakingAddrFromVkFile ownerPub
 
-            let params = Ledger.PoolParams
+            let
+              params = Ledger.PoolParams
                   { _poolId = poolId
                   , _poolVrf = vrf
                   , _poolPledge = Ledger.Coin $ intCast pledgeAmt
@@ -600,16 +599,15 @@ configurePool tr baseDir metadataServer recipe = do
                         (blake2b256 (BL.toStrict metadataBytes))
                   }
 
-            let updateStaking = \sgs -> sgs
-                    { Ledger.sgsPools = (Map.singleton poolId params)
-                        <> (sgsPools sgs)
-                    , Ledger.sgsStake = (Map.singleton stakePubHash poolId)
-                        <> Ledger.sgsStake sgs
-                    }
-            let poolSpecificFunds = Map.fromList
+              updateStaking sgs = sgs
+                { Ledger.sgsPools = Map.singleton poolId params <> sgsPools sgs
+                , Ledger.sgsStake = Map.singleton stakePubHash poolId <> Ledger.sgsStake sgs
+                }
+
+              poolSpecificFunds = Map.fromList
                     [(pledgeAddr, Ledger.Coin $ intCast pledgeAmt)]
             return $ \sg -> sg
-                { sgInitialFunds = poolSpecificFunds <> (sgInitialFunds sg)
+                { sgInitialFunds = poolSpecificFunds <> sgInitialFunds sg
                 , sgStaking = updateStaking (sgStaking sg)
                 }
         , registerViaTx = \(RunningNode socket _ _ _) -> do
@@ -834,7 +832,7 @@ generateGenesis dir systemStart initialFunds addPoolsToGenesis extraConf = do
                 |]
             }
 
-    let shelleyGenesisFile = (dir </> "genesis.json")
+    let shelleyGenesisFile = dir </> "genesis.json"
     Aeson.encodeFile shelleyGenesisFile sg
 
     let byronGenesisFile = dir </> "genesis.byron.json"
@@ -1307,7 +1305,7 @@ issueStakeScriptCert tr dir prefix stakeScript = do
 
 
 stakePoolIdFromOperatorVerKey
-    :: FilePath -> IO (Ledger.KeyHash 'Ledger.StakePool (StandardCrypto))
+    :: FilePath -> IO (Ledger.KeyHash 'Ledger.StakePool StandardCrypto)
 stakePoolIdFromOperatorVerKey filepath = do
     stakePoolVerKey <- either (error . show) id <$> readVerificationKeyOrFile AsStakePoolKey
         (VerificationKeyFilePath $ VerificationKeyFile filepath)
@@ -1406,7 +1404,7 @@ preparePoolRetirement tr dir certs = do
         [ "transaction", "build-raw"
         , "--tx-in", faucetInput
         , "--ttl", "400"
-        , "--fee", show (faucetAmt)
+        , "--fee", show faucetAmt
         , "--out-file", file
         ] ++ mconcat ((\cert -> ["--certificate-file",cert]) <$> certs)
 
@@ -1520,7 +1518,7 @@ sendFaucet tr conn dir what targets = do
             , unwords $ [ addr, show c, "lovelace"] ++
                 map (("+ " ++) . cliAsset) (TokenMap.toFlatList tokens)
             ]
-        cliAsset (aid, (TokenQuantity q)) = unwords [show q, cliAssetId aid]
+        cliAsset (aid, TokenQuantity q) = unwords [show q, cliAssetId aid]
         cliAssetId (AssetId pid (UnsafeTokenName name)) = mconcat
             [ T.unpack (toText pid)
             , if B8.null name then "" else "."
@@ -1549,7 +1547,7 @@ sendFaucet tr conn dir what targets = do
         ] ++
         concatMap (uncurry mkOutput . fmap fst) targets ++
         mkMint targetAssets ++
-        (concatMap (\f -> ["--minting-script-file", f]) scripts)
+        concatMap (\f -> ["--minting-script-file", f]) scripts
 
     policyKeys <- forM (nub $ concatMap (snd . snd) targets) $
         \(skey, keyHash) -> writePolicySigningKey dir keyHash skey
@@ -1565,7 +1563,7 @@ batch s xs = forM_ (group s xs)
     group :: Int -> [a] -> [[a]]
     group _ [] = []
     group n l
-      | n > 0 = (take n l) : (group n (drop n l))
+      | n > 0 = take n l : group n (drop n l)
       | otherwise = error "Negative or zero n"
 
 data Credential

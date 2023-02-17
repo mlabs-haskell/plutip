@@ -1,3 +1,4 @@
+⚠️ This is outdated. But a nice read
 # Running contracts in an executable and interactive environment with Plutip
 
 by [Chase](https://github.com/TotallyNotChase)

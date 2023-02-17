@@ -1,14 +1,16 @@
-module Test.Plutip.Config (
+module Plutip.Config (
   PlutipConfig (..),
   WorkingDirectory (..),
-  ChainIndexMode (..),
+  ExtraConfig (..),
+  NominalDiffTime,
+  EpochSize (..),
 ) where
 
-import Cardano.Api (PaymentKey, SigningKey)
+import Cardano.Ledger.Slot (EpochSize (EpochSize, unEpochSize))
 import Data.Default (Default, def)
+import Data.Time (NominalDiffTime)
 import GHC.Generics (Generic)
-import GHC.Natural (Natural)
-import Test.Plutip.Internal.Cluster.Extra.Types (ExtraConfig)
+import Plutip.Launch.Extra.Types (ExtraConfig (ExtraConfig, ecEpochSize, ecMaxTxSize, ecRaiseExUnitsToMax, ecSlotLength))
 
 -- | Configuration for the cluster working directory
 -- This determines where the node database, chain-index database,
@@ -34,34 +36,13 @@ data WorkingDirectory
 data PlutipConfig = PlutipConfig
   { -- | in case of `Nothing` cluster data from project `data-files` is used
     clusterDataDir :: Maybe FilePath
-  , -- | in case of `Just path` relay node log will be saved to specified file
-    relayNodeLogs :: Maybe FilePath
-  , -- | the way of how `chain-index` is launched (default port, custom port, not launched),
-    --   default mode - default port
-    chainIndexMode :: ChainIndexMode
-  , -- | Multiplier on all BPI transaction budgets
-    budgetMultiplier :: Rational
   , -- | cluster file location override, when provided, includes a `shouldKeep`
     clusterWorkingDir :: WorkingDirectory
-  , -- | Any extra pre-determined signers to use.
-    --    Either provided by a path to the signing key file, or by the signing key itself.
-    extraSigners :: [Either FilePath (SigningKey PaymentKey)]
   , -- | Extra config to set (at the moment) slot lenght and epoch size
     --   for local network
     extraConfig :: ExtraConfig
   }
   deriving stock (Generic, Show)
 
--- | The way to launch `chain-index`.
--- It is possible to not launch it at all.
-data ChainIndexMode
-  = -- | launch on default port `9083`
-    DefaultPort
-  | -- | launch on custom port
-    CustomPort Natural
-  | -- | do not launch at all
-    NotNeeded
-  deriving stock (Generic, Eq, Show)
-
 instance Default PlutipConfig where
-  def = PlutipConfig Nothing Nothing DefaultPort 1 Temporary [] def
+  def = PlutipConfig Nothing Temporary def

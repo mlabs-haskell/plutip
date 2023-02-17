@@ -1,9 +1,10 @@
-module Test.Plutip.Internal.Cluster.Extra.Utils (
+module Plutip.Launch.Extra.Utils (
   localClusterConfigWithExtraConf,
 ) where
 
-import Test.Plutip.Internal.Cluster (LocalClusterConfig (LocalClusterConfig), clusterEraFromEnv, clusterEraToString, defaultPoolConfigs, logFileConfigFromEnv)
-import Test.Plutip.Internal.Cluster.Extra.Types (ExtraConfig)
+import Plutip.Launch.Cluster (LocalClusterConfig (LocalClusterConfig), clusterEraFromEnv, clusterEraToString, logFileConfigFromEnv)
+import Plutip.Launch.Extra.Types (ExtraConfig)
+import Plutip.Launch.PoolConfigs (defaultPoolConfigs)
 
 localClusterConfigWithExtraConf :: ExtraConfig -> IO LocalClusterConfig
 localClusterConfigWithExtraConf ec = do

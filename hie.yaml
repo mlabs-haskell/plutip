@@ -8,5 +8,3 @@ cradle:
       component: "exe:local-cluster"
     - path: "./contract-execution/"
       component: "exe:contract-execution"
-    - path: "./plutip-server/"
-      component: "exe:plutip-server"

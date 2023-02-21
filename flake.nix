@@ -199,7 +199,13 @@
               };
 
               extraHackage = [
+                # already included in tooling?
                 # "${CHaP}"
+                # TODO: use fork from flake input
+                "${builtins.fetchTarball {
+                  url = "https://hub.darcs.net/komadori/OddWord/dist";
+                  sha256 = "02kd0wyxv6han4vzxwwgagrl5ik4rrlgdl1p97a3cgzzj59ih6xm";
+                }}"
                 "${inputs.cardano-addresses}/core"
                 "${inputs.cardano-addresses}/command-line"
                 # "${inputs.cardano-node}/cardano-api"

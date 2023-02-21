@@ -1,11 +1,21 @@
 {
   description = "plutip-core";
 
+  nixConfig = {
+    extra-substituters = [ "https://cache.iog.io" ];
+    extra-trusted-public-keys = [ "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=" ];
+    allow-import-from-derivation = "true";
+  };
+
   inputs = {
-    haskell-nix.url = "github:mlabs-haskell/haskell.nix";
-    nixpkgs.follows = "haskell-nix/nixpkgs-unstable";
     iohk-nix.url = "github:input-output-hk/iohk-nix";
     iohk-nix.flake = false; # Bad Nix code
+    # haskell-nix.url = "github:input-output-hk/haskell.nix";
+    tooling.url = "github:mlabs-haskell/mlabs-tooling.nix";
+    # tooling.inputs.haskell-nix.follows = "haskell-nix";
+    # tooling.inputs.nixpkgs.follows = "haskell-nix/nixpkgs";
+    haskell-nix.follows = "tooling/haskell-nix";
+    nixpkgs.follows = "tooling/nixpkgs";
 
     flake-compat = {
       url = "github:edolstra/flake-compat";
@@ -175,7 +185,50 @@
         in
         project;
     in
-    {
+    # new code
+    if true then
+      (inputs.tooling.lib.mkFlake { inherit self; } {
+        imports = [
+          (inputs.tooling.lib.mkHaskellFlakeModule1 {
+            project = {
+              # # TODO:set? update?
+              # index-state = "2022-05-25T00:00:00Z";
+              src = ./.;
+              inputMap = {
+                "https://input-output-hk.github.io/cardano-haskell-packages" = CHaP;
+              };
+
+              extraHackage = [
+                # "${CHaP}"
+                "${inputs.cardano-addresses}/core"
+                "${inputs.cardano-addresses}/command-line"
+                # "${inputs.cardano-node}/cardano-api"
+                # "${inputs.cardano-node}/cardano-cli"
+                # "${inputs.cardano-node}/cardano-git-rev"
+                # "${inputs.cardano-node}/cardano-node"
+                # "${inputs.cardano-node}/cardano-submit-api"
+                # "${inputs.cardano-node}/cardano-testnet"
+                # "${inputs.cardano-node}/trace-dispatcher"
+                # "${inputs.cardano-node}/trace-forward"
+                # "${inputs.cardano-node}/trace-resources"
+                "${inputs.cardano-wallet}/lib/balance-tx"
+                "${inputs.cardano-wallet}/lib/coin-selection"
+                "${inputs.cardano-wallet}/lib/dbvar"
+                "${inputs.cardano-wallet}/lib/launcher"
+                "${inputs.cardano-wallet}/lib/numeric"
+                "${inputs.cardano-wallet}/lib/primitive"
+                "${inputs.cardano-wallet}/lib/strict-non-empty-containers"
+                "${inputs.cardano-wallet}/lib/test-utils"
+                "${inputs.cardano-wallet}/lib/text-class"
+                "${inputs.cardano-wallet}/lib/wai-middleware-logging"
+                "${inputs.cardano-wallet}/lib/wallet"
+                "${inputs.hw-aeson}"
+              ];
+            };
+          })
+        ];
+      })
+    else {
       inherit extraSources haskellModules;
 
       project = perSystem projectFor;

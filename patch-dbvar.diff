@@ -1,0 +1,11 @@
+--- a/src/Data/DBVar.hs
++++ b/src/Data/DBVar.hs
+@@ -38,6 +38,6 @@ import Control.Applicative
+     ( liftA2 )
+ import Control.Exception
+     ( Exception, SomeException, toException )
+-import Control.Monad.Class.MonadSTM
++import Control.Concurrent.Class.MonadSTM.TVar
+     ( MonadSTM
+     , atomically
+     , modifyTVar'

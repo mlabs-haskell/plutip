@@ -17,6 +17,8 @@
     haskell-nix.follows = "tooling/haskell-nix";
     nixpkgs.follows = "tooling/nixpkgs";
 
+    tooling.inputs.cardano-haskell-packages.follows = "CHaP";
+    
     flake-compat = {
       url = "github:edolstra/flake-compat";
       flake = false;
@@ -24,25 +26,28 @@
     # all inputs below this line is for pinning with haskell.nix
     cardano-addresses = {
       url =
-        "github:input-output-hk/cardano-addresses/5094fb9d304ed69adedc99513634a00cbf850fca";
+        "github:input-output-hk/cardano-addresses";
       flake = false;
     };
-    cardano-node = {
-      url =
-        "github:input-output-hk/cardano-node/ebc7be471b30e5931b35f9bbc236d21c375b91bb";
-      flake = false; # we need it to be available in shell
-    };
+    # cardano-node = {
+    #   url =
+    #     "github:input-output-hk/cardano-node";
+    #   flake = false; # we need it to be available in shell
+    # };
     cardano-wallet = {
-      url = "github:input-output-hk/cardano-wallet/bbf11d4feefd5b770fb36717ec5c4c5c112aca87";
+      url = "github:input-output-hk/cardano-wallet";
       flake = false;
     };
-    hw-aeson = {
-      url = "github:haskell-works/hw-aeson/ba7c1e41c6e54d6bf9fd1cd013489ac713fc3153";
-      flake = false;
-    };
-
+    # hw-aeson = {
+    #   url = "github:haskell-works/hw-aeson/ba7c1e41c6e54d6bf9fd1cd013489ac713fc3153";
+    #   flake = false;
+    # };
     CHaP = {
       url = "github:input-output-hk/cardano-haskell-packages?ref=repo";
+      flake = false;
+    };
+    OddWord = {
+      url = "github:locallycompact/OddWord";
       flake = false;
     };
 
@@ -193,30 +198,21 @@
             project = {
               # # TODO:set? update?
               # index-state = "2022-05-25T00:00:00Z";
-              src = ./.;
+              src = "${self}";
               inputMap = {
                 "https://input-output-hk.github.io/cardano-haskell-packages" = CHaP;
               };
 
+              modules = [({config, ...}: {
+                packages.dbvar.patches = [
+                  ./patch-dbvar.diff
+                ];
+              })];
+              
               extraHackage = [
-                # already included in tooling?
-                # "${CHaP}"
-                # TODO: use fork from flake input
-                "${builtins.fetchTarball {
-                  url = "https://hub.darcs.net/komadori/OddWord/dist";
-                  sha256 = "02kd0wyxv6han4vzxwwgagrl5ik4rrlgdl1p97a3cgzzj59ih6xm";
-                }}"
+                "${inputs.OddWord}"
                 "${inputs.cardano-addresses}/core"
                 "${inputs.cardano-addresses}/command-line"
-                # "${inputs.cardano-node}/cardano-api"
-                # "${inputs.cardano-node}/cardano-cli"
-                # "${inputs.cardano-node}/cardano-git-rev"
-                # "${inputs.cardano-node}/cardano-node"
-                # "${inputs.cardano-node}/cardano-submit-api"
-                # "${inputs.cardano-node}/cardano-testnet"
-                # "${inputs.cardano-node}/trace-dispatcher"
-                # "${inputs.cardano-node}/trace-forward"
-                # "${inputs.cardano-node}/trace-resources"
                 "${inputs.cardano-wallet}/lib/balance-tx"
                 "${inputs.cardano-wallet}/lib/coin-selection"
                 "${inputs.cardano-wallet}/lib/dbvar"
@@ -228,7 +224,6 @@
                 "${inputs.cardano-wallet}/lib/text-class"
                 "${inputs.cardano-wallet}/lib/wai-middleware-logging"
                 "${inputs.cardano-wallet}/lib/wallet"
-                "${inputs.hw-aeson}"
               ];
             };
           })

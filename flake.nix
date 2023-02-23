@@ -18,7 +18,7 @@
     nixpkgs.follows = "tooling/nixpkgs";
 
     tooling.inputs.cardano-haskell-packages.follows = "CHaP";
-    
+
     flake-compat = {
       url = "github:edolstra/flake-compat";
       flake = false;
@@ -203,12 +203,14 @@
                 "https://input-output-hk.github.io/cardano-haskell-packages" = CHaP;
               };
 
-              modules = [({config, ...}: {
-                packages.dbvar.patches = [
-                  ./patch-dbvar.diff
-                ];
-              })];
-              
+              modules = [
+                ({ config, ... }: {
+                  packages.dbvar.patches = [
+                    # ./patch-dbvar.diff
+                  ];
+                })
+              ];
+
               extraHackage = [
                 "${inputs.OddWord}"
                 "${inputs.cardano-addresses}/core"

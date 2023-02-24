@@ -229,6 +229,18 @@
                   packages.dbvar.patches = [
                     ./patch-dbvar.diff
                   ];
+                  packages.ouroboros-consensus.patches = [
+                    ./patch-ouroboros-consensus.diff
+                  ];
+                  packages.ouroboros-consensus-byron.patches = [
+                    ./patch-ouroboros-consensus-byron.diff
+                  ];
+                  packages.ouroboros-consensus-shelley.patches = [
+                    ./patch-ouroboros-consensus-shelley.diff
+                  ];
+                  packages.ouroboros-network.patches = [
+                    ./patch-ouroboros-network.diff
+                  ];
                 })
               ];
 

@@ -280,11 +280,11 @@
     "cardano-wallet": {
       "flake": false,
       "locked": {
-        "lastModified": 1677071257,
-        "narHash": "sha256-VSpo5QmnCqq8wtrgb/nOt3GFrCQnOzqK6IriL7mynko=",
+        "lastModified": 1677243694,
+        "narHash": "sha256-kgFcCYR94wUqaA9b4Pxu3eo17X9yF9fLEr+wRnM60qY=",
         "owner": "input-output-hk",
         "repo": "cardano-wallet",
-        "rev": "be5924f4b46e0eb81e42a3f67c713ad1ab6ae965",
+        "rev": "cf96cdebe256cb3c60f43648e125974075a8f382",
         "type": "github"
       },
       "original": {

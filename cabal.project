@@ -20,5 +20,11 @@ benchmarks: true
 test-show-details: direct
 
 constraints:
-   , cardano-binary == 1.5.0
+  , cardano-api == 1.35.4
+    -- max = 1.6.0.0
+   , cardano-binary == 1.5.0.1
+   , cardano-crypto-wrapper == 1.4.2
    , cardano-ledger-byron == 0.1.1.1
+   , io-classes == 0.3.0.0
+   , ouroboros-network == 0.2.0.0
+   , ouroboros-network-framework == 0.2.0.0

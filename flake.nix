@@ -29,6 +29,10 @@
         "github:input-output-hk/cardano-addresses";
       flake = false;
     };
+    # cardano-base = {
+    #   url = "github:input-output-hk/cardano-base";
+    #   flake = false;
+    # };
     # cardano-node = {
     #   url =
     #     "github:input-output-hk/cardano-node";
@@ -106,6 +110,23 @@
           src = inputs.cardano-addresses;
           subdirs = [ "core" "command-line" ];
         }
+        # {
+        #   src = inputs.cardano-base;
+        #   subdirs = [
+        #     "base-deriving-via"
+        #     "cardano-binary"
+        #     "cardano-binary/test"
+        #     "cardano-crypto-class"
+        #     "cardano-crypto-praos"
+        #     "cardano-crypto-tests"
+        #     "cardano-slotting"
+        #     "cardano-strict-containers"
+        #     "cardano-mempool"
+        #     "heapwords"
+        #     "measures"
+        #     "orphans-deriving-via"
+        #   ];
+        # }
         {
           src = inputs.cardano-node;
           subdirs = [
@@ -206,7 +227,7 @@
               modules = [
                 ({ config, ... }: {
                   packages.dbvar.patches = [
-                    # ./patch-dbvar.diff
+                    ./patch-dbvar.diff
                   ];
                 })
               ];
@@ -215,6 +236,18 @@
                 "${inputs.OddWord}"
                 "${inputs.cardano-addresses}/core"
                 "${inputs.cardano-addresses}/command-line"
+                # "${inputs.cardano-base}/base-deriving-via"
+                # "${inputs.cardano-base}/cardano-binary"
+                # "${inputs.cardano-base}/cardano-binary/test"
+                # "${inputs.cardano-base}/cardano-crypto-class"
+                # "${inputs.cardano-base}/cardano-crypto-praos"
+                # "${inputs.cardano-base}/cardano-crypto-tests"
+                # "${inputs.cardano-base}/cardano-slotting"
+                # "${inputs.cardano-base}/cardano-strict-containers"
+                # "${inputs.cardano-base}/cardano-mempool"
+                # "${inputs.cardano-base}/heapwords"
+                # "${inputs.cardano-base}/measures"
+                # "${inputs.cardano-base}/orphans-deriving-via"
                 "${inputs.cardano-wallet}/lib/balance-tx"
                 "${inputs.cardano-wallet}/lib/coin-selection"
                 "${inputs.cardano-wallet}/lib/dbvar"

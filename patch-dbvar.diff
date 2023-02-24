@@ -5,7 +5,7 @@
  import Control.Exception
      ( Exception, SomeException, toException )
 -import Control.Monad.Class.MonadSTM
-+import Control.Concurrent.Class.MonadSTM.TVar
++import Control.Concurrent.Class.MonadSTM
      ( MonadSTM
      , atomically
      , modifyTVar'

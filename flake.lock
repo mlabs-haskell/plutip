@@ -2318,11 +2318,11 @@
         "plutus": "plutus"
       },
       "locked": {
-        "lastModified": 1676568601,
-        "narHash": "sha256-SpaWDzk+6WweLAEPOrcOMo5Wh5+dongOQFFpupb36n8=",
+        "lastModified": 1677153910,
+        "narHash": "sha256-wHQfFUVQH4yl37aIjaA7nutHUoeyIbLka1QaYDAeNeY=",
         "owner": "mlabs-haskell",
         "repo": "mlabs-tooling.nix",
-        "rev": "097996e58595077b91f729c033ea893725827df7",
+        "rev": "fa04ff4c5cca8255202fff0b65ceee3e1e106343",
         "type": "github"
       },
       "original": {

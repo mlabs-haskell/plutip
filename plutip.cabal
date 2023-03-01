@@ -94,6 +94,7 @@ common common-imports
     , uuid
     , yaml
     , cardano-crypto-class
+    , cardano-crypto-praos
 
 common common-language
   default-extensions:

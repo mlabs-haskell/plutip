@@ -35,6 +35,7 @@ import Test.Plutip.Internal.BotPlutusInterface.Wallet (
   cardanoMainnetAddress,
   mkMainnetAddress,
   walletPkh,
+  addSlip14Wallet,
  )
 import Test.Plutip.Internal.Cluster.Extra.Types (
   ExtraConfig (ExtraConfig),
@@ -61,12 +62,16 @@ main = do
 
       putStrLn "Starting cluster..."
       (st, _) <- startCluster plutipConfig $ do
-        ws <- initWallets numWallets numUtxos amt dirWallets
+        -- ws <- initWallets numWallets numUtxos amt dirWallets
+        -- slip14w <- addSlip14Wallet [1000_000_000, 100_000_000]
+        slip14w <- addSlip14Wallet [1000_000_000]
         liftIO $ putStrLn "Waiting for wallets to be funded..."
-        awaitFunds ws slotLength
+        -- awaitFunds ws slotLength
+        awaitFunds [slip14w] slotLength
 
         separate
-        liftIO $ forM_ (zip ws [(1 :: Int) ..]) printWallet
+        -- liftIO $ forM_ (zip ws [(1 :: Int) ..]) printWallet
+        liftIO $ forM_ (zip [slip14w] [(1 :: Int) ..]) printWallet
         printNodeRelatedInfo
         separate
 
@@ -76,7 +81,7 @@ main = do
             dumpClusterInfo
               dInfo
               (nodeSocket cEnv)
-              ws
+              [slip14w]
 
       void $ installHandler sigINT (termHandler st) Nothing
       putStrLn "Cluster is running. Ctrl-C to stop."

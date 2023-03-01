@@ -9,8 +9,10 @@ module Test.Plutip.Internal.BotPlutusInterface.Wallet
     ledgerPaymentPkh,
     showAddress,
     addSlip14Wallet,
+    addMnemonicWallet,
     paymentPkh,
-  createSlipWallet)
+    createSlipWallet,
+  )
 where
 
 -- import Cardano.Wallet.Shelley.Launch.Cluster (
@@ -22,15 +24,19 @@ where
 --     generateKeyFromSeed,
 --   )
 
+import Cardano.Address.Derivation (xprvToBytes)
 import Cardano.Api (AddressAny, PaymentExtendedKey, PaymentKey, SigningKey (PaymentExtendedSigningKey), VerificationKey, castVerificationKey)
 import Cardano.Api qualified as CAPI
 import Cardano.Api.Shelley (VerificationKey (PaymentExtendedVerificationKey))
 import Cardano.BM.Data.Tracer (nullTracer)
+import Cardano.Codec.Bech32.Prefixes qualified as CIP5
 import Cardano.Mnemonic (SomeMnemonic)
 import Cardano.Mnemonic qualified as CAddr
-import Cardano.Wallet.Primitive.AddressDerivation (HardDerivation (deriveAccountPrivateKey, deriveAddressPrivateKey), Role (UtxoExternal), publicKey, hex)
-import Cardano.Wallet.Primitive.AddressDerivation.Shelley (ShelleyKey (getKey, ShelleyKey), generateKeyFromSeed)
+import Cardano.Wallet.Primitive.AddressDerivation (HardDerivation (deriveAccountPrivateKey, deriveAddressPrivateKey), Role (UtxoExternal), hex, publicKey)
+import Cardano.Wallet.Primitive.AddressDerivation.Shelley (ShelleyKey (getKey), generateKeyFromSeed)
 import Cardano.Wallet.Primitive.Types.Coin (Coin (Coin))
+import Codec.Binary.Encoding (AbstractEncoding (EBech32))
+import Codec.Binary.Encoding qualified as Enc
 import Control.Arrow (ArrowChoice (left))
 import Control.Monad (void)
 import Control.Monad.IO.Class (MonadIO, liftIO)
@@ -40,6 +46,7 @@ import Data.Bool (bool)
 import Data.Text (Text)
 import Data.Text qualified as T
 import Data.Text qualified as Text
+import Data.Text.Encoding qualified as T
 import Ledger (PaymentPubKeyHash (PaymentPubKeyHash), PubKeyHash (PubKeyHash))
 import Numeric.Positive (Positive)
 import Plutus.V1.Ledger.Api qualified as LAPI
@@ -52,14 +59,6 @@ import Test.Plutip.Internal.Cluster
   ( sendFaucetFundsTo,
   )
 import Test.Plutip.Internal.Types (ClusterEnv, nodeSocket, supportDir)
-import Cardano.Address.Derivation (XPrv, xprvToBytes)
-import Cardano.Crypto.Wallet (unXPrv)
-import qualified Data.Text as T
-import qualified Data.Text.Encoding as T
-import Codec.Binary.Encoding qualified as Enc
-import Codec.Binary.Encoding (AbstractEncoding(EBech32))
-import Cardano.Wallet.Api.Types (WalletStyle(Shelley))
-import qualified Cardano.Codec.Bech32.Prefixes as CIP5
 
 -- | Wallet that can be used by bot interface,
 --  backed by `.skey` file when added to cluster with `addSomeWallet`
@@ -69,7 +68,6 @@ data BpiWallet = BpiWallet
     signKey :: SigningKey PaymentExtendedKey,
     rootExtendedKey :: SigningKey PaymentExtendedKey,
     bech32XPrv :: Text
-
     -- todo: do we need something else?
   }
   deriving stock (Show)
@@ -127,16 +125,20 @@ addSomeWallet funds = do
 
 slip14Mnemonic :: Text
 slip14Mnemonic = "all all all all all all all all all all all all"
+
 -- slip14Mnemonic = "protect suffer patient treat depend crucial lady section shadow truth rabbit monkey"
 
 addSlip14Wallet :: MonadIO m => [Positive] -> ReaderT ClusterEnv m BpiWallet
-addSlip14Wallet funds = do
-  result <- eitherAddSomeWallet slipMnem funds
+addSlip14Wallet = addMnemonicWallet slip14Mnemonic
+
+addMnemonicWallet :: MonadIO m => Text -> [Positive] -> ReaderT ClusterEnv m BpiWallet
+addMnemonicWallet mnemonics funds = do
+  result <- eitherAddSomeWallet mnem funds
   pure $ getOrThrow result
   where
-    slipMnem =
+    mnem =
       getOrThrow $
-        CAddr.mkSomeMnemonic @'[12] (T.splitOn " " slip14Mnemonic)
+        CAddr.mkSomeMnemonic @'[12] (T.splitOn " " mnemonics)
 
     getOrThrow :: Show e => Either e a -> a
     getOrThrow = either (error . show) id
@@ -149,10 +151,11 @@ addSomeWalletDir funds wallDir = do
   eitherAddSomeWalletDir mn funds wallDir >>= either (error . show) pure
 
 createSlipWallet :: IO ()
-createSlipWallet = 
-  let slipMnem = either (error . show) id $
-        CAddr.mkSomeMnemonic @'[12] (T.splitOn " " slip14Mnemonic)
-  in createWallet slipMnem >> pure ()
+createSlipWallet =
+  let slipMnem =
+        either (error . show) id $
+          CAddr.mkSomeMnemonic @'[12] (T.splitOn " " slip14Mnemonic)
+   in createWallet slipMnem >> pure ()
 
 createWallet :: MonadIO m => SomeMnemonic -> m BpiWallet
 createWallet mnemonic = do
@@ -164,10 +167,10 @@ createWallet mnemonic = do
       addrZeroXPub = publicKey addrZeroXPrv
 
   let pShow = T.unpack . T.decodeUtf8
-      accKey = pShow $ hex $ xprvToBytes $ getKey accZeroXPrv 
-      addrKey = pShow $ hex $ xprvToBytes $ getKey addrZeroXPrv 
+      accKey = pShow $ hex $ xprvToBytes $ getKey accZeroXPrv
+      addrKey = pShow $ hex $ xprvToBytes $ getKey addrZeroXPrv
       xprvKey = getKey rootExtKey
-      style =  EBech32 CIP5.root_xsk -- works for Shelley
+      style = EBech32 CIP5.root_xsk -- works for Shelley
       enc = Enc.encode style (xprvToBytes xprvKey)
       bech32XPrv = T.decodeUtf8 enc
 
@@ -175,17 +178,17 @@ createWallet mnemonic = do
   liftIO $ putStrLn $ "addrZeroXPrv: " ++ addrKey
 
   let vrfKey = castVerificationKey $ PaymentExtendedVerificationKey $ getKey addrZeroXPub
-      wallet = BpiWallet
-        { walletPkh = toPkh vrfKey,
-          vrfKey = vrfKey,
-          signKey = PaymentExtendedSigningKey $ getKey addrZeroXPrv,
-          rootExtendedKey = PaymentExtendedSigningKey $ getKey rootExtKey,
-          bech32XPrv = bech32XPrv
-        }
-  
+      wallet =
+        BpiWallet
+          { walletPkh = toPkh vrfKey,
+            vrfKey = vrfKey,
+            signKey = PaymentExtendedSigningKey $ getKey addrZeroXPrv,
+            rootExtendedKey = PaymentExtendedSigningKey $ getKey rootExtKey,
+            bech32XPrv = bech32XPrv
+          }
+
   liftIO $ putStrLn $ "pub: " ++ show wallet
   return wallet
-    
   where
     toPkh =
       PubKeyHash

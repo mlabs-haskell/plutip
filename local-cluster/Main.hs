@@ -10,11 +10,12 @@ module Main (main) where
 import Cardano.Launcher.Node (CardanoNodeConn, nodeSocketFile)
 import Cardano.Ledger.Slot (EpochSize (EpochSize))
 import Control.Applicative (optional, (<**>), (<|>))
-import Control.Monad (forM_, replicateM, void)
+import Control.Monad (forM_, void)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader (MonadReader (ask), ReaderT (ReaderT), lift)
 import Data.Aeson (FromJSON, ToJSON, encodeFile)
 import Data.Default (def)
+import Data.Text (Text, unpack)
 import Data.Time (NominalDiffTime)
 import GHC.Conc (TVar, threadDelay)
 import GHC.Generics (Generic)
@@ -24,27 +25,25 @@ import Numeric.Positive (Positive)
 import Options.Applicative (Parser, helper, info)
 import Options.Applicative qualified as Options
 import System.Posix (Handler (CatchOnce), installHandler, sigINT)
-import Test.Plutip.Config (
-  ChainIndexMode (CustomPort, DefaultPort, NotNeeded),
-  PlutipConfig (chainIndexMode, clusterWorkingDir, extraConfig),
-  WorkingDirectory (Fixed, Temporary),
- )
-import Test.Plutip.Internal.BotPlutusInterface.Wallet (
-  BpiWallet,
-  addSomeWalletDir,
-  cardanoMainnetAddress,
-  mkMainnetAddress,
-  walletPkh,
-  addSlip14Wallet,
- )
-import Test.Plutip.Internal.Cluster.Extra.Types (
-  ExtraConfig (ExtraConfig),
- )
-import Test.Plutip.Internal.LocalCluster (
-  ClusterStatus,
-  startCluster,
-  stopCluster,
- )
+import Test.Plutip.Config
+  ( ChainIndexMode (CustomPort, DefaultPort, NotNeeded),
+    PlutipConfig (chainIndexMode, clusterWorkingDir, extraConfig),
+    WorkingDirectory (Fixed, Temporary),
+  )
+import Test.Plutip.Internal.BotPlutusInterface.Wallet
+  ( BpiWallet,
+    cardanoMainnetAddress,
+    mkMainnetAddress,
+    walletPkh, addMnemonicWallet
+  )
+import Test.Plutip.Internal.Cluster.Extra.Types
+  ( ExtraConfig (ExtraConfig),
+  )
+import Test.Plutip.Internal.LocalCluster
+  ( ClusterStatus,
+    startCluster,
+    stopCluster,
+  )
 import Test.Plutip.Internal.Types (nodeSocket)
 import Test.Plutip.Tools.CardanoApi (awaitAddressFunded)
 
@@ -54,7 +53,7 @@ main = do
   case totalAmount config of
     Left e -> error e
     Right amt -> do
-      let ClusterConfig {numWallets, dirWallets, numUtxos, workDir, slotLength, epochSize, cIndexMode} = config
+      let ClusterConfig {workDir, slotLength, epochSize, cIndexMode} = config
           workingDir = maybe Temporary (`Fixed` False) workDir
 
           extraConf = ExtraConfig slotLength epochSize
@@ -62,16 +61,13 @@ main = do
 
       putStrLn "Starting cluster..."
       (st, _) <- startCluster plutipConfig $ do
-        -- ws <- initWallets numWallets numUtxos amt dirWallets
-        -- slip14w <- addSlip14Wallet [1000_000_000, 100_000_000]
-        slip14w <- addSlip14Wallet [1000_000_000]
+        w <- addMnemonicWallet (mnemonics config) [amt]
         liftIO $ putStrLn "Waiting for wallets to be funded..."
-        -- awaitFunds ws slotLength
-        awaitFunds [slip14w] slotLength
+        awaitFunds [w] slotLength
 
         separate
-        -- liftIO $ forM_ (zip ws [(1 :: Int) ..]) printWallet
-        liftIO $ forM_ (zip [slip14w] [(1 :: Int) ..]) printWallet
+        liftIO $ putStrLn $ "Mnemoncs: " <> unpack (mnemonics config)
+        liftIO $ printWallet w
         printNodeRelatedInfo
         separate
 
@@ -81,7 +77,7 @@ main = do
             dumpClusterInfo
               dInfo
               (nodeSocket cEnv)
-              [slip14w]
+              [w]
 
       void $ installHandler sigINT (termHandler st) Nothing
       putStrLn "Cluster is running. Ctrl-C to stop."
@@ -100,26 +96,19 @@ main = do
         0 -> Left "One of --ada or --lovelace arguments should not be 0"
         amt -> Right $ fromInteger . toInteger $ amt
 
-    initWallets numWallets numUtxos amt dirWallets = do
-      let collateralAmount = 10_000_000
-      replicateM (max 0 numWallets) $
-        addSomeWalletDir
-          (collateralAmount : replicate numUtxos amt)
-          dirWallets
-
     dumpClusterInfo :: FilePath -> CardanoNodeConn -> [BpiWallet] -> IO ()
     dumpClusterInfo fp nodeConn ws = do
       encodeFile
         fp
         ( ClusterInfo
-            { ciWallets = [(show . walletPkh $ w, show . mkMainnetAddress $ w) | w <- ws]
-            , ciNodeSocket = nodeSocketFile nodeConn
+            { ciWallets = [(show . walletPkh $ w, show . mkMainnetAddress $ w) | w <- ws],
+              ciNodeSocket = nodeSocketFile nodeConn
             }
         )
 
-    printWallet (w, n) = do
-      putStrLn $ "Wallet " ++ show n ++ " PKH: " ++ show (walletPkh w)
-      putStrLn $ "Wallet " ++ show n ++ " mainnet address: " ++ show (mkMainnetAddress w)
+    printWallet w = do
+      putStrLn $ "Wallet PKH: " ++ show (walletPkh w)
+      putStrLn $ "Wallet mainnet address: " ++ show (mkMainnetAddress w)
 
     toAda = (* 1_000_000)
 
@@ -135,31 +124,18 @@ termHandler st = CatchOnce $ do
   stopCluster st
 
 data ClusterInfo = ClusterInfo
-  { ciWallets :: [(String, String)]
-  , ciNodeSocket :: String
+  { ciWallets :: [(String, String)],
+    ciNodeSocket :: String
   }
   deriving (Show, Generic, ToJSON, FromJSON)
 
-pnumWallets :: Parser Int
-pnumWallets =
-  Options.option
-    Options.auto
-    ( Options.long "num-wallets"
-        <> Options.long "wallets"
-        <> Options.short 'n'
-        <> Options.metavar "NUM_WALLETS"
-        <> Options.value 1
+pMnemonics :: Parser Text
+pMnemonics =
+  Options.strOption
+    ( Options.long "mnemonics"
+        <> Options.short 'm'
+        <> Options.metavar "MNEMONICS"
     )
-
-pdirWallets :: Parser (Maybe FilePath)
-pdirWallets =
-  optional $
-    Options.strOption
-      ( Options.long "wallets-dir"
-          <> Options.long "wallet-dir"
-          <> Options.short 'd'
-          <> Options.metavar "FILEPATH"
-      )
 
 padaAmount :: Parser Natural
 padaAmount =
@@ -179,16 +155,6 @@ plvlAmount =
         <> Options.short 'l'
         <> Options.metavar "Lovelace"
         <> Options.value 0
-    )
-
-pnumUtxos :: Parser Int
-pnumUtxos =
-  Options.option
-    Options.auto
-    ( Options.long "utxos"
-        <> Options.short 'u'
-        <> Options.metavar "NUM_UTXOS"
-        <> Options.value 1
     )
 
 pWorkDir :: Parser (Maybe FilePath)
@@ -257,11 +223,9 @@ pInfoJson =
 pClusterConfig :: Parser ClusterConfig
 pClusterConfig =
   ClusterConfig
-    <$> pnumWallets
-    <*> pdirWallets
+    <$> pMnemonics
     <*> padaAmount
     <*> plvlAmount
-    <*> pnumUtxos
     <*> pWorkDir
     <*> pSlotLen
     <*> pEpochSize
@@ -271,15 +235,13 @@ pClusterConfig =
 -- | Basic info about the cluster, to
 -- be used by the command-line
 data ClusterConfig = ClusterConfig
-  { numWallets :: Int
-  , dirWallets :: Maybe FilePath
-  , adaAmount :: Natural
-  , lvlAmount :: Natural
-  , numUtxos :: Int
-  , workDir :: Maybe FilePath
-  , slotLength :: NominalDiffTime
-  , epochSize :: EpochSize
-  , cIndexMode :: ChainIndexMode
-  , dumpInfo :: Maybe FilePath
+  { mnemonics :: Text,
+    adaAmount :: Natural,
+    lvlAmount :: Natural,
+    workDir :: Maybe FilePath,
+    slotLength :: NominalDiffTime,
+    epochSize :: EpochSize,
+    cIndexMode :: ChainIndexMode,
+    dumpInfo :: Maybe FilePath
   }
   deriving stock (Show, Eq)

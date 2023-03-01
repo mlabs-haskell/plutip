@@ -267,12 +267,12 @@ executable local-cluster
     , base
     , cardano-ledger-core
     , cardano-wallet-launcher
-    , containers
     , data-default
     , mtl
     , optparse-applicative
     , plutip
     , positive
+    , text
     , time
     , unix
 

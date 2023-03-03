@@ -304,10 +304,10 @@ executable contract-execution
   other-modules:  ExampleContracts
   ghc-options:    -Wall -threaded -rtsopts
 
-executable generate-contract
+executable generate-script
   import:         common-language
   import:         common-ghc-options
-  hs-source-dirs: generate-contract
+  hs-source-dirs: generate-script
   main-is:        Main.hs
   build-depends:
     , base

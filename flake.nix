@@ -120,11 +120,27 @@
         let lib = "plutip:lib:plutip";
         in self.flake.${system}.packages.${lib});
 
-      packages = perSystem (system: self.flake.${system}.packages);
-
       apps = perSystem (system: self.flake.${system}.apps);
 
       devShell = perSystem (system: self.flake.${system}.devShell);
+
+      packages = perSystem (system: self.flake.${system}.packages // {
+        dockerImage =
+          let
+            pkgs = nixpkgsFor system;
+          in
+          pkgs.dockerTools.buildLayeredImage {
+            name = "plutip-local-cluster";
+            contents = [
+              self.packages.${system}."plutip:exe:local-cluster"
+            ];
+            config = {
+              Cmd = [
+                "local-cluster"
+              ];
+            };
+          };
+      });
 
       # This will build all of the project's executables and the tests
       check = perSystem

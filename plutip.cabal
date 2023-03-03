@@ -307,7 +307,8 @@ executable contract-execution
 executable generate-contract
   import:         common-language
   import:         common-ghc-options
-  main-is:       generate-contract/Main.hs
+  hs-source-dirs: generate-contract
+  main-is:        Main.hs
   build-depends:
     , base
     , cardano-ledger-core
@@ -332,8 +333,7 @@ executable generate-contract
     , cardano-api
     , serialise
     , bytestring
+    , deriving-compat
 
-  other-modules:
-    SomeScript
-
+  other-modules: SomeScript
   ghc-options:   -Wall -threaded -rtsopts

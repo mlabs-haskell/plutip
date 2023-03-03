@@ -303,3 +303,37 @@ executable contract-execution
 
   other-modules:  ExampleContracts
   ghc-options:    -Wall -threaded -rtsopts
+
+executable generate-contract
+  import:         common-language
+  import:         common-ghc-options
+  main-is:       generate-contract/Main.hs
+  build-depends:
+    , base
+    , cardano-ledger-core
+    , containers
+    , data-default
+    , lens
+    , mtl
+    , optparse-applicative
+    , plutip
+    , plutus-contract
+    , plutus-ledger
+    , plutus-ledger-constraints
+    , plutus-pab
+    , positive
+    , pretty-simple
+    , text
+    , time
+    , plutus-tx
+    , plutus-script-utils
+    , plutus-ledger-api
+    , plutus-tx-plugin
+    , cardano-api
+    , serialise
+    , bytestring
+
+  other-modules:
+    SomeScript
+
+  ghc-options:   -Wall -threaded -rtsopts

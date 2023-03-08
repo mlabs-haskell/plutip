@@ -1,5 +1,5 @@
 cabal-version:      3.0
-name:               plutip
+name:               plutip-core
 version:            0.2
 license-file:       LICENSE
 author:             mlabs
@@ -22,13 +22,12 @@ common common-imports
   build-depends:
     , aeson
     , aeson-qq
-    , ansi-terminal
     , async
     , base
+    , base16-bytestring
     , base58-bytestring
     , bech32
     , bech32-th
-    , bot-plutus-interface
     , bytestring
     , cardano-addresses
     , cardano-api
@@ -40,58 +39,38 @@ common common-imports
     , cardano-ledger-shelley
     , cardano-slotting
     , cardano-wallet
-    , cardano-wallet-cli
-    , cardano-wallet-core
-    , cardano-wallet-core-integration
     , cardano-wallet-launcher
+    , cardano-wallet-primitive
     , cardano-wallet-test-utils
     , cborg
     , containers
     , contra-tracer
     , data-default
+    , deepseq
     , directory
     , either
-    , exceptions
     , filepath
     , generic-lens
     , http-client
     , http-types
     , int-cast
     , iohk-monitoring
+    , lens
     , memory
     , mtl
-    , openapi3
     , ouroboros-consensus
     , ouroboros-network
-    , plutus-chain-index
-    , plutus-chain-index-core
-    , plutus-contract
     , plutus-core
-    , plutus-ledger
-    , plutus-ledger-api
-    , plutus-ledger-constraints
-    , plutus-pab
-    , plutus-script-utils
-    , plutus-tx
-    , plutus-tx-plugin
-    , positive
-    , pretty-show
-    , prettyprinter
     , retry
-    , row-types
     , servant-client
     , stm
-    , tagged
-    , tasty
-    , tasty-hunit
+    , temporary
     , text
     , text-class
     , time
-    , transformers-except
     , typed-process
     , unliftio
     , unliftio-core
-    , uuid
     , yaml
 
 common common-language
@@ -151,32 +130,20 @@ library
 
   hs-source-dirs:  src/
   exposed-modules:
-    Test.Plutip.Config
-    Test.Plutip.Contract
-    Test.Plutip.Contract.Init
-    Test.Plutip.Contract.Types
-    Test.Plutip.Contract.Values
-    Test.Plutip.Internal.BotPlutusInterface.Keys
-    Test.Plutip.Internal.BotPlutusInterface.Run
-    Test.Plutip.Internal.BotPlutusInterface.Setup
-    Test.Plutip.Internal.BotPlutusInterface.Types
-    Test.Plutip.Internal.BotPlutusInterface.Wallet
-    Test.Plutip.Internal.ChainIndex
-    Test.Plutip.Internal.Cluster
-    Test.Plutip.Internal.Cluster.Extra.Types
-    Test.Plutip.Internal.Cluster.Extra.Utils
-    Test.Plutip.Internal.LocalCluster
-    Test.Plutip.Internal.Types
-    Test.Plutip.LocalCluster
-    Test.Plutip.Options
-    Test.Plutip.Predicate
-    Test.Plutip.Tools.Address
-    Test.Plutip.Tools.CardanoApi
-    Test.Plutip.Tools.ChainIndex
-    Test.Plutip.Tools.DebugCli
-    Test.Plutip.Tools.Format
+    Plutip.CardanoApi
+    Plutip.Cluster
+    Plutip.Config
+    Plutip.DistributeFunds
+    Plutip.Keys
+    Plutip.Types
 
-  other-modules:   Paths_plutip
+  other-modules:
+    Paths_plutip_core
+    Plutip.Launch.Cluster
+    Plutip.Launch.Extra.Types
+    Plutip.Launch.Extra.Utils
+    Plutip.Launch.FaucetFunds
+    Plutip.Launch.PoolConfigs
 
 test-suite plutip-tests
   import:             common-imports
@@ -189,114 +156,29 @@ test-suite plutip-tests
   ghc-options:        -Wall -threaded -rtsopts
   build-depends:
     , base
-    , lens
-    , plutip
+    , plutip-core
     , tasty
-    , tasty-expected-failure
     , tasty-hunit
-    , tasty-quickcheck
     , text
 
-  other-modules:
-    Spec.Integration
-    Spec.Test.Plutip.BotPlutusInterface
-    Spec.TestContract.AdjustTx
-    Spec.TestContract.AlwaysFail
-    Spec.TestContract.LockSpendMint
-    Spec.TestContract.MintAndPay
-    Spec.TestContract.MustBeSignedBy
-    Spec.TestContract.SimpleContracts
-    Spec.TestContract.ValidateTimeRange
-    Spec.TestContract.VasilFeatures
-
+  other-modules:      Spec.ClusterStartup
   default-extensions:
     OverloadedStrings
     QuasiQuotes
     RecordWildCards
     TupleSections
 
-executable plutip-server
-  import:           common-language
-  import:           common-ghc-options
-  main-is:          Main.hs
-  hs-source-dirs:   plutip-server
-  default-language: Haskell2010
-  build-depends:
-    , aeson
-    , base
-    , base16-bytestring
-    , bytestring
-    , cardano-api
-    , cardano-ledger-core
-    , cardano-wallet
-    , cardano-wallet-launcher
-    , data-default
-    , directory
-    , exceptions
-    , extra
-    , filepath
-    , http-types
-    , mtl
-    , optparse-applicative
-    , plutip
-    , positive
-    , servant-server
-    , stm
-    , text
-    , time
-    , unliftio
-    , wai
-    , wai-cors
-    , wai-logger
-    , warp
-
-  other-modules:
-    Api
-    Api.Handlers
-    Types
-
-  ghc-options:      -Wall -threaded -rtsopts
-
 executable local-cluster
   main-is:       local-cluster/Main.hs
   build-depends:
     , aeson
     , base
-    , cardano-ledger-core
     , cardano-wallet-launcher
     , containers
     , data-default
     , mtl
     , optparse-applicative
-    , plutip
-    , positive
+    , plutip-core
     , time
-    , unix
 
   ghc-options:   -Wall -threaded -rtsopts
-
-executable contract-execution
-  import:         common-language
-  import:         common-ghc-options
-  hs-source-dirs: contract-execution
-  main-is:        Main.hs
-  build-depends:
-    , base
-    , cardano-ledger-core
-    , containers
-    , data-default
-    , lens
-    , mtl
-    , optparse-applicative
-    , plutip
-    , plutus-contract
-    , plutus-ledger
-    , plutus-ledger-constraints
-    , plutus-pab
-    , positive
-    , pretty-simple
-    , text
-    , time
-
-  other-modules:  ExampleContracts
-  ghc-options:    -Wall -threaded -rtsopts

@@ -1,0 +1,18 @@
+--- a/src/Ouroboros/Network/Testing/ConcreteBlock.hs
++++ b/src/Ouroboros/Network/Testing/ConcreteBlock.hs
+@@ -1,5 +1,6 @@
+ {-# LANGUAGE DeriveGeneric              #-}
+ {-# LANGUAGE GeneralizedNewtypeDeriving #-}
++{-# LANGUAGE FlexibleContexts #-}
+ {-# LANGUAGE NamedFieldPuns             #-}
+ {-# LANGUAGE StandaloneDeriving         #-}
+ {-# LANGUAGE TypeFamilies               #-}
+@@ -121,7 +122,7 @@ deriving instance Hashable BlockNo
+ --
+ -- This requires @UndecidableInstances@ because @Hashable (HeaderHash b)@
+ -- is no smaller than @Hashable (ChainHash b)@.
+-instance Hashable (HeaderHash b) => Hashable (ChainHash b)
++instance (StandardHash b, Hashable (HeaderHash b)) => Hashable (ChainHash b)
+  -- use generic instance
+
+ -- | The hash of all the information in a 'BlockHeader'.

@@ -1,0 +1,10 @@
+--- src-cardano-api/src/Cardano/Api/Tx.hs.orig	2023-03-14 13:49:51.492669935 +0200
++++ src-cardano-api/src/Cardano/Api/Tx.hs	2023-03-14 13:50:20.239109666 +0200
+@@ -66,7 +66,6 @@
+ --
+ import           Cardano.Binary (Annotated (..))
+ import qualified Cardano.Binary as CBOR
+-import qualified Cardano.Prelude as CBOR (cborError)
+ 
+ --
+ -- Crypto API used by consensus and Shelley (and should be used by Byron)

@@ -1,0 +1,24 @@
+--- a/src/Ouroboros/Consensus/Shelley/Protocol/Praos.hs
++++ b/src/Ouroboros/Consensus/Shelley/Protocol/Praos.hs
+@@ -124,7 +124,7 @@ instance PraosCrypto c => ProtocolHeaderSupportsKES (Praos c) where
+             }
+
+ instance PraosCrypto c => ProtocolHeaderSupportsProtocol (Praos c) where
+-  type CannotForgeError _ = PraosCannotForge c
++  type CannotForgeError (Praos c) = PraosCannotForge c
+   protocolHeaderView Header {headerBody, headerSig} =
+     HeaderView
+       { hvPrevHash = hbPrev headerBody,
+diff --git a/src/Ouroboros/Consensus/Shelley/Protocol/TPraos.hs b/src/Ouroboros/Consensus/Shelley/Protocol/TPraos.hs
+index 7dce1e1..93d023c 100644
+--- a/src/Ouroboros/Consensus/Shelley/Protocol/TPraos.hs
++++ b/src/Ouroboros/Consensus/Shelley/Protocol/TPraos.hs
+@@ -103,7 +103,7 @@ instance PraosCrypto c => ProtocolHeaderSupportsKES (TPraos c) where
+             } = toSign
+
+ instance PraosCrypto c => ProtocolHeaderSupportsProtocol (TPraos c) where
+-  type CannotForgeError _ = TPraosCannotForge c
++  type CannotForgeError (TPraos c) = TPraosCannotForge c
+
+   protocolHeaderView = id
+   pHeaderIssuer = SL.bheaderVk . SL.bhbody

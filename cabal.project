@@ -21,8 +21,30 @@ test-show-details: direct
 allow-newer:
     *:aeson
   , size-based:template-haskell
+  -- from mlabs-tooling
+  , *:base
+  , *:protolude
+  , *:template-haskell
+  , *:ghc-prim
+  , *:ghc
+  , *:cryptonite
+  , *:bytestring
+  , *:containers
+  , *:directory
+  , *:time
+  , *:text
+  , *:hashable
+  , *:formatting
+  , snap-server:attoparsec
+  , ouroboros-consensus:io-classes
+  , ouroboros-network:io-classes
+  , *:strict-stm
+  , ouroboros-network-framework:io-classes
+  , network-mux:io-classes
+
 
 constraints:
+--  , protolude == 0.3.2
 --  cardano-node == 1.35.4
   , aeson >= 2
 
@@ -47,3 +69,8 @@ constraints:
   , plutus-ghc-stub == 8.6.5
   , word-array == 0.1.0.0
   , word-array == 0.1.0.0
+  -- from plutus-apps
+--  , typed-protocols==0.1.0.3
+--  , strict-stm == 0.4.0.0
+    , io-classes <0.3.0.0
+--  , lens == 5

@@ -1,0 +1,11 @@
+--- cardano-ledger-byron-0.1.0.0/src/Cardano/Chain/Byron/API/Mempool.hs.orig	2023-03-14 13:01:46.731926478 +0200
++++ cardano-ledger-byron-0.1.0.0/src/Cardano/Chain/Byron/API/Mempool.hs	2023-03-14 13:04:14.057079617 +0200
+@@ -26,7 +26,7 @@
+ import qualified Cardano.Chain.Update.Validation.Interface as U.Iface
+ import qualified Cardano.Chain.ValidationMode as CC
+ import Cardano.Crypto.ProtocolMagic
+-import Cardano.Prelude
++import Cardano.Prelude hiding (cborError)
+ import qualified Codec.CBOR.Decoding as CBOR
+ import qualified Codec.CBOR.Encoding as CBOR
+ import qualified Codec.CBOR.Write as CBOR

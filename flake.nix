@@ -29,15 +29,18 @@
         "github:input-output-hk/cardano-addresses";
       flake = false;
     };
-    # cardano-base = {
-    #   url = "github:input-output-hk/cardano-base";
-    #   flake = false;
-    # };
-    # cardano-node = {
-    #   url =
-    #     "github:input-output-hk/cardano-node";
-    #   flake = false; # we need it to be available in shell
-    # };
+    cardano-base = {
+      url = "github:input-output-hk/cardano-base";
+      flake = false;
+    };
+    cardano-ledger = {
+      url = "github:input-output-hk/cardano-ledger";
+      flake = false;
+    };
+    cardano-node = {
+       url = "github:input-output-hk/cardano-node";
+       flake = false; # we need it to be available in shell
+    };
     cardano-wallet = {
       url = "github:input-output-hk/cardano-wallet";
       flake = false;
@@ -46,6 +49,11 @@
     #   url = "github:haskell-works/hw-aeson/ba7c1e41c6e54d6bf9fd1cd013489ac713fc3153";
     #   flake = false;
     # };
+    plutus = {
+      url = "github:input-output-hk/plutus";
+      flake = false;
+    };
+
     CHaP = {
       url = "github:input-output-hk/cardano-haskell-packages?ref=repo";
       flake = false;
@@ -54,7 +62,6 @@
       url = "github:locallycompact/OddWord";
       flake = false;
     };
-
   };
 
   outputs =
@@ -67,7 +74,7 @@
       nixpkgsFor = system:
         import nixpkgs {
           overlays =
-            [ haskell-nix.overlay (import "${iohk-nix}/overlays/crypto") ];
+            [ haskell-nix.overlay iohk-nix.overlays.crypto ];
           inherit (haskell-nix) config;
           inherit system;
         };
@@ -213,7 +220,7 @@
     in
     # new code
     if true then
-      (inputs.tooling.lib.mkFlake { inherit self; } {
+      (inputs.tooling.lib.mkFlake { inherit self; } ({lib, ... }: {
         imports = [
           (inputs.tooling.lib.mkHaskellFlakeModule1 {
             project = {
@@ -242,6 +249,16 @@
                     ./patch-ouroboros-network.diff
                   ];
                 })
+                ({ pkgs, ... }: {
+                  # Disable external VRF library, it cause problems with linking  
+                  packages.cardano-crypto-praos.flags.external-libsodium-vrf = false;  
+                  packages.cardano-crypto-class.flags.external-libsodium-vrf = false;  
+#                  # Use the VRF fork of libsodium
+#                  packages = lib.genAttrs [ "cardano-crypto-praos" "cardano-crypto-class" "cardano-crypto-wrapper" "small-step-tests" ] (_: {
+#                    flags.external-libsodium-vrf = true;
+#                    components.library.pkgconfig = lib.mkForce [ [ pkgs.libsodium-vrf.dev pkgs.libsodium-vrf ]];
+#                  });
+                })
               ];
 
               extraHackage = [
@@ -249,11 +266,11 @@
                 "${inputs.cardano-addresses}/core"
                 "${inputs.cardano-addresses}/command-line"
                 # "${inputs.cardano-base}/base-deriving-via"
-                # "${inputs.cardano-base}/cardano-binary"
-                # "${inputs.cardano-base}/cardano-binary/test"
-                # "${inputs.cardano-base}/cardano-crypto-class"
-                # "${inputs.cardano-base}/cardano-crypto-praos"
-                # "${inputs.cardano-base}/cardano-crypto-tests"
+                "${inputs.cardano-base}/cardano-binary"
+                "${inputs.cardano-base}/cardano-binary/test"
+                "${inputs.cardano-base}/cardano-crypto-class"
+                "${inputs.cardano-base}/cardano-crypto-praos"
+                "${inputs.cardano-base}/cardano-crypto-tests"
                 # "${inputs.cardano-base}/cardano-slotting"
                 # "${inputs.cardano-base}/cardano-strict-containers"
                 # "${inputs.cardano-base}/cardano-mempool"
@@ -271,11 +288,16 @@
                 "${inputs.cardano-wallet}/lib/text-class"
                 "${inputs.cardano-wallet}/lib/wai-middleware-logging"
                 "${inputs.cardano-wallet}/lib/wallet"
+                "${inputs.cardano-ledger}/libs/cardano-ledger-binary"
+                "${inputs.plutus}/plutus-core"
+                "${inputs.plutus}/plutus-ledger-api"
+                "${inputs.plutus}/plutus-tx"
+                "${inputs.plutus}/plutus-tx-plugin"
               ];
             };
           })
         ];
-      })
+      }))
     else {
       inherit extraSources haskellModules;
 

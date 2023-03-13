@@ -22,9 +22,35 @@ test-show-details: direct
 constraints:
   , cardano-api == 1.35.4
     -- max = 1.6.0.0
-   , cardano-binary == 1.5.0.1
-   , cardano-crypto-wrapper == 1.4.2
+   , cardano-binary == 1.6.0.0
+--   , cardano-crypto-wrapper == 1.4.2
    , cardano-ledger-byron == 0.1.1.1
    , io-classes == 0.3.0.0
    , ouroboros-network == 0.2.0.0
    , ouroboros-network-framework == 0.2.0.0
+   -- constraints copied from ouroboros-network
+   , cardano-ledger-alonzo >= 1.0.0.0
+   , cardano-ledger-babbage >= 1.0.0.0
+   , cardano-ledger-conway >= 1.0.0.0
+   , cardano-ledger-mary >= 1.0.0.0
+   , cardano-ledger-shelley >= 1.0.0.0
+   , cardano-ledger-alonzo-test >= 1.0.0.0
+   , cardano-ledger-babbage-test >= 1.0.0.0
+   , cardano-ledger-conway-test >= 1.0.0.0
+   , cardano-ledger-shelley-test >= 1.0.0.0
+   , cardano-ledger-shelley-ma-test >= 1.0.0.0
+   , cardano-ledger-binary >= 1.0.0.0
+   , cardano-ledger-pretty >= 1.0.0.0
+   , cardano-ledger-binary >= 1.0.0.0
+   , cardano-protocol-tpraos >= 1.0.0.0
+   -- bumped by avnik to satisfy constraints
+--   , cardano-ledger-allegra == 0.1.0.0
+   , plutus-core == 1.3.0.0
+   , plutus-ledger-api == 1.3.0.0
+
+allow-newer:
+  , cardano-ledger-binary:plutus-ledger-api
+  , cardano-ledger-babbage:plutus-ledger-api
+  , cardano-ledger-alonzo-test:plutus-ledger-api
+  , cardano-ledger-alonzo:plutus-ledger-api
+  , cardano-ledger-alonzo:plutus-core

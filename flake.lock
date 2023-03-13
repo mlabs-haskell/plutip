@@ -3,11 +3,11 @@
     "CHaP": {
       "flake": false,
       "locked": {
-        "lastModified": 1677023020,
-        "narHash": "sha256-atmXgJuHvx8Rg6sCQ9xbLPFQLKV66DkHukrSI+VTczU=",
+        "lastModified": 1678426868,
+        "narHash": "sha256-43oTexXSXtqH2gEtXkdN5G61TLc5vG9o37fEmGFHHzQ=",
         "owner": "input-output-hk",
         "repo": "cardano-haskell-packages",
-        "rev": "9b75e507146622c1b6cb5a38faa84e2a47c367b4",
+        "rev": "3683dc8ea5e651a7bd07a7c3ab284ed6d9d55936",
         "type": "github"
       },
       "original": {
@@ -242,6 +242,54 @@
       "original": {
         "owner": "input-output-hk",
         "repo": "cardano-addresses",
+        "type": "github"
+      }
+    },
+    "cardano-base": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1678180456,
+        "narHash": "sha256-Nw4Kc9JJ/9RF4maeuXn3rx27HAqenG42zhKLDIMYZWw=",
+        "owner": "input-output-hk",
+        "repo": "cardano-base",
+        "rev": "f89b07963e49dc1b74350ad56eed1e5cfe8ac05c",
+        "type": "github"
+      },
+      "original": {
+        "owner": "input-output-hk",
+        "repo": "cardano-base",
+        "type": "github"
+      }
+    },
+    "cardano-ledger": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1678466209,
+        "narHash": "sha256-qLsreIt97ZJCx5+9wf25ngR51f5dLI49qxkh29uDiBI=",
+        "owner": "input-output-hk",
+        "repo": "cardano-ledger",
+        "rev": "9af95e8812224f42f6fe6fdbb8d5b2e8c85e6260",
+        "type": "github"
+      },
+      "original": {
+        "owner": "input-output-hk",
+        "repo": "cardano-ledger",
+        "type": "github"
+      }
+    },
+    "cardano-node": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1678541498,
+        "narHash": "sha256-HZEO/IFLP5/4EPmU7cCMInN65ryo6QZqPmxcVlSBa6A=",
+        "owner": "input-output-hk",
+        "repo": "cardano-node",
+        "rev": "7b731ab559ee2e2db47352f69d106a41762b4aa1",
+        "type": "github"
+      },
+      "original": {
+        "owner": "input-output-hk",
+        "repo": "cardano-node",
         "type": "github"
       }
     },
@@ -2066,6 +2114,22 @@
       }
     },
     "plutus": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1678444657,
+        "narHash": "sha256-9+4dkmUrGkdKJFMhuLAFJW6xrTqnwhdq2fZWTzyKfmU=",
+        "owner": "input-output-hk",
+        "repo": "plutus",
+        "rev": "4497b2f7d1fe120424ffe405feab7c045b32fe19",
+        "type": "github"
+      },
+      "original": {
+        "owner": "input-output-hk",
+        "repo": "plutus",
+        "type": "github"
+      }
+    },
+    "plutus_2": {
       "inputs": {
         "CHaP": "CHaP_2",
         "gitignore-nix": "gitignore-nix",
@@ -2121,6 +2185,9 @@
         "CHaP": "CHaP",
         "OddWord": "OddWord",
         "cardano-addresses": "cardano-addresses",
+        "cardano-base": "cardano-base",
+        "cardano-ledger": "cardano-ledger",
+        "cardano-node": "cardano-node",
         "cardano-wallet": "cardano-wallet",
         "flake-compat": "flake-compat",
         "haskell-nix": [
@@ -2132,6 +2199,7 @@
           "tooling",
           "nixpkgs"
         ],
+        "plutus": "plutus",
         "tooling": "tooling"
       }
     },
@@ -2315,7 +2383,7 @@
         "haskell-nix": "haskell-nix",
         "iohk-nix": "iohk-nix_2",
         "nixpkgs": "nixpkgs_5",
-        "plutus": "plutus"
+        "plutus": "plutus_2"
       },
       "locked": {
         "lastModified": 1677153910,

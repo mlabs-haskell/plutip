@@ -80,11 +80,29 @@
       nixpkgsFor' = system: import nixpkgs { inherit system; };
 
       haskellModules = [
+        ({ config, ... }: {
+          packages.ouroboros-consensus.patches = [
+            ./patch-ouroboros-consensus.diff
+          ];
+          packages.cardano-api.patches = [
+            ./patch-cardano-api.diff
+          ];
+          packages.cardano-ledger-byron.patches = [
+            ./patch-cardano-ledger-byron.diff
+          ];
+          packages.ouroboros-consensus-byron.patches = [
+            ./patch-ouroboros-consensus-byron.diff
+          ];
+          packages.ouroboros-consensus-shelley.patches = [
+            ./patch-ouroboros-consensus-shelley.diff
+          ];
+          packages.ouroboros-network.patches = [
+            ./patch-ouroboros-network.diff
+          ];
+        })
         ({ pkgs, ... }:
           {
             packages = {
-#              strict-stm.package.identifier.version = pkgs.lib.mkForce "0.4.0.0";  
-#              network-mux.package.identifier.version = pkgs.lib.mkForce "0.1.0.1";  
               cardano-crypto-praos.components.library.pkgconfig = pkgs.lib.mkForce [ [ pkgs.libsodium-vrf ] ];
               cardano-crypto-class.components.library.pkgconfig = pkgs.lib.mkForce [ [ pkgs.libsodium-vrf pkgs.secp256k1 ] ];
               cardano-wallet.components.library.build-tools = [
@@ -155,16 +173,8 @@
       ];
       extraHackage' = [
         "${inputs.OddWord}"
-#        "${inputs.typed-protocols}/typed-protocols"
-#        "${inputs.typed-protocols}/typed-protocols-cborg"
-#        "${inputs.io-sim}/io-sim"
-#        "${inputs.io-sim}/io-classes"
-#        "${inputs.io-sim}/strict-stm"
-#        "${inputs.ouroboros-network}/network-mux"
-#        "${inputs.cardano-wallet'}/lib/dbvar"
-#        "${inputs.protolude}"
       ];
-      mkExtraHackage = srcs: lib.concatMap ({src, subdirs}: builtins.map (subdir: "${src}/${subdir}") subdirs) srcs;
+      mkExtraHackage = srcs: lib.concatMap ({ src, subdirs }: builtins.map (subdir: "${src}/${subdir}") subdirs) srcs;
       projectFor = system:
         let
           pkgs = nixpkgsFor system;
@@ -213,25 +223,25 @@
         in
         project;
     in
-    inputs.tooling.lib.mkFlake { inherit self; } ({lib, ... }: {
-        imports = [
-          (inputs.tooling.lib.mkHaskellFlakeModule1 {
-            project = {
-              # # TODO:set? update?
-              # index-state = "2022-05-25T00:00:00Z";
-              src = "${self}";
-              inputMap = {
-                "https://input-output-hk.github.io/cardano-haskell-packages" = CHaP;
-              };
-              compiler-nix-name = lib.mkForce "ghc8107";
-              modules  = haskellModules;
-              extraHackage = extraHackage' ++ (mkExtraHackage extraSources);
-              cabalProjectLocal = lib.mkForce "";
+    inputs.tooling.lib.mkFlake { inherit self; } ({ lib, ... }: {
+      imports = [
+        (inputs.tooling.lib.mkHaskellFlakeModule1 {
+          project = {
+            # # TODO:set? update?
+            # index-state = "2022-05-25T00:00:00Z";
+            src = "${self}";
+            inputMap = {
+              "https://input-output-hk.github.io/cardano-haskell-packages" = CHaP;
             };
-          })
-        ];
+            compiler-nix-name = lib.mkForce "ghc8107";
+            modules = haskellModules;
+            extraHackage = extraHackage' ++ (mkExtraHackage extraSources);
+            cabalProjectLocal = lib.mkForce "";
+          };
+        })
+      ];
     });
-/*        
+  /*        
     {
       inherit extraSources haskellModules;
 

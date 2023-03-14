@@ -52,8 +52,8 @@ constraints:
 
   , cardano-prelude == 0.1.0.0
   , base-deriving-via == 0.1.0.0
-  , cardano-binary  == 1.5.0
-  , cardano-binary-test == 1.3.0
+  , cardano-binary  == 1.5.0.1
+--  , cardano-binary-test == 1.6.0.0
   , cardano-crypto-class  == 2.0.0.0.1
   , cardano-crypto-praos  == 2.0.0.0.1
   , cardano-crypto-tests  == 2.0.0.0.1

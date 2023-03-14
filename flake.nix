@@ -117,7 +117,7 @@
         ({ config, pkgs, ... }: {
           packages.plutip-core.components.tests."plutip-tests".build-tools = [
             config.hsPkgs.cardano-cli.components.exes.cardano-cli
-            #config.hsPkgs.cardano-node.components.exes.cardano-node
+            config.hsPkgs.cardano-node.components.exes.cardano-node
           ];
           packages.plutip-core.components.exes.local-cluster = {
             pkgconfig = [ [ pkgs.makeWrapper ] ];
@@ -125,7 +125,7 @@
               wrapProgram $out/bin/local-cluster \
                 --prefix PATH : "${lib.makeBinPath [
                   config.hsPkgs.cardano-cli.components.exes.cardano-cli
-                  #config.hsPkgs.cardano-node.components.exes.cardano-node
+                  config.hsPkgs.cardano-node.components.exes.cardano-node
                 ]}"
             '';
           };
@@ -175,28 +175,28 @@
         "${inputs.OddWord}"
       ];
       mkExtraHackage = srcs: lib.concatMap ({ src, subdirs }: builtins.map (subdir: "${src}/${subdir}") subdirs) srcs;
-      projectFor = system:
-        let
-          pkgs = nixpkgsFor system;
-          pkgs' = nixpkgsFor' system;
-          project = pkgs.haskell-nix.cabalProject {
-            name = "plutip-core";
-            src = ./.;
+    in
+    inputs.tooling.lib.mkFlake { inherit self; } ({ lib, ... }: {
+      imports = [
+        (inputs.tooling.lib.mkHaskellFlakeModule1 {
+          project = ({pkgs, ...}: {
+            # # TODO:set? update?
+            # index-state = "2022-05-25T00:00:00Z";
+            src = "${self}";
             inputMap = {
               "https://input-output-hk.github.io/cardano-haskell-packages" = CHaP;
             };
-            inherit extraSources;
-            compiler-nix-name = "ghc8107";
-
+            compiler-nix-name = lib.mkForce "ghc8107";
+            modules = haskellModules;
+            extraHackage = extraHackage' ++ (mkExtraHackage extraSources);
+            cabalProjectLocal = lib.mkForce "";
             shell = {
               withHoogle = true;
               exactDeps = true;
 
               packages = ps: [ ps.plutip-core ];
 
-              tools.haskell-language-server = "latest";
-
-              nativeBuildInputs = with pkgs'; [
+              nativeBuildInputs = with pkgs; [
                 # Haskell Tools
                 haskellPackages.fourmolu
                 haskellPackages.cabal-install
@@ -212,32 +212,11 @@
                 haskellPackages.record-dot-preprocessor
 
                 # Cardano tools
-                project.hsPkgs.cardano-cli.components.exes.cardano-cli
-                project.hsPkgs.cardano-node.components.exes.cardano-node
+#                project.hsPkgs.cardano-cli.components.exes.cardano-cli
+#                project.hsPkgs.cardano-node.components.exes.cardano-node
               ];
             };
-
-            # inherit (bot-plutus-interface);
-            modules = haskellModules;
-          };
-        in
-        project;
-    in
-    inputs.tooling.lib.mkFlake { inherit self; } ({ lib, ... }: {
-      imports = [
-        (inputs.tooling.lib.mkHaskellFlakeModule1 {
-          project = {
-            # # TODO:set? update?
-            # index-state = "2022-05-25T00:00:00Z";
-            src = "${self}";
-            inputMap = {
-              "https://input-output-hk.github.io/cardano-haskell-packages" = CHaP;
-            };
-            compiler-nix-name = lib.mkForce "ghc8107";
-            modules = haskellModules;
-            extraHackage = extraHackage' ++ (mkExtraHackage extraSources);
-            cabalProjectLocal = lib.mkForce "";
-          };
+          });
         })
       ];
     });

@@ -45,7 +45,7 @@ allow-newer:
 
 constraints:
 --  , protolude == 0.3.2
---  cardano-node == 1.35.4
+  , cardano-node == 1.35.4
   , aeson >= 2
 
   , hedgehog >= 1.1

@@ -72,6 +72,8 @@ common common-imports
     , unliftio
     , unliftio-core
     , yaml
+    -- FIXME: cardano-node only for appearing in nix project, when use mlabs-tooling
+    , cardano-node
 
 common common-language
   default-extensions:

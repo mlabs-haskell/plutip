@@ -65,20 +65,6 @@
   outputs =
     { self, nixpkgs, haskell-nix, CHaP, iohk-nix, ... }@inputs:
     let
-      defaultSystems = [ "x86_64-linux" "x86_64-darwin" ];
-
-      perSystem = nixpkgs.lib.genAttrs defaultSystems;
-      lib = nixpkgs.lib;
-
-      nixpkgsFor = system:
-        import nixpkgs {
-          overlays =
-            [ haskell-nix.overlay (import "${iohk-nix}/overlays/crypto") ];
-          inherit (haskell-nix) config;
-          inherit system;
-        };
-      nixpkgsFor' = system: import nixpkgs { inherit system; };
-
       haskellModules = [
         ({ config, ... }: {
           packages.ouroboros-consensus.patches = [
@@ -174,12 +160,16 @@
       extraHackage' = [
         "${inputs.OddWord}"
       ];
+    in
+    inputs.tooling.lib.mkFlake { inherit self; } ({ lib, ... }:
+    let
       mkExtraHackage = srcs: lib.concatMap ({ src, subdirs }: builtins.map (subdir: "${src}/${subdir}") subdirs) srcs;
     in
-    inputs.tooling.lib.mkFlake { inherit self; } ({ lib, ... }: {
+    {
+      systems = [ "x86_64-linux" "x86_64-darwin" ];
       imports = [
         (inputs.tooling.lib.mkHaskellFlakeModule1 {
-          project = ({pkgs, ...}: {
+          project = ({ pkgs, ... }: {
             # # TODO:set? update?
             # index-state = "2022-05-25T00:00:00Z";
             src = "${self}";
@@ -222,42 +212,13 @@
           });
         })
       ];
-    });
-  /*        
-    {
-      inherit extraSources haskellModules;
-
-      project = perSystem projectFor;
-      flake = perSystem (system: (projectFor system).flake { });
-
-      defaultPackage = perSystem (system:
-        let lib = "plutip:lib:plutip";
-        in self.flake.${system}.packages.${lib});
-
-      packages = perSystem (system: self.flake.${system}.packages);
-
-      apps = perSystem (system: self.flake.${system}.apps);
-
-      devShell = perSystem (system: self.flake.${system}.devShell);
-
-      # This will build all of the project's executables and the tests
-      check = perSystem
-        (system:
-          (nixpkgsFor system).runCommand "combined-check"
+      perSystem = { self', pkgs, ... }: {
+        check = pkgs.runCommand "combined-check"
+          {
+          } ''mkdir $out'';
+        checks = {
+          formatting = pkgs.runCommand "formatting-check"
             {
-              nativeBuildInputs = builtins.attrValues self.checks.${system}
-                ++ builtins.attrValues self.flake.${system}.packages;
-            } ''mkdir $out''
-        );
-
-      checks = perSystem (system:
-        self.flake.${system}.checks // {
-          formatting = (nixpkgsFor system).runCommand "formatting-check"
-            {
-              nativeBuildInputs = [
-                self.devShell.${system}.inputDerivation
-                self.devShell.${system}.nativeBuildInputs
-              ];
             }
             ''
               cd ${self}
@@ -278,10 +239,7 @@
               # make format_check cabalfmt_check nixpkgsfmt_check lint
               mkdir $out
             '';
-        });
-
-      # Instruction for the Hercules CI to build on x86_64-linux only, to avoid errors about systems without agents.
-      herculesCI.ciSystems = [ "x86_64-linux" ];
-    };
-    */
+        };
+      };
+    });
 }

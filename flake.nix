@@ -212,8 +212,11 @@
                 haskellPackages.record-dot-preprocessor
 
                 # Cardano tools
-#                project.hsPkgs.cardano-cli.components.exes.cardano-cli
-#                project.hsPkgs.cardano-node.components.exes.cardano-node
+                # FIXME: is now impossible to backreference to project within mkHaskellFlakeModule1
+                # for workaround -- I added cardano-node as direct depenency via .cabal
+                # Issue in tooling -- https://github.com/mlabs-haskell/mlabs-tooling.nix/issues/42
+                #project.hsPkgs.cardano-cli.components.exes.cardano-cli
+                #project.hsPkgs.cardano-node.components.exes.cardano-node
               ];
             };
           });

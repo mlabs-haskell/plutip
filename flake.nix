@@ -182,7 +182,7 @@
       flake = perSystem (system: (projectFor system).flake { });
 
       defaultPackage = perSystem (system:
-        let lib = "plutip:lib:plutip";
+        let lib = "plutip-core:lib:plutip-core";
         in self.flake.${system}.packages.${lib});
 
       packages = perSystem (system: self.flake.${system}.packages);

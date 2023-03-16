@@ -265,8 +265,8 @@ withEnvironmentSetup conf action = do
         fromMaybe defaultClusterDataDir (clusterDataDir conf)
 
     checkRtsSettings =
-      unless rtsSupportsBoundThreads
-        $ die "Plutip executable should be compiled with `-threaded` flag."
+      unless rtsSupportsBoundThreads $
+        die "Plutip executable should be compiled with `-threaded` flag."
 
 checkProcessesAvailable :: [String] -> IO ()
 checkProcessesAvailable requiredProcesses = do

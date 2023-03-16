@@ -17,6 +17,7 @@ import Cardano.BM.Data.Severity qualified as Severity
 import Cardano.Launcher (ProcessHasExited (ProcessHasExited))
 import Cardano.Startup (installSignalHandlers, setDefaultFilePermissions, withUtf8Encoding)
 import Cardano.Wallet.Logging (stdoutTextTracer, trMessageText)
+import Control.Concurrent (rtsSupportsBoundThreads)
 import Control.Monad (unless, void, when, zipWithM_)
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.IO.Unlift (MonadUnliftIO)
@@ -232,6 +233,8 @@ withEnvironmentSetup conf action = do
   -- current setup requires `cardano-node` and `cardano-cli` as external processes
   checkProcessesAvailable ["cardano-node", "cardano-cli"]
 
+  checkRtsSettings
+
   setClusterDataDir
 
   -- Handle SIGTERM properly
@@ -260,6 +263,10 @@ withEnvironmentSetup conf action = do
       defaultClusterDataDir <- getDataFileName "cluster-data"
       setEnv "SHELLEY_TEST_DATA" $
         fromMaybe defaultClusterDataDir (clusterDataDir conf)
+
+    checkRtsSettings =
+      unless rtsSupportsBoundThreads
+        $ die "Plutip executable should be compiled with `-threaded` flag."
 
 checkProcessesAvailable :: [String] -> IO ()
 checkProcessesAvailable requiredProcesses = do

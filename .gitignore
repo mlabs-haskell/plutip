@@ -9,3 +9,6 @@ result*
 
 #vscode
 .vscode/
+
+# local files created by the cluster
+local-cluster-info.json

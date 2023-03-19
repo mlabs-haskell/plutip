@@ -213,9 +213,6 @@
         })
       ];
       perSystem = { self', pkgs, ... }: {
-        check = pkgs.runCommand "combined-check"
-          {
-          } ''mkdir $out'';
         checks = {
           formatting = pkgs.runCommand "formatting-check"
             {

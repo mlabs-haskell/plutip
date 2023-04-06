@@ -213,30 +213,7 @@
         })
       ];
       perSystem = { self', pkgs, ... }: {
-        checks = {
-          formatting = pkgs.runCommand "formatting-check"
-            {
-            }
-            ''
-              cd ${self}
-              export LC_CTYPE=C.UTF-8
-              export LC_ALL=C.UTF-8
-              export LANG=C.UTF-8
-              export IN_NIX_SHELL='pure'
-              # this check is temporarily skipped in CI due to a bug in
-              # fourmolu:
-              #
-              # ```
-              # Formatting is not idempotent:
-              #   src/Plutip/Launch/Cluster.hs<rendered>:753:19
-              #   before: "       sgs\n         "
-              #   after:  "       sgs{ Ledger.s"
-              # Please, consider reporting the bug.
-              # ```
-              # make format_check cabalfmt_check nixpkgsfmt_check lint
-              mkdir $out
-            '';
-        };
+        checks = { };
       };
     });
 }

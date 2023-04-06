@@ -41,12 +41,7 @@ FOURMOLU_EXTENSIONS := -o -XTypeApplications -o -XTemplateHaskell -o -XImportQua
 # Add folder locations to the list to be reformatted.
 excluded := src/Test/Plutip/Internal/Cluster.hs
 format:
-	@ echo "> Formatting all .hs files"
-	fourmolu $(FOURMOLU_EXTENSIONS) --mode inplace --check-idempotence $$(find src/ test/ local-cluster/ -iregex ".*.hs" -not -path "${excluded}")
-
-format_check:
-	@ echo "> Checking format of all .hs files"
-	fourmolu $(FOURMOLU_EXTENSIONS) --mode check --check-idempotence $$(find src/ test/ local-cluster/ -iregex ".*.hs" -not -path "${excluded}" )
+	,format
 
 NIX_SOURCES := $(shell fd -enix)
 

@@ -14,17 +14,18 @@
 {-# OPTIONS_GHC -Wwarn=missing-import-lists #-}
 {-# OPTIONS_GHC -Wwarn=name-shadowing #-}
 
--- |
--- This module is modified copy of https://github.com/input-output-hk/cardano-wallet/blob/1952de13f1cd954514cfa1cb02e628cfc9fde675/lib/shelley/src/Cardano/Wallet/Shelley/Launch/Cluster.hs
--- which is
--- Copyright: © 2018-2020 IOHK
--- License: Apache-2.0
---
--- Provides functions to launch cardano-nodes in a cluster for /testing/.
--- Modifications include more capabilities for cluster configuration,
--- so users can set things like slot length, epoch size, etc.
--- Alterded types and functions marked with "altered" comment.
--- Formatting and linitng checks disabled for this module for more convinisent diffs with original.
+{- |
+ This module is modified copy of https://github.com/input-output-hk/cardano-wallet/blob/1952de13f1cd954514cfa1cb02e628cfc9fde675/lib/shelley/src/Cardano/Wallet/Shelley/Launch/Cluster.hs
+ which is
+ Copyright: © 2018-2020 IOHK
+ License: Apache-2.0
+
+ Provides functions to launch cardano-nodes in a cluster for /testing/.
+ Modifications include more capabilities for cluster configuration,
+ so users can set things like slot length, epoch size, etc.
+ Alterded types and functions marked with "altered" comment.
+ Formatting and linitng checks disabled for this module for more convinisent diffs with original.
+-}
 module Plutip.Launch.PoolConfigs (
   defaultPoolConfigs,
   PoolRecipe (..),
@@ -49,17 +50,17 @@ import Data.Aeson qualified as Aeson
 data PoolRecipe = PoolRecipe
   { pledgeAmt :: Integer
   , index :: Int
-  , -- | An optional retirement epoch. If specified, then a pool retirement
-    -- certificate will be published after the pool is initially registered.
-    retirementEpoch :: Maybe EpochNo
+  , retirementEpoch :: Maybe EpochNo
+  -- ^ An optional retirement epoch. If specified, then a pool retirement
+  -- certificate will be published after the pool is initially registered.
   , poolMetadata :: Aeson.Value
-  , -- | @(poolId, vk, sk, counter)@ - as long as the integration tests make
-    -- use of hard-coded pool ids, we need to pre-assign the operator keys and
-    -- related data already here.
-    operatorKeys :: (PoolId, Aeson.Value, Aeson.Value, Aeson.Value)
-  , -- | Tells @withSMASH@ whether to delist this pool or not. Aside from
-    -- this, a delisted pool will operate as normal.
-    delisted :: Bool
+  , operatorKeys :: (PoolId, Aeson.Value, Aeson.Value, Aeson.Value)
+  -- ^ @(poolId, vk, sk, counter)@ - as long as the integration tests make
+  -- use of hard-coded pool ids, we need to pre-assign the operator keys and
+  -- related data already here.
+  , delisted :: Bool
+  -- ^ Tells @withSMASH@ whether to delist this pool or not. Aside from
+  -- this, a delisted pool will operate as normal.
   }
   deriving stock (Eq, Show)
 

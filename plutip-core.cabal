@@ -37,6 +37,7 @@ common common-imports
     , cardano-crypto-wrapper
     , cardano-ledger-core
     , cardano-ledger-shelley
+    , cardano-node
     , cardano-slotting
     , cardano-wallet
     , cardano-wallet-launcher
@@ -72,9 +73,8 @@ common common-imports
     , unliftio
     , unliftio-core
     , yaml
-    -- FIXME: cardano-node only for appearing in nix project, when use mlabs-tooling
-    , cardano-node
 
+-- FIXME: cardano-node only for appearing in nix project, when use mlabs-tooling
 common common-language
   default-extensions:
     BangPatterns

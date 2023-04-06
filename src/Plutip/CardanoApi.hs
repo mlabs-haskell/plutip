@@ -97,9 +97,10 @@ instance Show AwaitWalletFundedError where
   show (AwaitingCapiError (SomeError e)) = e
   show AwaitingTimeoutError = "Awaiting funding transaction timed out."
 
--- | Wait till specified addresses are funded,
--- by checking if they collectively own at least the expected number of utxos.
--- Performs 60 cardano-node queries with `retryDelay` seconds between tries.
+{- | Wait till specified addresses are funded,
+ by checking if they collectively own at least the expected number of utxos.
+ Performs 60 cardano-node queries with `retryDelay` seconds between tries.
+-}
 awaitUtxosNumber ::
   ClusterEnv ->
   [C.AddressAny] ->
@@ -107,9 +108,10 @@ awaitUtxosNumber ::
   IO (Either AwaitWalletFundedError ())
 awaitUtxosNumber cenv addrs utxosNum = awaitUtxos cenv addrs (\x -> utxosNum <= Map.size (C.unUTxO x))
 
--- | Wait till specified addresses are funded,
--- by checking if the UTXOs satisfy the predicate.
--- Performs 60 cardano-node queries with `retryDelay` seconds between tries.
+{- | Wait till specified addresses are funded,
+ by checking if the UTXOs satisfy the predicate.
+ Performs 60 cardano-node queries with `retryDelay` seconds between tries.
+-}
 awaitUtxos ::
   ClusterEnv ->
   [C.AddressAny] ->

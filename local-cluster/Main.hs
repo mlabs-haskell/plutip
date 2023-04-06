@@ -212,8 +212,9 @@ pClusterConfig =
     <*> pEpochSize
     <*> pInfoJson
 
--- | Basic info about the cluster, to
--- be used by the command-line
+{- | Basic info about the cluster, to
+ be used by the command-line
+-}
 data ClusterConfig = ClusterConfig
   { numWallets :: Int
   , dirWallets :: Maybe FilePath

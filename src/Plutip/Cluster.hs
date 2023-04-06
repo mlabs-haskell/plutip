@@ -78,9 +78,10 @@ import Plutip.Keys (KeyPair, cardanoMainnetAddress, genKeyPair, saveKeyPair)
 import Plutip.Launch.Cluster qualified as Launch
 import Plutip.Launch.Extra.Utils (localClusterConfigWithExtraConf)
 
--- | Start a cluster, generate keys, fund their (enterprise) addresses and save the keys inside the cluster working directory to 'signing-keys' directory.
--- Second argument is a list of desired Ada amounts per utxo per key.
--- Addresses are already funded when action gets executed.
+{- | Start a cluster, generate keys, fund their (enterprise) addresses and save the keys inside the cluster working directory to 'signing-keys' directory.
+ Second argument is a list of desired Ada amounts per utxo per key.
+ Addresses are already funded when action gets executed.
+-}
 withFundedCluster :: PlutipConfig -> [[Lovelace]] -> (ClusterEnv -> [KeyPair] -> IO a) -> IO a
 withFundedCluster conf distribution action = withCluster conf $ \cenv -> do
   keys <- for distribution (const genKeyPair)
@@ -118,20 +119,22 @@ stopCluster (StopClusterRef status) = do
   atomically $ writeTVar status ClusterClosing
   atomically $ readTVar status >>= \case ClusterClosed -> pure (); _ -> retrySTM
 
--- |
---  Launch a local cluster and execute an action.
---  A directory gets created containing all cluster related files: keys, logs, configs, database.
---
---  Examples:
---   `plutus-apps` local cluster: https://github.com/input-output-hk/plutus-apps/blob/75a581c6eb98d36192ce3d3f86ea60a04bc4a52a/plutus-pab/src/Plutus/PAB/LocalCluster/Run.hs
---   `cardano-wallet` local cluster: https://github.com/input-output-hk/cardano-wallet/blob/99b13e50f092ffca803fd38b9e435c24dae05c91/lib/shelley/exe/local-cluster.hs
+{- |
+  Launch a local cluster and execute an action.
+  A directory gets created containing all cluster related files: keys, logs, configs, database.
+
+  Examples:
+   `plutus-apps` local cluster: https://github.com/input-output-hk/plutus-apps/blob/75a581c6eb98d36192ce3d3f86ea60a04bc4a52a/plutus-pab/src/Plutus/PAB/LocalCluster/Run.hs
+   `cardano-wallet` local cluster: https://github.com/input-output-hk/cardano-wallet/blob/99b13e50f092ffca803fd38b9e435c24dae05c91/lib/shelley/exe/local-cluster.hs
+-}
 withCluster :: PlutipConfig -> (ClusterEnv -> IO a) -> IO a
 withCluster conf action = do
   withEnvironmentSetup conf $ \dir clusterLogs nodeConfigLogHdl -> do
     withLoggingNamed ("cluster" :: LoggerName) clusterLogs $ \(_, (_, trCluster)) -> do
       let tr' = trMessageText trCluster
       clusterCfg <- localClusterConfigWithExtraConf (extraConfig conf)
-      withRedirectedStdoutHdl nodeConfigLogHdl $ \restoreStdout -> -- used to mask messy node configuration log
+      withRedirectedStdoutHdl nodeConfigLogHdl $ \restoreStdout ->
+        -- used to mask messy node configuration log
         retryClusterFailedStartup $
           Launch.withCluster tr' dir clusterCfg mempty $ \rn -> do
             restoreStdout $ runAction rn dir action

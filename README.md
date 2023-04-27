@@ -28,7 +28,7 @@ ano-transaction-lib/blob/develop/doc/plutip-testing.md).
         - [Via CTL for contract testing](#via-ctl-for-contract-testing)
     - [Tutorials](#tutorials)
     - [Advanced network setup](#advanced-network-setup)
-    - [Examples](#examples)
+    - [Useful links](#useful-links)
     - [Plutip for integration testing of smart contracts](#plutip-for-integration-testing-of-smart-contracts)
     - [Maintenance](#maintenance)
 
@@ -50,9 +50,9 @@ One of the ways to do this is to base your `flake.nix` on `Plutip`'s `flake.nix`
 
 The following GHC flags must be used in order for Plutip to run: `-threaded -rtsopts`.
 
-**Note:**⚠️ Current version launches local network in `Vasil`.
-It was tested with node `1.35.4` (this node version used in Nix environment as well).
-Please use appropriate node version when setting up own binaries in `PATH`.
+**NOTE:** This branch launches local network in `Vasil`.
+It was tested with node `1.35.4` (this node version is used in the Nix environment as well).
+Please use an appropriate node version when setting up own binaries in `PATH`.
 
 ## Quick start
 
@@ -136,7 +136,7 @@ You can build it and run with Nix:
 nix run github:mlabs-haskell/plutip#plutip-core:exe:local-cluster -- --help
 ```
 
-Available options mostly match the `withFundedCluster` interface, see `--help` and [local-cluster README](local-cluster/README.md).
+Available options mostly match the `withFundedCluster` interface, see `--help` and [local-cluster README](local-cluster/README.md) for detailed description of the arguments.
 
 ### Via CTL for contract testing
 
@@ -150,7 +150,7 @@ One of its features is the ability to test contracts on disposable private netwo
 ## Advanced network setup
 
 * [Tweaking local network](./docs/tweaking-network.md)
-* [Regenerating network configs](./docs/regenerate-network-configs.md)
+* [How to (re)generate network configs from node config and genesis files](./docs/regenerate-network-configs.md)
 
 ## Useful links
 
@@ -166,4 +166,4 @@ then check out [CTL](https://github.com/Plutonomicon/cardano-transaction-lib) or
 
 ## Maintenance
 
-* [Important notes on updating `cardano-wallet` dependency](./docs/cardano-wallet-update.md)
+* [Important notes on updating the `cardano-wallet` dependency](./docs/cardano-wallet-update.md)

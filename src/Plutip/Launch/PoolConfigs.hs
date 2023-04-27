@@ -15,7 +15,7 @@
 {-# OPTIONS_GHC -Wwarn=name-shadowing #-}
 
 -- |
--- This module is modified copy of https://github.com/input-output-hk/cardano-wallet/blob/1952de13f1cd954514cfa1cb02e628cfc9fde675/lib/shelley/src/Cardano/Wallet/Shelley/Launch/Cluster.hs
+-- This module is a modified copy of https://github.com/input-output-hk/cardano-wallet/blob/1952de13f1cd954514cfa1cb02e628cfc9fde675/lib/shelley/src/Cardano/Wallet/Shelley/Launch/Cluster.hs
 -- which is
 -- Copyright: © 2018-2020 IOHK
 -- License: Apache-2.0
@@ -23,8 +23,8 @@
 -- Provides functions to launch cardano-nodes in a cluster for /testing/.
 -- Modifications include more capabilities for cluster configuration,
 -- so users can set things like slot length, epoch size, etc.
--- Alterded types and functions marked with "altered" comment.
--- Formatting and linitng checks disabled for this module for more convinisent diffs with original.
+-- Altered types and functions are marked with the "altered" comment.
+-- Formatting and linting checks are disabled for this module for more convenient diffs with the original.
 module Plutip.Launch.PoolConfigs (
   defaultPoolConfigs,
   PoolRecipe (..),

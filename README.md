@@ -8,8 +8,7 @@
 Plutip is a Cardano tool for spawning local clusters.
 You can use it to start up disposable private network with arbitrary amount of funded addresses (providing keys for those addresses as well).
 
-For smart contract testing see [CTL integration with Plutip](https://github.com/Plutonomicon/card
-ano-transaction-lib/blob/develop/doc/plutip-testing.md).
+For smart contract testing see [CTL integration with Plutip](https://github.com/Plutonomicon/cardano-transaction-lib/blob/develop/doc/plutip-testing.md).
 
 **TL;DR**: plutip gets you a cardano node socket where the node belongs to a small cluster on a private network, optionally you can prefund addresses with ADA.
 
@@ -45,8 +44,6 @@ If your project is importing and making use of `Plutip`s library you will need t
 
 * `cardano-cli` executable available in the environment
 * `cardano-node` executable available in the environment
-
-One of the ways to do this is to base your `flake.nix` on `Plutip`'s `flake.nix`.
 
 The following GHC flags must be used in order for Plutip to run: `-threaded -rtsopts`.
 
@@ -106,7 +103,7 @@ Use
 ```haskell
 withFundedCluster :: PlutipConfig -> [[Lovelace]] -> (ClusterEnv -> [KeyPair] -> IO a) -> IO a
 ```
-to additionaly receive keys prefunded with specified fund distributions (e.g. Key 1 with [1 Lovelace] and Key 2 with [2 Lovelace, 4 Lovelace]).
+to additionaly receive keys prefunded with specified fund distributions (e.g. Key 1 with `[1 Lovelace]` and Key 2 with `[2 Lovelace, 4 Lovelace]`).
 
 Additionaly there are helpers `startCluster`, `startFundedCluster`, `stopCluster` which are useful when you want your cluster to keep running, instead of shutting down after the IO action is completed.
 
@@ -162,7 +159,7 @@ If your goal is to:
 * run tests with the `tasty` Haskell framework where user can run Plutus contracts (`Contract w s e a`) using the disposable private network set up by Plutip,
 * run contracts in REPL on a local network,
 
-then check out [CTL](https://github.com/Plutonomicon/cardano-transaction-lib) or a legacy Plutip revision ([`plutip-bpi`](https://github.com/mlabs-haskell/plutip/tree/plutip-bpi) or Plutip v1.3.1 and older releases.
+then check out [CTL](https://github.com/Plutonomicon/cardano-transaction-lib) or a legacy Plutip revision ([`plutip-bpi`](https://github.com/mlabs-haskell/plutip/tree/plutip-bpi)) or Plutip v1.3.1 and older releases.
 
 ## Maintenance
 

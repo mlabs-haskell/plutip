@@ -62,12 +62,14 @@ Launch local cluster with
 ```
 withCluster :: PlutipConfig -> (ClusterEnv -> IO a) -> IO a
 ```
-where 
- -`PlutipConfig` specifies importantly the working directory of a spawned cluster (can be temporary) and in less capacity the parameters of the cluster. Use `Data.Default (def)` to spawn default cluster in temporary directory.
+where
+ - `PlutipConfig` specifies the working directory of a spawned cluster (can be temporary) and in some capacity the parameters of the cluster. Use `Data.Default (def)` to spawn default cluster in temporary directory.
  - `ClusterEnv` is essentially a wrapper around the node socket. The socket belongs to one of the nodes.
 
 Use
-```withFundedCluster :: PlutipConfig -> [[Lovelace]] -> (ClusterEnv -> [KeyPair] -> IO a) -> IO a```
+```
+withFundedCluster :: PlutipConfig -> [[Lovelace]] -> (ClusterEnv -> [KeyPair] -> IO a) -> IO a
+```
 to additionaly receive keys prefunded with specified fund distributions (i.e. Key 1 with [1 Lovelace] and Key 2 with [2 Lovelace, 4 Lovelace]).
 
 Additionaly there's helpers `startCluster`, `startFundedCluster`, `stopCluster` useful when you want your cluster to keep running, instead of close after the IO action is completed.
@@ -85,7 +87,7 @@ main = withFundedCluster def [[ada 1], [ada 2, ada 4]] $ \cenv [key1, key2] -> d
   res <- currentBlock cenv
   ...
   -- See Plutip.CardanoApi for example queries and construct your own queries with Cardano.Api.
-  -- Use Cardano.Api also to deal with Keys.
+  -- To make use of your keys, also use Cardano.Api.
 
 ada = (*) 1_000_000
 
@@ -93,8 +95,10 @@ ada = (*) 1_000_000
 
 ### As an executable
 
-Plutip provides a `local-cluster` executable. You can build it and run with nix:
-```nix run github:mlabs-haskell/plutip\#plutip-core:exe:local-cluster -- --help```
+Plutip provides a `local-cluster` executable. You can build it and run with nix package manager:
+```
+nix run github:mlabs-haskell/plutip#plutip-core:exe:local-cluster -- --help
+```
 Available options mostly match the `withFundedCluster` interface, see `--help` and [README](local-cluster/README.md).
 
 ### Via CTL
@@ -122,7 +126,7 @@ If your goal is to:
 * build tests with `tasty` Haskell framework where user can run Plutus contracts (`Contract w s e a`) using mentioned above private network
 * run contracts in REPL on local network
 
-then check out [CTL](https://github.com/Plutonomicon/cardano-transaction-lib) or legacy plutip revision.
+then check out [CTL](https://github.com/Plutonomicon/cardano-transaction-lib) or legacy plutip revision at branch `plutip-bpi`.
 
 ## Maintenance
 

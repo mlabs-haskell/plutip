@@ -195,7 +195,7 @@ pInfoJson =
     Options.strOption
       ( Options.long "dump-info-json"
           <> Options.metavar "FILEPATH"
-          <> Options.help "After starting the cluster, add some useful runtime information to a JSON file (wallets, node socket path etc)"
+          <> Options.help "Write some useful runtime information to a JSON file (wallets, node socket path, etc.) after starting the cluster"
           <> Options.value "local-cluster-info.json"
       )
 

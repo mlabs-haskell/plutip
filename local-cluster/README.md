@@ -23,7 +23,7 @@ nix develop
 cabal run local-cluster
 ```
 
-When you see a message like "`Cluster is running. Press Enter to stop.`" in the terminal -- it means that the local network has started successfully and all desired wallets have been created and funded.
+When you see a message like `"Cluster is running. Press Enter to stop."` in the terminal -- it means that the local network has started successfully and all desired wallets have been created and funded.
 
 ### Available arguments
 

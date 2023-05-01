@@ -140,6 +140,7 @@ Available options mostly match the `withFundedCluster` interface, see `--help` a
 [CTL](https://github.com/Plutonomicon/cardano-transaction-lib) is a PureScript SDK for creating DApps.
 One of its features is the ability to test contracts on disposable private networks which Plutip sets up, see [plutip-testing](https://github.com/Plutonomicon/cardano-transaction-lib/blob/develop/doc/plutip-testing.md).
 CTL provides (via Nix) a runtime environment containing several services, including [plutip-server](https://github.com/Plutonomicon/cardano-transaction-lib/tree/develop/plutip-server) which allows to control Plutip via HTTP.
+As long as you are using CTL's Nix environment (or your setup is based on it) there's no need to install Plutip separately.
 <!-- See a full working example of a CTL-based project with smart contract tests is [here](...). You can base your project's structure on it. -->
 
 ## Tutorials

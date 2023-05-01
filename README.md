@@ -6,7 +6,7 @@
 [herc link]: https://hercules-ci.com/github/mlabs-haskell/plutip
 
 Plutip is a Cardano tool for spawning local clusters.
-You can use it to start up disposable private network with arbitrary amount of funded addresses (providing keys for those addresses as well).
+You can use it to start up disposable private network with an arbitrary amount of funded addresses (Plutip will provide corresponding PKHs and key pairs as well).
 
 For smart contract testing see [CTL integration with Plutip](https://github.com/Plutonomicon/cardano-transaction-lib/blob/develop/doc/plutip-testing.md).
 
@@ -139,10 +139,13 @@ Available options mostly match the `withFundedCluster` interface, see `--help` a
 
 [CTL](https://github.com/Plutonomicon/cardano-transaction-lib) is a PureScript SDK for creating DApps.
 One of its features is the ability to test contracts on disposable private networks which Plutip sets up, see [plutip-testing](https://github.com/Plutonomicon/cardano-transaction-lib/blob/develop/doc/plutip-testing.md).
+CTL provides (via Nix) a runtime environment containing several services, including [plutip-server](https://github.com/Plutonomicon/cardano-transaction-lib/tree/develop/plutip-server) which allows to control Plutip via HTTP.
+<!-- See a full working example of a CTL-based project with smart contract tests is [here](...). You can base your project's structure on it. -->
 
 ## Tutorials
 
 * [Running disposable local network and building custom runners](./local-cluster/README.md)
+<!-- * [CTL-based project with smart contract tests example](...) -->
 
 ## Advanced network setup
 

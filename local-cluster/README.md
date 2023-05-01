@@ -25,6 +25,8 @@ cabal run local-cluster
 
 When you see a message like `"Cluster is running. Press Enter to stop."` in the terminal -- it means that the local network has started successfully and all desired wallets have been created and funded.
 
+Wallets' public key hashes and addresses are printed in stdout, if you want to get public and private key pair you can use the `--wallet-dir FILEPATH` option to specify directory where Plutip will create generated `.vkey` and `.skey` files.
+
 ### Available arguments
 
 | Full                      | Short          | Description |

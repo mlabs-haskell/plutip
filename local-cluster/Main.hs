@@ -147,7 +147,7 @@ plvlAmount =
         <> Options.short 'l'
         <> Options.metavar "LOVELACE"
         <> Options.value 0
-        <> Options.help "Create UTxO with LOVELACE amount of Lovelace in each wallet, defaults to 0. Use --ada to specify an additional amount in Ada. Use \"--ada 0 --lovelace AMOUNT\" to specify amount only in Lovelace. --ada and --lovelace can't be both zero.
+        <> Options.help "Create UTxO with LOVELACE amount of Lovelace in each wallet, defaults to 0. Use --ada to specify an additional amount in Ada. Use \"--ada 0 --lovelace AMOUNT\" to specify amount only in Lovelace. --ada and --lovelace can't be both zero."
     )
 
 pnumUtxos :: Parser Int
@@ -158,11 +158,11 @@ pnumUtxos =
         <> Options.short 'u'
         <> Options.metavar "NUM_UTXOS"
         <> Options.value 1
-        <> Options.help "Create NUM_UTXOS UTxOs in each wallet, defaults to 1. Amount is determinted by --ada and --lovelace options.
+        <> Options.help "Create NUM_UTXOS UTxOs in each wallet, defaults to 1. Amount is determinted by --ada and --lovelace options."
     )
 
 pWorkDir :: Parser (Maybe FilePath)
-pWorkDir
+pWorkDir =
   optional $
     Options.strOption
       ( Options.long "working-dir"

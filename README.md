@@ -77,6 +77,10 @@ Use `withFundedCluster` to additionaly receive pre-funded keys.
 Cluster shuts down when the user action (second argument to `withCluster`) completes.
 Use `startCluster`/`startFundedCluster` and `stopCluster` variants to keep the cluster running.
 
+[internals-tutorial]: ./docs/internals-overview.md
+
+See a more detailed [overview](#as-a-library) or read an [in-depth tutorial][internals-tutorial] for more information.
+
 ## Overview
 
 Plutip is in essence a simpler wrapper over some `cardano-wallet` code for spawning private disposable Cardano clusters.
@@ -106,6 +110,10 @@ withFundedCluster :: PlutipConfig -> [[Lovelace]] -> (ClusterEnv -> [KeyPair] ->
 to additionaly receive keys prefunded with specified fund distributions (e.g. Key 1 with `[1 Lovelace]` and Key 2 with `[2 Lovelace, 4 Lovelace]`).
 
 Additionaly there are helpers `startCluster`, `startFundedCluster`, `stopCluster` which are useful when you want your cluster to keep running, instead of shutting down after the IO action is completed.
+
+All those functions are exported from the [Plutip.Cluster module](./src/Plutip.Cluster.hs).
+<!-- TODO: add haddocks -->
+Read an [in-depth tutorial][internals-tutorial] for more information.
 
 Example:
 ```haskell
@@ -157,6 +165,7 @@ As long as you are using CTL's Nix environment (or your setup is based on it) th
 ## Tutorials
 
 * [Running disposable local network and building custom runners](./local-cluster/README.md)
+* [Overview of how Plutip works][internals-tutorial]
 <!-- * [CTL-based project with smart contract tests example](...) -->
 
 ## Advanced network setup

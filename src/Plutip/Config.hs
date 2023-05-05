@@ -13,19 +13,18 @@ import GHC.Generics (Generic)
 import Plutip.Launch.Extra.Types (ExtraConfig (ExtraConfig, ecEpochSize, ecMaxTxSize, ecRaiseExUnitsToMax, ecSlotLength))
 
 -- | Configuration for the cluster working directory
--- This determines where the node database, chain-index database,
--- and bot-plutus-interface files will be stored for a running cluster
+-- This determines where the node database files will be stored for a running cluster
 --
 -- @since 0.2
 data WorkingDirectory
   = -- | Stored in a temporary directory, deleted on cluster shutdown
     Temporary
-  | -- | Stored in a set directory
+  | -- | Stored in a specified directory
     Fixed
-      { -- | Path to store cluster data, can be relative or absolute
+      { -- | Path for storing a cluster data, can be relative or absolute
         path :: FilePath
-      , -- | Should the working data be kept on disk after cluster shutdown.
-        --   Full directory will be deleted on shutdown if False
+      , -- | Determines whether the working data should be kept on disk after cluster shutdown.
+        --   Entire directory will be deleted on shutdown if False
         shouldKeep :: Bool
       }
   deriving stock (Generic, Show)
@@ -34,12 +33,14 @@ data WorkingDirectory
 --
 -- @since 0.2
 data PlutipConfig = PlutipConfig
-  { -- | in case of `Nothing` cluster data from project `data-files` is used
+  { -- | Specify where genesis files, node config and etc are stored.
+    --   In case of `Nothing` the `cluster-data` folder from the project's `data-files` is used.
     clusterDataDir :: Maybe FilePath
-  , -- | cluster file location override, when provided, includes a `shouldKeep`
+  , -- | Overrides a location of the cluster working directory,
+    --   includes an option to keep the folder after cluster shutdown (`shouldKeep`).
     clusterWorkingDir :: WorkingDirectory
-  , -- | Extra config to set (at the moment) slot lenght and epoch size
-    --   for local network
+  , -- | Extra config to set slot length, epoch size, max tx size and max ex units
+    --   for a local network.
     extraConfig :: ExtraConfig
   }
   deriving stock (Generic, Show)

@@ -125,6 +125,17 @@ main = withFundedCluster def [[ada 1], [ada 2, ada 4]] $ \cenv [key1, key2] -> d
 ada = (*) 1_000_000
 ```
 
+How to use `{start,stop}Cluster`:
+```haskell
+...
+  (clusterRef, userActionResult) <- startCluster def $ \cenv -> do
+    doSomething
+
+  -- optionally access result of the user action (doSomething in this case)
+  doSomethingElse userActionResult
+  stopCluster clusterRef
+```
+
 ### As an executable
 
 Plutip provides a `local-cluster` executable.

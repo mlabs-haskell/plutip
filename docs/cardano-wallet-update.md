@@ -3,7 +3,7 @@
 [cardano-wallet-cluster-hs-1952de1]: https://github.com/input-output-hk/cardano-wallet/blob/1952de13f1cd954514cfa1cb02e628cfc9fde675/lib/shelley/src/Cardano/Wallet/Shelley/Launch/Cluster.hs
 
 `Plutip` relies heavily on a local cluster testing framework from `cardano-wallet`.
-See [Cardano.Wallet.Launch.Cluster](https://github.com/input-output-hk/cardano-wallet/blob/master/lib/wallet/api/http/Cardano/Wallet/Launch/Cluster.hs) module, and originally [Cardano.Wallet.Shelley.Launch.Cluster@1952de1][cardano-wallet-cluster-hs-1952de1] (this is the one that is used in Plutip currently).
+See [Cardano.Wallet.Launch.Cluster](https://github.com/input-output-hk/cardano-wallet/blob/master/lib/wallet/api/http/Cardano/Wallet/Launch/Cluster.hs) module, and originally [Cardano.Wallet.Shelley.Launch.Cluster@1952de1][cardano-wallet-cluster-hs-1952de1] (this is the one that is used in Plutip currently as of 06.05.2023).
 
 Initially, framework was used as-is, but in order to add ability to set slot length and epoch size to Plutip, module `Cluster.hs` was copied from `cardano-wallet` to Plutip's codebase and adjusted to make this settings possible. So in case of updating `cardano-wallet` dependency be sure that original `Cluster.hs` and Plutip's one differs only in expected way.
 

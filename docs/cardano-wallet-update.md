@@ -10,9 +10,10 @@ Initially, framework was used as-is, but in order to add ability to set slot len
 At the moment all changes are related to adding `ExtraConfig` to necessary ADTs and functions in Plutip's version of `Cluster.hs` and difference with the original is pretty small.
 
 The [Cardano.Wallet.Shelley.Launch.Cluster@1952de1][cardano-wallet-cluster-hs-1952de1] module was split into:
-1. [Plutip.Launch.PoolConfigs](./src/Plutip/Launch/PoolConfigs.hs)
-2. [Plutip.Launch.Cluster](./src/Plutip/Launch/Cluster.hs)
-3. [Plutip.Launch.FaucetFunds](./src/Plutip/Launch/FaucetFunds.hs)
+1. [Plutip.Launch.PoolConfigs](../src/Plutip/Launch/PoolConfigs.hs),
+2. [Plutip.Launch.Cluster](../src/Plutip/Launch/Cluster.hs),
+3. [Plutip.Launch.FaucetFunds](../src/Plutip/Launch/FaucetFunds.hs),
+4. [Plutip.Launch.Extra.Utils](../src/Plutip/Launch/Extra/Utils.hs) -- it's new, but based on `localClusterConfigFromEnv`, so in case this function changes in `cardano-wallet` (that's currently unlikely to happen, though) you'd need to update this module too.
 
 All modified typess and functions are marked with the "altered" comment for easier search, e.g.:
 ```haskell

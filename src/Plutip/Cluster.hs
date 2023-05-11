@@ -138,7 +138,7 @@ withCluster conf action = do
             restoreStdout $ runAction rn dir action
   where
     runAction rn dir userAction = do
-      waitForRelayNode rn
+      waitForAnyNode rn
       let cEnv =
             ClusterEnv
               { runningNode = rn
@@ -241,6 +241,7 @@ withEnvironmentSetup conf action = do
   installSignalHandlers (putStrLn "Terminated")
 
   -- Ensure key files have correct permissions for cardano-cli
+  -- by setting default permissions so that any files created are only readable by their owner
   setDefaultFilePermissions
 
   -- Set UTF-8, regardless of user locale
@@ -278,8 +279,8 @@ checkProcessesAvailable requiredProcesses = do
         <> "\n but only these were found:\n "
         <> show (catMaybes results)
 
-waitForRelayNode :: RunningNode -> IO ()
-waitForRelayNode rn =
+waitForAnyNode :: RunningNode -> IO ()
+waitForAnyNode rn =
   liftIO $ do
     recoverAll policy wait
   where

@@ -18,13 +18,15 @@ import GHC.Generics (Generic)
 import Numeric.Natural (Natural)
 import PlutusCore.Evaluation.Machine.ExMemory (ExCPU (ExCPU), ExMemory (ExMemory))
 
--- | Extra configuration options to set slot length and epoch size for local network.
---   `ExtraConfig` used both in `PlutipConfig` and `LocalClusterConfig` to pass
--- settings from Plutip user to local cluster framework of `cardano-wallet`.
--- As `Cluster.hs` module, where `LocalClusterConfig` is defined, is copy of corresponding
--- module from `cardano-wallet` framework,
--- `ExtraConfig` is used to keep custom changes closer together to make diffs between copy
--- and original `Cluster.hs` module smaller for easier maintenance during updates.
+-- | Extra configuration options for setting slot length, epoch size, max tx size and
+--   max ex units.
+-- `ExtraConfig` is used both in `PlutipConfig` and `LocalClusterConfig` to pass
+-- settings to the local cluster framework from the `cardano-wallet`.
+-- `LocalClusterConfig` is defined in the `Plutip.Launch.Cluster` module, which
+-- is an edited copy of the corresponing module from `cardano-wallet`.
+-- `ExtraConfig` is used to keep custom changes closer together in order to
+-- make diffs between Plutip's and `cardano-wallet` `Cluster.hs`'s smaller for
+-- easier maintenance when updating `cardano-wallet`.
 data ExtraConfig = ExtraConfig
   { ecSlotLength :: NominalDiffTime
   , ecEpochSize :: EpochSize

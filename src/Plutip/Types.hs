@@ -13,11 +13,11 @@ import System.FilePath ((</>))
 
 -- | Environment for actions that use local cluster
 data ClusterEnv = ClusterEnv
-  { runningNode :: RunningNode
-  , -- , chainIndexUrl :: !(Maybe BaseUrl)
-    networkId :: !NetworkId
-  , -- | this directory atm used to store all node related files,
-    -- files created by `cardano-cli`, `chain-index` and `bot-plutus-interface`
+  { -- | A wrapper over a node socket plus some node information.
+    runningNode :: RunningNode
+  , networkId :: !NetworkId
+  , -- | This directory is used to store all node related files,
+    -- plus files created by `cardano-cli`.
     supportDir :: FilePath
   , plutipConf :: !PlutipConfig
   }

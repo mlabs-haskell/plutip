@@ -144,6 +144,8 @@ How to use `{start,stop}Cluster`:
   stopCluster clusterRef
 ```
 
+Another useful example of using `startFundedCluster` and `stopCluster` is [`plutip-server`](https://github.com/Plutonomicon/cardano-transaction-lib/tree/develop/plutip-server), see its [`Api.Handlers`](https://github.com/Plutonomicon/cardano-transaction-lib/tree/develop/plutip-server/src/Api/Handlers.hs) module.
+
 ### As an executable
 
 Plutip provides a `local-cluster` executable.

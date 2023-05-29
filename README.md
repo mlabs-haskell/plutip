@@ -6,11 +6,11 @@
 [herc link]: https://hercules-ci.com/github/mlabs-haskell/plutip
 
 Plutip is a Cardano tool for spawning local clusters.
-You can use it to start up disposable private network with an arbitrary amount of funded addresses (Plutip will provide corresponding PKHs and key pairs as well).
+You can use it to start up disposable private network with an arbitrary amount of funded addresses (Plutip will provide corresponding key pairs as well).
 
 For smart contract testing see [CTL integration with Plutip](https://github.com/Plutonomicon/cardano-transaction-lib/blob/develop/doc/plutip-testing.md).
 
-**TL;DR**: plutip gets you a cardano node socket where the node belongs to a small cluster on a private network, optionally you can prefund addresses with ADA.
+**TL;DR**: plutip gets you a cardano node socket where the node belongs to a small cluster on a private network, and you can prefund addresses with ADA.
 
 <!-- markdown-toc start - Don't edit this section. Run M-x markdown-toc-refresh-toc -->
 **Table of Contents**

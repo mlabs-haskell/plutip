@@ -25,6 +25,7 @@ For smart contract testing see [CTL integration with Plutip](https://github.com/
         - [As a library](#as-a-library)
         - [As an executable](#as-an-executable)
         - [Via CTL for contract testing](#via-ctl-for-contract-testing)
+    - [Note on running multiple clusters](#note-on-running-multiple-clusters)
     - [Tutorials](#tutorials)
     - [Advanced network setup](#advanced-network-setup)
     - [Useful links](#useful-links)

@@ -164,6 +164,14 @@ CTL provides (via Nix) a runtime environment containing several services, includ
 As long as you are using CTL's Nix environment (or your setup is based on it) there's no need to install Plutip separately.
 <!-- See a full working example of a CTL-based project with smart contract tests is [here](...). You can base your project's structure on it. -->
 
+## Note on running multiple clusters
+
+There is one caveat you need to be aware of when trying to run multiple Plutip instances.
+Internally Plutip uses the `randomUnusedTCPPorts` from `cardano-wallet` (see the definition [here](https://github.com/input-output-hk/cardano-wallet/blob/af82118b5cd5addc60c68dc4fdaf59cb1d228be7/lib/wallet/src/Cardano/Wallet/Network/Ports.hs#L119)) to get a collection of ports in later assignes to nodes in the cluster.
+
+There is a race condition (via `isPortOpen`) that may result in nodes from separate clusters getting assigned the same port, then these two nodes will race for the port and in the result one cluster will start fine and another will fail, currently the only way to deal with it is to start Plutip again.
+The probability of this is not huge, but it can happen.
+
 ## Tutorials
 
 * [Running disposable local network and building custom runners](./local-cluster/README.md)

@@ -46,12 +46,16 @@ Wallets' public key hashes and addresses are printed in stdout, if you want to g
 ## Making a custom local network launcher
 
 The [Main.hs](./Main.hs) module can serve as an example of how to make your own executable for starting a local cluster with funded wallets (via the `withFundedCluster` function).
+All that [Main.hs](./Main.hs) does inside the user action passed to `withFundedCluster` is printing PKHs and addresses of the created wallets, plus printing and dumping node and cluster information; after that it sleeps in a loop.
 
 Example for `{start,stop}Cluster`:
 ```haskell
 main :: IO ()
 main = do
-  (st, _) <- startCluster def $ \cenv -> do
-    doSomething result
+  (clusterRef, userActionResult) <- startCluster def $ \cenv -> do
+    doSomething
+
+  -- optionally access result of the user action (doSomething in this case)
+  doSomethingElse userActionResult
   stopCluster st
 ```

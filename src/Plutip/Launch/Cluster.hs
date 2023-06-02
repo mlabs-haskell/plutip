@@ -754,7 +754,7 @@ generateGenesis
     -> [(Address, Coin)]
     -> (ShelleyGenesis StandardShelley -> ShelleyGenesis StandardShelley)
        -- ^ For adding genesis pools and staking in Babbage and later.
-    -> ExtraConfig -- <- alterd by adding `ExtraConfig` to arguments
+    -> ExtraConfig -- <- altered by adding `ExtraConfig` to arguments
     -> IO GenesisFiles
 generateGenesis dir systemStart initialFunds addPoolsToGenesis extraConf = do
     source <- getShelleyTestDataPath

@@ -25,6 +25,7 @@ For smart contract testing see [CTL integration with Plutip](https://github.com/
         - [As a library](#as-a-library)
         - [As an executable](#as-an-executable)
         - [Via CTL for contract testing](#via-ctl-for-contract-testing)
+    - [Note on running multiple clusters](#note-on-running-multiple-clusters)
     - [Tutorials](#tutorials)
     - [Advanced network setup](#advanced-network-setup)
     - [Useful links](#useful-links)
@@ -77,6 +78,10 @@ Use `withFundedCluster` to additionaly receive pre-funded keys.
 Cluster shuts down when the user action (second argument to `withCluster`) completes.
 Use `startCluster`/`startFundedCluster` and `stopCluster` variants to keep the cluster running.
 
+[internals-tutorial]: ./docs/internals-overview.md
+
+See a more detailed [overview](#as-a-library) or read an [in-depth tutorial][internals-tutorial] for more information.
+
 ## Overview
 
 Plutip is in essence a simpler wrapper over some `cardano-wallet` code for spawning private disposable Cardano clusters.
@@ -107,6 +112,10 @@ to additionaly receive keys prefunded with specified fund distributions (e.g. Ke
 
 Additionaly there are helpers `startCluster`, `startFundedCluster`, `stopCluster` which are useful when you want your cluster to keep running, instead of shutting down after the IO action is completed.
 
+All those functions are exported from the [Plutip.Cluster module](./src/Plutip.Cluster.hs).
+<!-- TODO: add haddocks -->
+Read an [in-depth tutorial][internals-tutorial] for more information.
+
 Example:
 ```haskell
 import Data.Default (Default (def))
@@ -124,6 +133,19 @@ main = withFundedCluster def [[ada 1], [ada 2, ada 4]] $ \cenv [key1, key2] -> d
 
 ada = (*) 1_000_000
 ```
+
+How to use `{start,stop}Cluster`:
+```haskell
+...
+  (clusterRef, userActionResult) <- startCluster def $ \cenv -> do
+    doSomething
+
+  -- optionally access result of the user action (doSomething in this case)
+  doSomethingElse userActionResult
+  stopCluster clusterRef
+```
+
+Another useful example of using `startFundedCluster` and `stopCluster` is [`plutip-server`](https://github.com/Plutonomicon/cardano-transaction-lib/tree/develop/plutip-server), see its [`Api.Handlers`](https://github.com/Plutonomicon/cardano-transaction-lib/tree/develop/plutip-server/src/Api/Handlers.hs) module.
 
 ### As an executable
 
@@ -143,9 +165,18 @@ CTL provides (via Nix) a runtime environment containing several services, includ
 As long as you are using CTL's Nix environment (or your setup is based on it) there's no need to install Plutip separately.
 <!-- See a full working example of a CTL-based project with smart contract tests is [here](...). You can base your project's structure on it. -->
 
+## Note on running multiple clusters
+
+There is one caveat you need to be aware of when trying to run multiple Plutip instances.
+Internally Plutip uses the `randomUnusedTCPPorts` from `cardano-wallet` (see the definition [here](https://github.com/input-output-hk/cardano-wallet/blob/af82118b5cd5addc60c68dc4fdaf59cb1d228be7/lib/wallet/src/Cardano/Wallet/Network/Ports.hs#L119)) to get a collection of ports in later assignes to nodes in the cluster.
+
+There is a race condition (via `isPortOpen`) that may result in nodes from separate clusters getting assigned the same port, then these two nodes will race for the port and in the result one cluster will start fine and another will fail, currently the only way to deal with it is to start Plutip again.
+The probability of this is not huge, but it can happen.
+
 ## Tutorials
 
 * [Running disposable local network and building custom runners](./local-cluster/README.md)
+* [Overview of how Plutip works][internals-tutorial]
 <!-- * [CTL-based project with smart contract tests example](...) -->
 
 ## Advanced network setup

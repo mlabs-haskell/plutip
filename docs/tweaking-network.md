@@ -2,7 +2,9 @@
 
 ## Setting slot length and epoch size
 
-It is possible to set slot length and epoch size when starting network from Haskell via `PlutipConfig` -- `extraConfig :: ExtraConfig` holds corresponding fields.
+It is possible to set slot length and epoch size when starting network from Haskell via `PlutipConfig` -- `extraConfig :: ExtraConfig` holds corresponding fields, see the [`Plutip.Launch.Extra.Types` module](../src/Plutip/Launch/Extra/Types.hs), there's also a `Data.Default`'s `def` instance.
+
+**NOTE:** Currently (as of 08.05.2023) if you change the epoch size from its default value (80 slots in the local cluster framework) then rewards for staking pool delegation stop working. See #149.
 
 For setting parameters when launching `local-cluster` executable see `--slot-len` and `--epoch-size` options in the [local-cluster documentation](../local-cluster/README.md).
 

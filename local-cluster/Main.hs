@@ -114,6 +114,7 @@ pnumWallets =
         <> Options.short 'n'
         <> Options.metavar "NUM_WALLETS"
         <> Options.value 1
+        <> Options.help "Create NUM_WALLETS wallets, defaults to 1, can be set to 0 to avoid creating any wallets. Use --walet-dir to save keys to a folder."
     )
 
 pdirWallets :: Parser (Maybe FilePath)
@@ -124,6 +125,7 @@ pdirWallets =
           <> Options.long "wallet-dir"
           <> Options.short 'd'
           <> Options.metavar "FILEPATH"
+          <> Options.help "Save the wallet keys to FILEPATH"
       )
 
 padaAmount :: Parser Natural
@@ -134,6 +136,7 @@ padaAmount =
         <> Options.short 'a'
         <> Options.metavar "ADA"
         <> Options.value 10_000
+        <> Options.help "Create UTxO with ADA amount of Ada in each wallet, defaults to 10,000. Use --lovelace to specify an additional amount in Lovelace. To specify amount only in Lovelace use \"--ada 0 --lovelace AMOUNT\". --ada and --lovelace can't be both zero."
     )
 
 plvlAmount :: Parser Natural
@@ -142,8 +145,9 @@ plvlAmount =
     Options.auto
     ( Options.long "lovelace"
         <> Options.short 'l'
-        <> Options.metavar "Lovelace"
+        <> Options.metavar "LOVELACE"
         <> Options.value 0
+        <> Options.help "Create UTxO with LOVELACE amount of Lovelace in each wallet, defaults to 0. Use --ada to specify an additional amount in Ada. Use \"--ada 0 --lovelace AMOUNT\" to specify amount only in Lovelace. --ada and --lovelace can't be both zero."
     )
 
 pnumUtxos :: Parser Int
@@ -154,6 +158,7 @@ pnumUtxos =
         <> Options.short 'u'
         <> Options.metavar "NUM_UTXOS"
         <> Options.value 1
+        <> Options.help "Create NUM_UTXOS UTxOs in each wallet, defaults to 1. Amount is determinted by --ada and --lovelace options."
     )
 
 pWorkDir :: Parser (Maybe FilePath)
@@ -163,6 +168,7 @@ pWorkDir =
       ( Options.long "working-dir"
           <> Options.short 'w'
           <> Options.metavar "FILEPATH"
+          <> Options.help "Determines where the node database will be stored for the running cluster. Temporary directory will be used if this option is not set."
       )
 
 pSlotLen :: Parser NominalDiffTime
@@ -173,6 +179,7 @@ pSlotLen =
         <> Options.short 's'
         <> Options.metavar "SLOT_LEN"
         <> Options.value 0.2
+        <> Options.help "Set a slot length of the created network in seconds, e.g. --slot-len 1s, -s 0.2s. Note that parser expects an 's' at the end of the value. Defaults to 0.2s"
     )
 
 pEpochSize :: Parser EpochSize
@@ -187,6 +194,7 @@ pEpochSize =
             <> Options.short 'e'
             <> Options.metavar "EPOCH_SIZE"
             <> Options.value 80
+            <> Options.help "Set an epoch size of the created network in slots. Defaults to 80."
         )
 
 pInfoJson :: Parser (Maybe FilePath)

@@ -31,7 +31,7 @@ import Plutip.Config (
   PlutipConfig (clusterWorkingDir, extraConfig),
   WorkingDirectory (Fixed, Temporary),
   ecEpochSize,
-  ecSlotLength,
+  ecSlotLength, ecRaiseExUnitsToMax
  )
 import Plutip.DistributeFunds (Lovelace)
 import Plutip.Keys (KeyPair, mainnetAddress, saveKeyPair, showPkh)
@@ -43,10 +43,10 @@ main = do
   case totalAmount config of
     Left e -> error e
     Right amt -> do
-      let ClusterConfig {numWallets, dirWallets, numUtxos, workDir, slotLength, epochSize} = config
+      let ClusterConfig {numWallets, dirWallets, numUtxos, workDir, slotLength, epochSize, raiseUnitsToMax} = config
           workingDir = maybe Temporary (`Fixed` False) workDir
           -- todo: if needed pipe remaining extraConfig options from command line args
-          extraConf = def {ecSlotLength = slotLength, ecEpochSize = epochSize}
+          extraConf = def {ecSlotLength = slotLength, ecEpochSize = epochSize, ecRaiseExUnitsToMax = raiseUnitsToMax}
           plutipConfig = def {clusterWorkingDir = workingDir, extraConfig = extraConf}
 
       putStrLn "Starting cluster..."
@@ -199,6 +199,13 @@ pInfoJson =
           <> Options.value "local-cluster-info.json"
       )
 
+pRaiseUnits :: Parser Bool
+pRaiseUnits =
+  Options.switch
+    ( Options.long "max-units"
+        <> Options.help "Whether to raise budget to max units"
+    )
+
 pClusterConfig :: Parser ClusterConfig
 pClusterConfig =
   ClusterConfig
@@ -211,6 +218,7 @@ pClusterConfig =
     <*> pSlotLen
     <*> pEpochSize
     <*> pInfoJson
+    <*> pRaiseUnits
 
 -- | Basic info about the cluster, to
 -- be used by the command-line
@@ -224,5 +232,6 @@ data ClusterConfig = ClusterConfig
   , slotLength :: NominalDiffTime
   , epochSize :: EpochSize
   , dumpInfo :: Maybe FilePath
+  , raiseUnitsToMax :: Bool
   }
   deriving stock (Show, Eq)

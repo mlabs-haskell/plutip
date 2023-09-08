@@ -31,7 +31,10 @@ import Plutip.Config (
   PlutipConfig (clusterWorkingDir, extraConfig),
   WorkingDirectory (Fixed, Temporary),
   ecEpochSize,
-  ecSlotLength, ecRaiseExUnitsToMax
+  ecSlotLength,
+  ecRaiseExUnitsToMax,
+  ecMaxTxSize,
+  stdTxSize,
  )
 import Plutip.DistributeFunds (Lovelace)
 import Plutip.Keys (KeyPair, mainnetAddress, saveKeyPair, showPkh)
@@ -43,10 +46,15 @@ main = do
   case totalAmount config of
     Left e -> error e
     Right amt -> do
-      let ClusterConfig {numWallets, dirWallets, numUtxos, workDir, slotLength, epochSize, raiseUnitsToMax} = config
+      let ClusterConfig {numWallets, dirWallets, numUtxos, workDir, slotLength, epochSize, maxTxSize, raiseUnitsToMax} = config
           workingDir = maybe Temporary (`Fixed` False) workDir
           -- todo: if needed pipe remaining extraConfig options from command line args
-          extraConf = def {ecSlotLength = slotLength, ecEpochSize = epochSize, ecRaiseExUnitsToMax = raiseUnitsToMax}
+          extraConf = def
+              { ecSlotLength = slotLength
+              , ecEpochSize = epochSize
+              , ecMaxTxSize = maxTxSize
+              , ecRaiseExUnitsToMax = raiseUnitsToMax
+              }
           plutipConfig = def {clusterWorkingDir = workingDir, extraConfig = extraConf}
 
       putStrLn "Starting cluster..."
@@ -199,6 +207,16 @@ pInfoJson =
           <> Options.value "local-cluster-info.json"
       )
 
+pTxSize :: Parser Natural
+pTxSize =
+  Options.option
+    Options.auto
+    ( Options.long "tx-size"
+        <> Options.short 't'
+        <> Options.metavar "MAX_TX_SIZE"
+        <> Options.value stdTxSize
+    )
+
 pRaiseUnits :: Parser Bool
 pRaiseUnits =
   Options.switch
@@ -218,6 +236,7 @@ pClusterConfig =
     <*> pSlotLen
     <*> pEpochSize
     <*> pInfoJson
+    <*> pTxSize
     <*> pRaiseUnits
 
 -- | Basic info about the cluster, to
@@ -232,6 +251,7 @@ data ClusterConfig = ClusterConfig
   , slotLength :: NominalDiffTime
   , epochSize :: EpochSize
   , dumpInfo :: Maybe FilePath
+  , maxTxSize :: Natural
   , raiseUnitsToMax :: Bool
   }
   deriving stock (Show, Eq)

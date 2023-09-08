@@ -4,13 +4,14 @@ module Plutip.Config (
   ExtraConfig (..),
   NominalDiffTime,
   EpochSize (..),
+  stdTxSize,
 ) where
 
 import Cardano.Ledger.Slot (EpochSize (EpochSize, unEpochSize))
 import Data.Default (Default, def)
 import Data.Time (NominalDiffTime)
 import GHC.Generics (Generic)
-import Plutip.Launch.Extra.Types (ExtraConfig (ExtraConfig, ecEpochSize, ecMaxTxSize, ecRaiseExUnitsToMax, ecSlotLength))
+import Plutip.Launch.Extra.Types (ExtraConfig (ExtraConfig, ecEpochSize, ecMaxTxSize, ecRaiseExUnitsToMax, ecSlotLength), stdTxSize)
 
 -- | Configuration for the cluster working directory
 -- This determines where the node database, chain-index database,

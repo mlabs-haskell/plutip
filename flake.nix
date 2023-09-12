@@ -1,45 +1,39 @@
 {
   description = "plutip-core";
 
+  nixConfig = {
+    extra-substituters = [ "https://cache.iog.io" ];
+    extra-trusted-public-keys = [ "hydra.iohk.io:f/Ea+s+dFdN+3Y/G+FDgSq+a5NEWhJGzdjvKNGv0/EQ=" ];
+  };
+
   inputs = {
-    haskell-nix.url = "github:mlabs-haskell/haskell.nix";
-    nixpkgs.follows = "haskell-nix/nixpkgs-unstable";
-    iohk-nix.url = "github:input-output-hk/iohk-nix";
-    iohk-nix.flake = false; # Bad Nix code
+    nixpkgs.follows = "haskellNix/nixpkgs-unstable";
+    hackageNix = {
+      url = "github:input-output-hk/hackage.nix";
+      flake = false;
+    };
+    haskellNix = {
+      url = "github:input-output-hk/haskell.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+      inputs.hackage.follows = "hackageNix";
+    };
+    CHaP = {
+      url = "github:input-output-hk/cardano-haskell-packages?ref=repo";
+      flake = false;
+    };
+    iohkNix = {
+      url = "github:input-output-hk/iohk-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
 
     flake-compat = {
       url = "github:edolstra/flake-compat";
       flake = false;
     };
-    # all inputs below this line is for pinning with haskell.nix
-    cardano-addresses = {
-      url =
-        "github:input-output-hk/cardano-addresses/5094fb9d304ed69adedc99513634a00cbf850fca";
-      flake = false;
-    };
-    cardano-node = {
-      url =
-        "github:input-output-hk/cardano-node/ebc7be471b30e5931b35f9bbc236d21c375b91bb";
-      flake = false; # we need it to be available in shell
-    };
-    cardano-wallet = {
-      url = "github:input-output-hk/cardano-wallet/bbf11d4feefd5b770fb36717ec5c4c5c112aca87";
-      flake = false;
-    };
-    hw-aeson = {
-      url = "github:haskell-works/hw-aeson/ba7c1e41c6e54d6bf9fd1cd013489ac713fc3153";
-      flake = false;
-    };
-
-    CHaP = {
-      url = "github:input-output-hk/cardano-haskell-packages?ref=repo";
-      flake = false;
-    };
-
   };
 
   outputs =
-    { self, nixpkgs, haskell-nix, CHaP, iohk-nix, ... }@inputs:
+    { self, nixpkgs, haskellNix, CHaP, iohkNix, ... }:
     let
       defaultSystems = [ "x86_64-linux" "x86_64-darwin" ];
 
@@ -47,9 +41,8 @@
 
       nixpkgsFor = system:
         import nixpkgs {
-          overlays =
-            [ haskell-nix.overlay (import "${iohk-nix}/overlays/crypto") ];
-          inherit (haskell-nix) config;
+          overlays = [ iohkNix.overlays.crypto haskellNix.overlay ];
+          inherit (haskellNix) config;
           inherit system;
         };
       nixpkgsFor' = system: import nixpkgs { inherit system; };
@@ -86,46 +79,6 @@
           };
         })
       ];
-      extraSources = [
-        {
-          src = inputs.cardano-addresses;
-          subdirs = [ "core" "command-line" ];
-        }
-        {
-          src = inputs.cardano-node;
-          subdirs = [
-            "cardano-api"
-            "cardano-cli"
-            "cardano-git-rev"
-            "cardano-node"
-            "cardano-submit-api"
-            "cardano-testnet"
-            "trace-dispatcher"
-            "trace-forward"
-            "trace-resources"
-          ];
-        }
-        {
-          src = inputs.cardano-wallet;
-          subdirs = [
-            "lib/balance-tx"
-            "lib/coin-selection"
-            "lib/dbvar"
-            "lib/launcher"
-            "lib/numeric"
-            "lib/primitive"
-            "lib/strict-non-empty-containers"
-            "lib/test-utils"
-            "lib/text-class"
-            "lib/wai-middleware-logging"
-            "lib/wallet"
-          ];
-        }
-        {
-          src = inputs.hw-aeson;
-          subdirs = [ "." ];
-        }
-      ];
 
       projectFor = system:
         let
@@ -137,8 +90,7 @@
             inputMap = {
               "https://input-output-hk.github.io/cardano-haskell-packages" = CHaP;
             };
-            inherit extraSources;
-            compiler-nix-name = "ghc8107";
+            compiler-nix-name = "ghc96";
 
             shell = {
               withHoogle = true;
@@ -169,14 +121,13 @@
               ];
             };
 
-            # inherit (bot-plutus-interface);
             modules = haskellModules;
           };
         in
         project;
     in
     {
-      inherit extraSources haskellModules;
+      inherit haskellModules;
 
       project = perSystem projectFor;
       flake = perSystem (system: (projectFor system).flake { });

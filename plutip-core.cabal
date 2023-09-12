@@ -60,13 +60,12 @@ common common-imports
     , mtl
     , ouroboros-consensus
     , ouroboros-network
-    , plutus-core
+    , plutus-core                ==1.9.0.0
     , retry
     , servant-client
     , stm
     , temporary
     , text
-    , text-class
     , time
     , typed-process
     , unliftio

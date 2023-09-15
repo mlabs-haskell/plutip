@@ -35,16 +35,20 @@ common common-imports
     , cardano-cli
     , cardano-crypto
     , cardano-crypto-wrapper
+    , cardano-data
+    , cardano-ledger-api
     , cardano-ledger-core
     , cardano-ledger-shelley
     , cardano-slotting
-    , cardano-wallet
+    , cardano-wallet-application-extras
     , cardano-wallet-launcher
     , cardano-wallet-primitive
     , cardano-wallet-test-utils
+    , cardano-wallet:{cardano-wallet, address-derivation, cardano-wallet-api-http}
     , cborg
     , containers
     , contra-tracer
+    , crypto-hash-extra
     , data-default
     , deepseq
     , directory
@@ -55,17 +59,23 @@ common common-imports
     , http-types
     , int-cast
     , iohk-monitoring
+    , iohk-monitoring-extra
     , lens
     , memory
     , mtl
+    , network-uri
+    , OddWord
     , ouroboros-consensus
     , ouroboros-network
-    , plutus-core                ==1.9.0.0
+    , ouroboros-network-api
+    , plutus-core
     , retry
     , servant-client
     , stm
     , temporary
+    , temporary-extra
     , text
+    , text-class
     , time
     , typed-process
     , unliftio
@@ -172,6 +182,7 @@ executable local-cluster
   build-depends:
     , aeson
     , base
+    , cardano-ledger-shelley
     , cardano-wallet-launcher
     , containers
     , data-default

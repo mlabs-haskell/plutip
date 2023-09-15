@@ -25,15 +25,16 @@
       url = "github:input-output-hk/iohk-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
-
+    cardano-node.url = "github:input-output-hk/cardano-node/8.1.1";
     flake-compat = {
       url = "github:edolstra/flake-compat";
       flake = false;
     };
+
   };
 
   outputs =
-    { self, nixpkgs, haskellNix, CHaP, iohkNix, ... }:
+    { self, nixpkgs, haskellNix, CHaP, iohkNix, cardano-node, ... }:
     let
       defaultSystems = [ "x86_64-linux" "x86_64-darwin" ];
 
@@ -62,18 +63,24 @@
             };
           }
         )
-        ({ config, pkgs, ... }: {
-          packages.plutip-core.components.tests."plutip-tests".build-tools = [
-            config.hsPkgs.cardano-cli.components.exes.cardano-cli
-            config.hsPkgs.cardano-node.components.exes.cardano-node
-          ];
+        ({ config, pkgs, system, ... }: {
+          packages.plutip-core.components.tests.plutip-tests = {
+            pkgconfig = [ [ pkgs.makeWrapper ] ];
+            postInstall = with pkgs; ''
+              wrapProgram $out/bin/plutip-tests \
+                --prefix PATH : "${lib.makeBinPath [
+                   cardano-node.packages.x86_64-darwin.cardano-node
+                   cardano-node.packages.x86_64-darwin.cardano-cli
+                ]}"
+            '';
+          };
           packages.plutip-core.components.exes.local-cluster = {
             pkgconfig = [ [ pkgs.makeWrapper ] ];
             postInstall = with pkgs; ''
               wrapProgram $out/bin/local-cluster \
                 --prefix PATH : "${lib.makeBinPath [
-                  config.hsPkgs.cardano-cli.components.exes.cardano-cli
-                  config.hsPkgs.cardano-node.components.exes.cardano-node
+                   cardano-node.packages.x86_64-darwin.cardano-node
+                   cardano-node.packages.x86_64-darwin.cardano-cli
                 ]}"
             '';
           };
@@ -84,47 +91,41 @@
         let
           pkgs = nixpkgsFor system;
           pkgs' = nixpkgsFor' system;
-          project = pkgs.haskell-nix.cabalProject {
-            name = "plutip-core";
-            src = ./.;
-            inputMap = {
-              "https://input-output-hk.github.io/cardano-haskell-packages" = CHaP;
-            };
-            compiler-nix-name = "ghc96";
-
-            shell = {
-              withHoogle = true;
-              exactDeps = true;
-
-              packages = ps: [ ps.plutip-core ];
-
-              tools.haskell-language-server = "latest";
-
-              nativeBuildInputs = with pkgs'; [
-                # Haskell Tools
-                haskellPackages.fourmolu
-                haskellPackages.cabal-install
-                haskellPackages.cabal-fmt
-                nixpkgs-fmt
-                hlint
-                entr
-                ghcid
-                git
-                fd
-
-                # hls doesn't support preprocessors yet so this has to exist in PATH
-                haskellPackages.record-dot-preprocessor
-
-                # Cardano tools
-                project.hsPkgs.cardano-cli.components.exes.cardano-cli
-                project.hsPkgs.cardano-node.components.exes.cardano-node
-              ];
-            };
-
-            modules = haskellModules;
-          };
         in
-        project;
+        pkgs.haskell-nix.cabalProject {
+          name = "plutip-core";
+          src = ./.;
+          inputMap = {
+            "https://input-output-hk.github.io/cardano-haskell-packages" = CHaP;
+          };
+          compiler-nix-name = "ghc8107";
+
+          shell = {
+            withHoogle = true;
+            exactDeps = true;
+
+            tools.haskell-language-server = "1.5.0.0"; # Newer versions failed to build
+
+            nativeBuildInputs = with pkgs'; [
+              # Haskell Tools
+              haskellPackages.fourmolu
+              haskellPackages.cabal-install
+              haskellPackages.cabal-fmt
+              nixpkgs-fmt
+              hlint
+              entr
+              ghcid
+              git
+              fd
+
+              # Cardano tools
+              cardano-node.packages.${system}.cardano-cli
+              cardano-node.packages.${system}.cardano-node
+            ];
+          };
+
+          modules = haskellModules;
+        };
     in
     {
       inherit haskellModules;

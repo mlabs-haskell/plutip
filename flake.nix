@@ -48,7 +48,7 @@
         };
       nixpkgsFor' = system: import nixpkgs { inherit system; };
 
-      haskellModules = [
+      haskellModules = system: [
         ({ pkgs, ... }:
           {
             packages = {
@@ -63,28 +63,32 @@
             };
           }
         )
-        ({ config, pkgs, system, ... }: {
-          packages.plutip-core.components.tests.plutip-tests = {
-            pkgconfig = [ [ pkgs.makeWrapper ] ];
-            postInstall = with pkgs; ''
-              wrapProgram $out/bin/plutip-tests \
-                --prefix PATH : "${lib.makeBinPath [
-                   cardano-node.packages.x86_64-darwin.cardano-node
-                   cardano-node.packages.x86_64-darwin.cardano-cli
-                ]}"
-            '';
-          };
-          packages.plutip-core.components.exes.local-cluster = {
-            pkgconfig = [ [ pkgs.makeWrapper ] ];
-            postInstall = with pkgs; ''
-              wrapProgram $out/bin/local-cluster \
-                --prefix PATH : "${lib.makeBinPath [
-                   cardano-node.packages.x86_64-darwin.cardano-node
-                   cardano-node.packages.x86_64-darwin.cardano-cli
-                ]}"
-            '';
-          };
-        })
+        ({ config, pkgs, ... }:
+          let
+            nodeExes = cardano-node.packages.${system};
+          in
+          {
+            packages.plutip-core.components.tests.plutip-tests = {
+              pkgconfig = [ [ pkgs.makeWrapper ] ];
+              postInstall = with pkgs; ''
+                wrapProgram $out/bin/plutip-tests \
+                  --prefix PATH : "${lib.makeBinPath [
+                    nodeExes.cardano-node
+                    nodeExes.cardano-cli
+                  ]}"
+              '';
+            };
+            packages.plutip-core.components.exes.local-cluster = {
+              pkgconfig = [ [ pkgs.makeWrapper ] ];
+              postInstall = with pkgs; ''
+                wrapProgram $out/bin/local-cluster \
+                  --prefix PATH : "${lib.makeBinPath [
+                    nodeExes.cardano-node
+                    nodeExes.cardano-cli
+                  ]}"
+              '';
+            };
+          })
       ];
 
       projectFor = system:
@@ -124,12 +128,10 @@
             ];
           };
 
-          modules = haskellModules;
+          modules = haskellModules system;
         };
     in
     {
-      inherit haskellModules;
-
       project = perSystem projectFor;
       flake = perSystem (system: (projectFor system).flake { });
 
@@ -182,6 +184,8 @@
               mkdir $out
             '';
         });
+
+      haskellModules = perSystem haskellModules;
 
       # Instruction for the Hercules CI to build on x86_64-linux only, to avoid errors about systems without agents.
       herculesCI.ciSystems = [ "x86_64-linux" ];

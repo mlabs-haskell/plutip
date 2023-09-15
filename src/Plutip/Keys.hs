@@ -12,7 +12,7 @@ module Plutip.Keys (
   signKeyCBORHex,
 ) where
 
-import Cardano.Api (AddressAny, AsType (AsPaymentKey), Key (VerificationKey, getVerificationKey, verificationKeyHash), PaymentKey, SigningKey, TextEnvelopeDescr, generateSigningKey, writeFileTextEnvelope)
+import Cardano.Api (AddressAny, AsType (AsPaymentKey), Key (VerificationKey, getVerificationKey, verificationKeyHash), PaymentKey, SigningKey, TextEnvelopeDescr, generateSigningKey, writeFileTextEnvelope, File(File))
 import Cardano.Api qualified as CAPI
 import Control.Monad.Except (ExceptT (ExceptT), runExceptT)
 import Data.Text (Text)
@@ -70,5 +70,5 @@ saveKeyPair dir kp@KeyPair {sKey, vKey} =
    in do
         createDirectoryIfMissing True dir
         runExceptT $ do
-          ExceptT $ writeFileTextEnvelope skeyPath (Just skeyDesc) sKey
-          ExceptT $ writeFileTextEnvelope vkeyPath (Just vkeyDesc) vKey
+          ExceptT $ writeFileTextEnvelope (File skeyPath) (Just skeyDesc) sKey
+          ExceptT $ writeFileTextEnvelope (File vkeyPath) (Just vkeyDesc) vKey

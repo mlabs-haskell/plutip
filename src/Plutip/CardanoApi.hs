@@ -17,6 +17,7 @@ module Plutip.CardanoApi (
 import Cardano.Api qualified as C
 import Cardano.Api.Shelley (BabbageEra, ProtocolParameters, UTxO)
 import Cardano.Launcher.Node (nodeSocketFile)
+import Cardano.Ledger.Shelley.Genesis (nominalDiffTimeMicroToSeconds)
 import Cardano.Slotting.Slot (WithOrigin)
 
 import Control.Arrow (right)
@@ -25,7 +26,6 @@ import Control.Retry (constantDelay, limitRetries, retrying)
 import Data.Either (fromRight)
 import Data.Map qualified as Map
 import Data.Set qualified as Set
-import Data.Time (nominalDiffTimeToSeconds)
 import GHC.Generics (Generic)
 import Ouroboros.Consensus.HardFork.Combinator.AcrossEras (EraMismatch)
 import Plutip.Config (PlutipConfig (extraConfig))
@@ -65,11 +65,11 @@ queryProtocolParams (runningNode -> rn) =
     query = shellyBasedBabbageQuery C.QueryProtocolParameters
 
 connectionInfo :: RunningNode -> C.LocalNodeConnectInfo C.CardanoMode
-connectionInfo (RunningNode socket _ _ _) =
+connectionInfo (RunningNode socket _ _) =
   C.LocalNodeConnectInfo
     (C.CardanoModeParams (C.EpochSlots 21600))
     C.Mainnet
-    (nodeSocketFile socket)
+    (C.File (nodeSocketFile socket))
 
 queryTip :: RunningNode -> IO C.ChainTip
 queryTip = C.getLocalChainTip . connectionInfo
@@ -119,7 +119,7 @@ awaitUtxos cenv addrs predicate =
   toErrorMsg <$> retrying policy checkResponse action
   where
     retryDelay = ecSlotLength $ extraConfig $ plutipConf cenv
-    delay = truncate $ nominalDiffTimeToSeconds retryDelay * 1000000
+    delay = truncate $ nominalDiffTimeMicroToSeconds retryDelay * 1000000
     policy = constantDelay delay <> limitRetries 60
 
     action _ = right (not . predicate) <$> utxosAtAddresses cenv addrs

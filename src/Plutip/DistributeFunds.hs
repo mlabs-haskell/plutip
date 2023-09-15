@@ -7,7 +7,7 @@ import Plutip.Launch.Cluster (
   sendFaucetFundsTo,
  )
 
-import Plutip.Types (ClusterEnv, nodeSocket, supportDir)
+import Plutip.Types (ClusterEnv (clusterEra, supportDir), nodeSocket)
 
 import Cardano.Api (Lovelace (Lovelace))
 import Plutip.Keys (KeyPair, mainnetAddress)
@@ -21,4 +21,5 @@ fundKey cEnv keys funds = do
     nullTracer -- todo: fix tracer to be not `nullTracer`
     (nodeSocket cEnv)
     (supportDir cEnv)
+    (clusterEra cEnv)
     [(fundAddress, toAmt v) | v <- funds]

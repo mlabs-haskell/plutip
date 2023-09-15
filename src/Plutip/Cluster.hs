@@ -13,10 +13,11 @@ module Plutip.Cluster (
 
 import Cardano.Api (ChainTip (ChainTip), Lovelace, SlotNo (SlotNo))
 import Cardano.Api qualified as CAPI
+import Cardano.CLI (LogOutput (LogToFile), withLoggingNamed)
 import Cardano.BM.Data.Severity qualified as Severity
 import Cardano.Launcher (ProcessHasExited (ProcessHasExited))
 import Cardano.Startup (installSignalHandlers, setDefaultFilePermissions, withUtf8Encoding)
-import Cardano.Wallet.Logging (stdoutTextTracer, trMessageText)
+import Cardano.BM.Extra (stdoutTextTracer, trMessageText)
 import Control.Concurrent (rtsSupportsBoundThreads)
 import Control.Monad (unless, void, when, zipWithM_)
 import Control.Monad.IO.Class (liftIO)
@@ -39,12 +40,8 @@ import Plutip.Config (
   WorkingDirectory (Fixed, Temporary),
  )
 import Plutip.Launch.Cluster (
-  LogOutput (LogToFile),
   RunningNode,
-  TempDirLog,
   testMinSeverityFromEnv,
-  withLoggingNamed,
-  withSystemTempDir,
  )
 import Plutip.Types (
   ClusterEnv (
@@ -52,7 +49,8 @@ import Plutip.Types (
     networkId,
     plutipConf,
     runningNode,
-    supportDir
+    supportDir,
+    clusterEra
   ),
   keysDir,
  )
@@ -64,9 +62,11 @@ import System.Directory (
   removeDirectoryRecursive,
  )
 import System.Environment (setEnv)
+import System.Environment.Extended (isEnvSet)
 import System.Exit (die)
 import System.FilePath ((</>))
 import System.IO (IOMode (WriteMode), hClose, openFile, stderr, stdout)
+import System.IO.Temp.Extra (TempDirLog, SkipCleanup (SkipCleanup), withSystemTempDir)
 import UnliftIO.Concurrent (forkFinally, myThreadId, throwTo)
 import UnliftIO.Exception (bracket, finally, throwString)
 import UnliftIO.STM (TVar, atomically, newTVarIO, readTVar, retrySTM, writeTVar)
@@ -131,20 +131,22 @@ withCluster conf action = do
   withEnvironmentSetup conf $ \dir clusterLogs nodeConfigLogHdl -> do
     withLoggingNamed ("cluster" :: LoggerName) clusterLogs $ \(_, (_, trCluster)) -> do
       let tr' = trMessageText trCluster
-      clusterCfg <- localClusterConfigWithExtraConf (extraConfig conf)
+      era <- Launch.clusterEraFromEnv
+      clusterCfg <- localClusterConfigWithExtraConf era (extraConfig conf)
       withRedirectedStdoutHdl nodeConfigLogHdl $ \restoreStdout -> -- used to mask messy node configuration log
         retryClusterFailedStartup $
           Launch.withCluster tr' dir clusterCfg mempty $ \rn -> do
-            restoreStdout $ runAction rn dir action
+            restoreStdout $ runAction era rn dir action
   where
-    runAction rn dir userAction = do
-      waitForRelayNode rn
+    runAction clusterEra runningNode supportDir userAction = do
+      waitForRelayNode runningNode
       let cEnv =
             ClusterEnv
-              { runningNode = rn
+              { runningNode
               , networkId = CAPI.Mainnet
-              , supportDir = dir
+              , supportDir
               , plutipConf = conf
+              , clusterEra
               }
 
       userAction cEnv -- executing user action on cluster
@@ -210,9 +212,10 @@ withDirectory ::
   String ->
   (FilePath -> m a) ->
   m a
-withDirectory conf tr pathName action =
+withDirectory conf tr pathName action = do
+  skipCleanup <- SkipCleanup <$> isEnvSet "NO_CLEANUP"
   case clusterWorkingDir conf of
-    Temporary -> withSystemTempDir tr pathName action
+    Temporary -> withSystemTempDir tr pathName skipCleanup action
     Fixed path shouldKeep -> do
       canonPath <- liftIO $ canonicalizePath path
       liftIO $ doesPathExist canonPath >>= (`when` removeDirectoryRecursive canonPath)

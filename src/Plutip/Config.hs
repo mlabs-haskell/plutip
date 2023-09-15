@@ -2,13 +2,13 @@ module Plutip.Config (
   PlutipConfig (..),
   WorkingDirectory (..),
   ExtraConfig (..),
-  NominalDiffTime,
+  NominalDiffTimeMicro,
   EpochSize (..),
 ) where
 
-import Cardano.Ledger.Slot (EpochSize (EpochSize, unEpochSize))
+import Cardano.Slotting.Slot (EpochSize (EpochSize, unEpochSize))
 import Data.Default (Default, def)
-import Data.Time (NominalDiffTime)
+import Cardano.Ledger.Shelley.Genesis (NominalDiffTimeMicro)
 import GHC.Generics (Generic)
 import Plutip.Launch.Extra.Types (ExtraConfig (ExtraConfig, ecEpochSize, ecMaxTxSize, ecRaiseExUnitsToMax, ecSlotLength))
 

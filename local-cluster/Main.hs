@@ -9,13 +9,13 @@
 module Main (main) where
 
 import Cardano.Launcher.Node (CardanoNodeConn, nodeSocketFile)
+import Cardano.Ledger.Shelley.Genesis (NominalDiffTimeMicro, toNominalDiffTimeMicroWithRounding)
 import Control.Applicative (optional, (<**>))
 import Control.Monad (forM_)
 import Control.Monad.IO.Class (liftIO)
 import Data.Aeson (FromJSON, ToJSON, encodeFile)
 import Data.Default (def)
 import Data.Foldable (for_)
-import Data.Time (NominalDiffTime)
 import GHC.Conc (threadDelay)
 import GHC.Generics (Generic)
 import GHC.Natural (Natural)
@@ -165,15 +165,16 @@ pWorkDir =
           <> Options.metavar "FILEPATH"
       )
 
-pSlotLen :: Parser NominalDiffTime
+pSlotLen :: Parser NominalDiffTimeMicro
 pSlotLen =
-  Options.option
-    Options.auto
-    ( Options.long "slot-len"
-        <> Options.short 's'
-        <> Options.metavar "SLOT_LEN"
-        <> Options.value 0.2
-    )
+  toNominalDiffTimeMicroWithRounding
+    <$> Options.option
+      Options.auto
+      ( Options.long "slot-len"
+          <> Options.short 's'
+          <> Options.metavar "SLOT_LEN"
+          <> Options.value 0.2
+      )
 
 pEpochSize :: Parser EpochSize
 pEpochSize =
@@ -221,7 +222,7 @@ data ClusterConfig = ClusterConfig
   , lvlAmount :: Natural
   , numUtxos :: Int
   , workDir :: Maybe FilePath
-  , slotLength :: NominalDiffTime
+  , slotLength :: NominalDiffTimeMicro
   , epochSize :: EpochSize
   , dumpInfo :: Maybe FilePath
   }

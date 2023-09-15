@@ -7,21 +7,21 @@
   };
 
   inputs = {
-    nixpkgs.follows = "haskellNix/nixpkgs-unstable";
-    hackageNix = {
+    nixpkgs.follows = "haskell-nix/nixpkgs-unstable";
+    hackage-nix = {
       url = "github:input-output-hk/hackage.nix";
       flake = false;
     };
-    haskellNix = {
+    haskell-nix = {
       url = "github:input-output-hk/haskell.nix";
       inputs.nixpkgs.follows = "nixpkgs";
-      inputs.hackage.follows = "hackageNix";
+      inputs.hackage.follows = "hackage-nix";
     };
     CHaP = {
       url = "github:input-output-hk/cardano-haskell-packages?ref=repo";
       flake = false;
     };
-    iohkNix = {
+    iohk-nix = {
       url = "github:input-output-hk/iohk-nix";
       inputs.nixpkgs.follows = "nixpkgs";
     };
@@ -34,7 +34,7 @@
   };
 
   outputs =
-    { self, nixpkgs, haskellNix, CHaP, iohkNix, cardano-node, ... }:
+    { self, nixpkgs, haskell-nix, CHaP, iohk-nix, cardano-node, ... }:
     let
       defaultSystems = [ "x86_64-linux" "x86_64-darwin" ];
 
@@ -42,8 +42,8 @@
 
       nixpkgsFor = system:
         import nixpkgs {
-          overlays = [ iohkNix.overlays.crypto haskellNix.overlay ];
-          inherit (haskellNix) config;
+          overlays = [ iohk-nix.overlays.crypto haskell-nix.overlay ];
+          inherit (haskell-nix) config;
           inherit system;
         };
       nixpkgsFor' = system: import nixpkgs { inherit system; };

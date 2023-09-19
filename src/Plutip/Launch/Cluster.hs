@@ -1026,7 +1026,7 @@ generateGenesis dir systemStart initialFunds addPoolsToGenesis extraConf = do
                 & ppPoolDepositL .~ Ledger.Coin 0
                 & ppMaxBBSizeL .~ 239_857
                 & ppMaxBHSizeL .~ 217_569
-                & ppMaxTxSizeL .~ 16_384
+                & ppMaxTxSizeL .~ ecMaxTxSize extraConf
                 & ppMinPoolCostL .~ Ledger.Coin 0
                 & ppExtraEntropyL .~ Ledger.NeutralNonce
                 -- There are a few smaller features/fixes which are enabled based on

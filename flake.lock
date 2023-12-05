@@ -3,11 +3,11 @@
     "CHaP": {
       "flake": false,
       "locked": {
-        "lastModified": 1694601145,
-        "narHash": "sha256-p7ZxorrOvoow6N+JKvfrCiRYFtUSPiEMgt8MR+rcTT4=",
+        "lastModified": 1701717386,
+        "narHash": "sha256-/9vQ2DdQlHsCfh72owZUae+djjSAumMVWdxGA7ugkZ0=",
         "owner": "input-output-hk",
         "repo": "cardano-haskell-packages",
-        "rev": "e8298604717dbaa311c1e42e021b571670f4b039",
+        "rev": "13b6ae939b747ad82ea8286f13b4e8f6ce8a3c49",
         "type": "github"
       },
       "original": {
@@ -1001,11 +1001,11 @@
         "sodium": "sodium_2"
       },
       "locked": {
-        "lastModified": 1693968598,
-        "narHash": "sha256-2wFadXHMgNYrF7N6jndfp3Ywm2G0r+QTPifrlzugkjo=",
+        "lastModified": 1701223254,
+        "narHash": "sha256-k02Q+vuYHETqDMfnC4ORpHNKWUDpVWTeiETCmf7+gBA=",
         "owner": "input-output-hk",
         "repo": "iohk-nix",
-        "rev": "7d738e59d276336d1e02447e27b0373164d3bc88",
+        "rev": "ac6932d5f18c6f249a392fe4edbc2ca15257a512",
         "type": "github"
       },
       "original": {

@@ -42,7 +42,11 @@
 
       nixpkgsFor = system:
         import nixpkgs {
-          overlays = [ iohk-nix.overlays.crypto haskell-nix.overlay ];
+          overlays = [
+            iohk-nix.overlays.crypto
+            iohk-nix.overlays.haskell-nix-crypto
+            haskell-nix.overlay
+          ];
           inherit (haskell-nix) config;
           inherit system;
         };
@@ -52,8 +56,6 @@
         ({ pkgs, ... }:
           {
             packages = {
-              cardano-crypto-praos.components.library.pkgconfig = pkgs.lib.mkForce [ [ pkgs.libsodium-vrf ] ];
-              cardano-crypto-class.components.library.pkgconfig = pkgs.lib.mkForce [ [ pkgs.libsodium-vrf pkgs.secp256k1 ] ];
               cardano-wallet.components.library.build-tools = [
                 pkgs.buildPackages.buildPackages.gitMinimal
               ];

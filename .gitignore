@@ -12,3 +12,5 @@ result*
 
 # local files created by the cluster
 local-cluster-info.json
+
+.pre-commit-config.yaml

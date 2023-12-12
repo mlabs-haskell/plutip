@@ -13,11 +13,11 @@ module Plutip.Cluster (
 
 import Cardano.Api (ChainTip (ChainTip), Lovelace, SlotNo (SlotNo))
 import Cardano.Api qualified as CAPI
-import Cardano.CLI (LogOutput (LogToFile), withLoggingNamed)
 import Cardano.BM.Data.Severity qualified as Severity
+import Cardano.BM.Extra (stdoutTextTracer, trMessageText)
+import Cardano.CLI (LogOutput (LogToFile), withLoggingNamed)
 import Cardano.Launcher (ProcessHasExited (ProcessHasExited))
 import Cardano.Startup (installSignalHandlers, setDefaultFilePermissions, withUtf8Encoding)
-import Cardano.BM.Extra (stdoutTextTracer, trMessageText)
 import Control.Concurrent (rtsSupportsBoundThreads)
 import Control.Monad (unless, void, when, zipWithM_)
 import Control.Monad.IO.Class (liftIO)
@@ -46,11 +46,11 @@ import Plutip.Launch.Cluster (
 import Plutip.Types (
   ClusterEnv (
     ClusterEnv,
+    clusterEra,
     networkId,
     plutipConf,
     runningNode,
-    supportDir,
-    clusterEra
+    supportDir
   ),
   keysDir,
  )
@@ -66,7 +66,7 @@ import System.Environment.Extended (isEnvSet)
 import System.Exit (die)
 import System.FilePath ((</>))
 import System.IO (IOMode (WriteMode), hClose, openFile, stderr, stdout)
-import System.IO.Temp.Extra (TempDirLog, SkipCleanup (SkipCleanup), withSystemTempDir)
+import System.IO.Temp.Extra (SkipCleanup (SkipCleanup), TempDirLog, withSystemTempDir)
 import UnliftIO.Concurrent (forkFinally, myThreadId, throwTo)
 import UnliftIO.Exception (bracket, finally, throwString)
 import UnliftIO.STM (TVar, atomically, newTVarIO, readTVar, retrySTM, writeTVar)
@@ -133,7 +133,8 @@ withCluster conf action = do
       let tr' = trMessageText trCluster
       era <- Launch.clusterEraFromEnv
       clusterCfg <- localClusterConfigWithExtraConf era (extraConfig conf)
-      withRedirectedStdoutHdl nodeConfigLogHdl $ \restoreStdout -> -- used to mask messy node configuration log
+      withRedirectedStdoutHdl nodeConfigLogHdl $ \restoreStdout ->
+        -- used to mask messy node configuration log
         retryClusterFailedStartup $
           Launch.withCluster tr' dir clusterCfg mempty $ \rn -> do
             restoreStdout $ runAction era rn dir action

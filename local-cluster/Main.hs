@@ -70,9 +70,9 @@ main = do
         putStrLn "Cluster is running. Ctrl-C to stop."
         loopThreadDelay
   where
-    loopThreadDelay = threadDelay 100000000 >> loopThreadDelay
+    loopThreadDelay = threadDelay 100_000_000 >> loopThreadDelay
 
-    printNodeRelatedInfo = \cEnv -> do
+    printNodeRelatedInfo cEnv = do
       putStrLn $ "Node socket: " <> show (nodeSocket cEnv)
 
     separate = liftIO $ putStrLn "\n------------\n"

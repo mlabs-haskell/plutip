@@ -2,16 +2,16 @@
   imports = [
     inputs.pre-commit-hooks-nix.flakeModule
   ];
-  perSystem = { pkgs, system, config, ... }:
+  perSystem = { config, ... }:
     {
       devShells.dev-pre-commit = config.pre-commit.devShell;
-      # devShells.default = config.pre-commit.devShell;
 
       pre-commit = {
         settings = {
           excludes = [
             "cluster-data/"
             "src/Plutip/Launch/"
+            "STANDARDS.md"
           ];
 
           hooks = {
@@ -21,7 +21,6 @@
             fourmolu.enable = true;
             shellcheck.enable = true;
             hlint.enable = true;
-            typos.enable = true;
             markdownlint.enable = true;
           };
 

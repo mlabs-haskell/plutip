@@ -64,7 +64,7 @@
             };
           }
         )
-        ({ config, pkgs, ... }:
+        ({ pkgs, ... }:
           let
             nodeExes = cardano-node.packages.${system};
           in
@@ -132,50 +132,50 @@
           modules = haskellModules system;
         };
 
-        project = perSystem projectFor;
-        flake = perSystem (system: (projectFor system).flake { });
+      project = perSystem projectFor;
+      flake = perSystem (system: (projectFor system).flake { });
     in
-      flake-parts.lib.mkFlake { inherit inputs; } {
-        imports = [
-          ./pre-commit.nix
-        ];
-        flake = {
-          inherit project flake;
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      imports = [
+        ./pre-commit.nix
+      ];
+      flake = {
+        inherit project flake;
 
-          # This will build all of the project's executables and the tests
-          check = perSystem
-            (system:
-              (nixpkgsFor system).runCommand "combined-check"
-                {
-                  nativeBuildInputs = builtins.attrValues self.checks.${system}
-                    ++ builtins.attrValues self.flake.${system}.packages;
-                } ''mkdir $out''
-            );
+        # This will build all of the project's executables and the tests
+        check = perSystem
+          (system:
+            (nixpkgsFor system).runCommand "combined-check"
+              {
+                nativeBuildInputs = builtins.attrValues self.checks.${system}
+                  ++ builtins.attrValues self.flake.${system}.packages;
+              } ''mkdir $out''
+          );
 
-          haskellModules = perSystem haskellModules;
+        haskellModules = perSystem haskellModules;
 
-          # Instruction for the Hercules CI to build on x86_64-linux only, to avoid errors about systems without agents.
-          herculesCI.ciSystems = [ "x86_64-linux" ];
+        # Instruction for the Hercules CI to build on x86_64-linux only, to avoid errors about systems without agents.
+        herculesCI.ciSystems = [ "x86_64-linux" ];
+      };
+      systems = defaultSystems;
+      perSystem = { system, config, pkgs, ... }: {
+        packages = flake.${system}.packages
+          // {
+          default = config.packages."plutip-core:lib:plutip-core";
         };
-        systems = defaultSystems;
-        perSystem = { system, config, pkgs, ... }: {
-          packages = flake.${system}.packages 
-            // {
-              default = config.packages."plutip-core:lib:plutip-core";
-            };
 
-          apps = flake.${system}.apps;
+        apps = flake.${system}.apps;
 
-          devShells = {
-            # Adds pre-commit packages and shell hook to the haskell shell
-            default = pkgs.mkShell {
-              inputsFrom = [ config.devShells.haskell config.devShells.dev-pre-commit ];
-              shellHook = config.devShells.haskell.shellHook + config.devShells.dev-pre-commit.shellHook;
-            };
-            haskell = flake.${system}.devShell;
+        devShells = {
+          # Adds pre-commit packages and shell hook to the haskell shell
+          default = pkgs.mkShell {
+            inputsFrom = [ config.devShells.haskell config.devShells.dev-pre-commit ];
+            shellHook = config.devShells.haskell.shellHook + config.devShells.dev-pre-commit.shellHook;
           };
-
-          checks = flake.${system}.checks;
+          haskell = flake.${system}.devShell;
         };
+
+        checks = flake.${system}.checks;
+      };
     };
 }

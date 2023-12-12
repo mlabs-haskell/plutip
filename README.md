@@ -16,20 +16,20 @@ For smart contract testing see [CTL integration with Plutip](https://github.com/
 **Table of Contents**
 
 - [Plutip](#plutip)
-    - [Prerequisites](#prerequisites)
-        - [When using Plutip as a Haskell library](#when-using-plutip-as-a-haskell-library)
-    - [Quick start](#quick-start)
-        - [Run as an executable](#run-as-an-executable)
-        - [Use in a Haskell program](#use-in-a-haskell-program)
-    - [Overview](#overview)
-        - [As a library](#as-a-library)
-        - [As an executable](#as-an-executable)
-        - [Via CTL for contract testing](#via-ctl-for-contract-testing)
-    - [Tutorials](#tutorials)
-    - [Advanced network setup](#advanced-network-setup)
-    - [Useful links](#useful-links)
-    - [Plutip for integration testing of smart contracts](#plutip-for-integration-testing-of-smart-contracts)
-    - [Maintenance](#maintenance)
+  - [Prerequisites](#prerequisites)
+    - [When using Plutip as a Haskell library](#when-using-plutip-as-a-haskell-library)
+  - [Quick start](#quick-start)
+    - [Run as an executable](#run-as-an-executable)
+    - [Use in a Haskell program](#use-in-a-haskell-program)
+  - [Overview](#overview)
+    - [As a library](#as-a-library)
+    - [As an executable](#as-an-executable)
+    - [Via CTL for contract testing](#via-ctl-for-contract-testing)
+  - [Tutorials](#tutorials)
+  - [Advanced network setup](#advanced-network-setup)
+  - [Useful links](#useful-links)
+  - [Plutip for integration testing of smart contracts](#plutip-for-integration-testing-of-smart-contracts)
+  - [Maintenance](#maintenance)
 
 <!-- markdown-toc end -->
 
@@ -42,8 +42,8 @@ For smart contract testing see [CTL integration with Plutip](https://github.com/
 
 If your project is importing and making use of `Plutip`s library you will need to make sure that the following executables are present in your `PATH`:
 
-* `cardano-cli` executable available in the environment
-* `cardano-node` executable available in the environment
+- `cardano-cli` executable available in the environment
+- `cardano-node` executable available in the environment
 
 The following GHC flags must be used in order for Plutip to run: `-threaded -rtsopts`.
 
@@ -68,11 +68,13 @@ nix run .#plutip-core:exe:local-cluster -- --help
 ### Use in a Haskell program
 
 Launch local cluster with:
+
 ```haskell
 withCluster :: PlutipConfig -> (ClusterEnv -> IO a) -> IO a
 withCluster conf action
 ```
-Use `withFundedCluster` to additionaly receive pre-funded keys.
+
+Use `withFundedCluster` to additionally receive pre-funded keys.
 
 Cluster shuts down when the user action (second argument to `withCluster`) completes.
 Use `startCluster`/`startFundedCluster` and `stopCluster` variants to keep the cluster running.
@@ -82,6 +84,7 @@ Use `startCluster`/`startFundedCluster` and `stopCluster` variants to keep the c
 Plutip is in essence a simpler wrapper over some `cardano-wallet` code for spawning private disposable Cardano clusters.
 
 It can be used in a few ways:
+
   1. as a library,
   2. as an executable,
   3. indirectly via cardano-transaction-lib (CTL) smart contract tests. This is a facility for testing contracts in an isolated environment: with wallet mocks and a private plutip cluster. See [CTL](https://github.com/Plutonomicon/cardano-transaction-lib/) and their [documentation](https://github.com/Plutonomicon/cardano-transaction-lib/blob/develop/doc/testing.md#testing-with-plutip) on Plutip tests. That's very much the recommended way if you're a CTL user.
@@ -89,25 +92,31 @@ It can be used in a few ways:
 
 ### As a library
 
-Launch local cluster with 
+Launch local cluster with
+
 ```haskell
 withCluster :: PlutipConfig -> (ClusterEnv -> IO a) -> IO a
 withCluster conf action
 ```
+
 where:
- - `conf :: PlutipConfig` specifies the working directory of a spawned cluster (can be temporary) and in some capacity the parameters of the cluster. Use `Data.Default (def)` to spawn default cluster in a temporary directory.
- - `ClusterEnv` is essentially a wrapper around the node socket. The socket belongs to one of the nodes.
- - `action :: ClusterEnv -> IO a` is a user action which has access to a `cardano-node` in a cluster via `Cardano.Api`.
+
+- `conf :: PlutipConfig` specifies the working directory of a spawned cluster (can be temporary) and in some capacity the parameters of the cluster. Use `Data.Default (def)` to spawn default cluster in a temporary directory.
+- `ClusterEnv` is essentially a wrapper around the node socket. The socket belongs to one of the nodes.
+- `action :: ClusterEnv -> IO a` is a user action which has access to a `cardano-node` in a cluster via `Cardano.Api`.
 
 Use
+
 ```haskell
 withFundedCluster :: PlutipConfig -> [[Lovelace]] -> (ClusterEnv -> [KeyPair] -> IO a) -> IO a
 ```
-to additionaly receive keys prefunded with specified fund distributions (e.g. Key 1 with `[1 Lovelace]` and Key 2 with `[2 Lovelace, 4 Lovelace]`).
 
-Additionaly there are helpers `startCluster`, `startFundedCluster`, `stopCluster` which are useful when you want your cluster to keep running, instead of shutting down after the IO action is completed.
+to additionally receive keys prefunded with specified fund distributions (e.g. Key 1 with `[1 Lovelace]` and Key 2 with `[2 Lovelace, 4 Lovelace]`).
+
+Additionally there are helpers `startCluster`, `startFundedCluster`, `stopCluster` which are useful when you want your cluster to keep running, instead of shutting down after the IO action is completed.
 
 Example:
+
 ```haskell
 import Data.Default (Default (def))
 import Plutip.CardanoApi (currentBlock)
@@ -129,6 +138,7 @@ ada = (*) 1_000_000
 
 Plutip provides a `local-cluster` executable.
 You can build it and run with Nix:
+
 ```bash
 nix run github:mlabs-haskell/plutip#plutip-core:exe:local-cluster -- --help
 ```
@@ -145,26 +155,28 @@ As long as you are using CTL's Nix environment (or your setup is based on it) th
 
 ## Tutorials
 
-* [Running disposable local network and building custom runners](./local-cluster/README.md)
+- [Running disposable local network and building custom runners](./local-cluster/README.md)
 <!-- * [CTL-based project with smart contract tests example](...) -->
 
 ## Advanced network setup
 
-* [Tweaking local network](./docs/tweaking-network.md)
-* [How to (re)generate network configs from node config and genesis files](./docs/regenerate-network-configs.md)
+- [Tweaking local network](./docs/tweaking-network.md)
+- [How to (re)generate network configs from node config and genesis files](./docs/regenerate-network-configs.md)
 
 ## Useful links
 
-* [Template for setting up a Nix flake that includes Plutip](https://github.com/MitchyCola/plutip-flake). Kudos to @MitchyCola
+- [Template for setting up a Nix flake that includes Plutip](https://github.com/MitchyCola/plutip-flake). Kudos to @MitchyCola
 
 ## Plutip for integration testing of smart contracts
 
 If your goal is to:
-* run tests with the `tasty` Haskell framework where user can run Plutus contracts (`Contract w s e a`) using the disposable private network set up by Plutip,
-* run contracts in REPL on a local network,
+
+- run tests with the `tasty` Haskell framework where user can run
+  Plutus contracts (`Contract w s e a`) using the disposable private network set up by Plutip,
+- run contracts in REPL on a local network,
 
 then check out [CTL](https://github.com/Plutonomicon/cardano-transaction-lib) or a legacy Plutip revision ([`plutip-bpi`](https://github.com/mlabs-haskell/plutip/tree/plutip-bpi)) or Plutip v1.3.1 and older releases.
 
 ## Maintenance
 
-* [Important notes on updating the `cardano-wallet` dependency](./docs/cardano-wallet-update.md)
+- [Important notes on updating the `cardano-wallet` dependency](./docs/cardano-wallet-update.md)

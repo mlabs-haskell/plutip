@@ -5,13 +5,14 @@ Requires `cardano-cli`, `jq` and `yq` to be available in `$PATH`.
 Either use an existing `cluster-data` folder (e.g. from Plutip sources) and remove all generated files, or create a new folder by copying setup scripts from Plutip's `cluster-data` and downloading genesis files and a node config that you need.
 
 Now your `cluster-data` should look like this:
- - cluster-data/alonzo-genesis.yaml
- - cluster-data/shelley-genesis.yaml
- - cluster-data/byron-genesis.yaml
- - cluster-data/node.config
- - cluster-data/gen-byron-funds.sh
- - cluster-data/regenerate-byron.sh
- - cluster-data/regenerate.sh
+
+- cluster-data/alonzo-genesis.yaml
+- cluster-data/shelley-genesis.yaml
+- cluster-data/byron-genesis.yaml
+- cluster-data/node.config
+- cluster-data/gen-byron-funds.sh
+- cluster-data/regenerate-byron.sh
+- cluster-data/regenerate.sh
 
 Steps:
 

@@ -4,16 +4,15 @@ module Plutip.Launch.Extra.Types (
   stdBlockExUnits,
   stdTxExUnits,
   stdTxSize,
-  maxExUnits,
   stdCollateral,
   calculateCollateral,
 ) where
 
-import Cardano.Ledger.Slot (EpochSize)
+import Cardano.Slotting.Slot (EpochSize)
+import Cardano.Ledger.Shelley.Genesis (NominalDiffTimeMicro)
 import Data.Aeson (FromJSON, ToJSON)
 import Data.Default (Default (def))
 import Data.Ratio ((%))
-import Data.Time (NominalDiffTime)
 import GHC.Generics (Generic)
 import Numeric.Natural (Natural)
 import PlutusCore.Evaluation.Machine.ExMemory (ExCPU (ExCPU), ExMemory (ExMemory))
@@ -26,7 +25,7 @@ import PlutusCore.Evaluation.Machine.ExMemory (ExCPU (ExCPU), ExMemory (ExMemory
 -- `ExtraConfig` is used to keep custom changes closer together to make diffs between copy
 -- and original `Cluster.hs` module smaller for easier maintenance during updates.
 data ExtraConfig = ExtraConfig
-  { ecSlotLength :: NominalDiffTime
+  { ecSlotLength :: NominalDiffTimeMicro
   , ecEpochSize :: EpochSize
   , ecMaxTxSize :: Natural
   , ecRaiseExUnitsToMax :: Bool
@@ -47,8 +46,9 @@ stdTxExUnits = ExBudget (ExMemory 10000000) (ExCPU 10000000000)
 stdBlockExUnits :: ExBudget
 stdBlockExUnits = ExBudget (ExMemory 50000000) (ExCPU 40000000000)
 
-maxExUnits :: ExBudget
-maxExUnits = ExBudget (ExMemory maxBound) (ExCPU maxBound)
+instance Bounded ExBudget where
+  minBound = ExBudget (ExMemory minBound) (ExCPU minBound)
+  maxBound = ExBudget (ExMemory maxBound) (ExCPU maxBound)
 
 stdCollateral :: Natural
 stdCollateral = 150

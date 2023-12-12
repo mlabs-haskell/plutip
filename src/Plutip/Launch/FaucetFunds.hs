@@ -1,14 +1,10 @@
 module Plutip.Launch.FaucetFunds (faucetFunds) where
 
-import Cardano.Wallet.Primitive.AddressDerivation qualified as W
-import Cardano.Wallet.Primitive.Types.Address (
-  Address,
- )
-import Cardano.Wallet.Primitive.Types.Coin (
-  Coin (Coin),
- )
+import Cardano.Wallet.Address.Encoding (decodeAddress)
+import Cardano.Wallet.Primitive.NetworkId (SNetworkId (SMainnet))
+import Cardano.Wallet.Primitive.Types.Address (Address)
+import Cardano.Wallet.Primitive.Types.Coin (Coin (Coin))
 import Cardano.Wallet.Shelley.Compatibility ()
-import Cardano.Wallet.Shelley.Network.Discriminant (decodeAddress)
 import Data.Text qualified as T
 
 -- Funds needed by 'withCluster' itself.
@@ -242,4 +238,4 @@ faucetFunds =
     , "Ae2tdPwUPEZEAQJxUj5Xkcukd5mvCwrMuicspyAiDuPkxA598NJGrpRdnG2"
     ]
   where
-    unsafeDecodeAddr = either (error . show) id . decodeAddress @ 'W.Mainnet
+    unsafeDecodeAddr = either (error . show) id . decodeAddress SMainnet

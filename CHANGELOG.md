@@ -4,6 +4,10 @@ This format is based on [Keep A Changelog](https://keepachangelog.com/en/1.0.0).
 
 
 ## Unreleased (Plutip-Core)
+
+### Changed
+
+- Updated `cardano-wallet` (2023-09-15)
 - No functionality to run test contracts with `Plutip.Contract`
 - No setup for BPI from cluster setup
 - No copying of relay node logs
@@ -13,6 +17,9 @@ This format is based on [Keep A Changelog](https://keepachangelog.com/en/1.0.0).
 - No `NegativeLovelaces` in `ClusterStartupFailureReason`
 - Moved saving keys into 'signing-keys' (before: 'bot-plutus-interface/signing-keys')
 - New: withFundedCluster, withCluster (previously withPlutusInterface)
+
+### Added
+
 - Add `dump-info-json` to local-cluster
 - Add configurable MaxTxSize and MaxExUnits to `ExtraConfig`
 

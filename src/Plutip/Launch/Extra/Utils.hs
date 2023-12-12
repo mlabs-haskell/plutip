@@ -2,12 +2,11 @@ module Plutip.Launch.Extra.Utils (
   localClusterConfigWithExtraConf,
 ) where
 
-import Plutip.Launch.Cluster (LocalClusterConfig (LocalClusterConfig), clusterEraFromEnv, clusterEraToString, logFileConfigFromEnv)
+import Plutip.Launch.Cluster (ClusterEra, LocalClusterConfig (LocalClusterConfig), clusterEraToString, logFileConfigFromEnv, defaultPoolConfigs)
 import Plutip.Launch.Extra.Types (ExtraConfig)
-import Plutip.Launch.PoolConfigs (defaultPoolConfigs)
 
-localClusterConfigWithExtraConf :: ExtraConfig -> IO LocalClusterConfig
-localClusterConfigWithExtraConf ec = do
-  era <- clusterEraFromEnv
+
+localClusterConfigWithExtraConf :: ClusterEra -> ExtraConfig -> IO LocalClusterConfig
+localClusterConfigWithExtraConf era ec = do
   logConf <- logFileConfigFromEnv (Just $ clusterEraToString era)
   pure $ LocalClusterConfig defaultPoolConfigs era logConf ec

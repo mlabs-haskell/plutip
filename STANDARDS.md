@@ -1,4 +1,6 @@
-# Introduction
+# Standards
+
+## Introduction
 
 This document describes a set of standards for all code under the Plutus Use Cases
 project. It also explains our reasoning for these choices, and acts as a living
@@ -6,11 +8,11 @@ document of our practices for current and future contributors to the project. We
 intend for this document to evolve as our needs change, as well as act as a
 single point of truth for standards.
 
-# Motivation
+## Motivation
 
 The desired outcomes from the prescriptions in this document are as follows.
 
-## Increase consistency
+### Increase consistency
 
 Inconsistency is worse than _any_ standard, as it requires us to track a large
 amount of case-specific information. Software development is already a difficult
@@ -29,7 +31,7 @@ well-motivated. This will ultimately benefit us, in both the short and the long
 term. The standards described here, as well as this document itself, is written
 with this foremost in mind.
 
-## Limit non-local information
+### Limit non-local information
 
 There is a limited amount of space in a developer's skull; we all have bad days,
 and we forget things or make decisions that, perhaps, may not be ideal at the
@@ -55,7 +57,7 @@ amount of non-local knowledge required at all levels of the codebase.
 Additionally, we aim to avoid doing things 'just because we can' in a way that
 would be difficult for other Haskellers to follow, regardless of skill level.
 
-## Minimize impact of legacy
+### Minimize impact of legacy
 
 Haskell is a language that is older than some of the people currently writing
 it; parts of its ecosystem are not exempt from it. With age comes legacy, and
@@ -67,7 +69,7 @@ Thus, we aim to codify good practices in this document _as seen today_. We also
 try to avoid obvious 'sharp edges' by proscribing them away in a principled,
 consistent and justifiable manner.
 
-## Automate away drudgery
+### Automate away drudgery
 
 As developers, we should use our tools to make ourselves as productive as
 possible. There is no reason for us to do a task if a machine could do it for
@@ -81,14 +83,14 @@ driven by a desire to remove boring, repetitive tasks that don't need a human to
 perform. By removing the need for us to think about such things, we can focus on
 those things which _do_ need a human; thus, we get more done, quicker.
 
-# Conventions
+## Conventions
 
 The words MUST, SHOULD, MUST NOT, SHOULD NOT and MAY are defined as per [RFC
 2119][rfc-2119].
 
-# Tools
+## Tools
 
-## Compiler warning settings
+### Compiler warning settings
 
 The following warnings MUST be enabled for all builds of any project, or any
 project component:
@@ -119,7 +121,7 @@ to ensure safety, rather than due to reliance on any method.
 If a warning from this list is to be disabled, it MUST be disabled in the
 narrowest possible scope; ideally, this SHOULD be a single module.
 
-### Justification
+#### Justification
 
 These options are suggested by [Alexis King][alexis-king-options] - the
 justifications for them can be found at the link. These fit well with our
@@ -136,12 +138,12 @@ approach. In this case, a limited lowering (per module ideally) of those two
 warnings is acceptable, as they represent workarounds to technical problems,
 rather than issues with the warnings themselves.
 
-## Linting
+### Linting
 
 Every source file MUST be free of warnings as produced by [HLint][hlint], with
 default settings.
 
-### Justification
+#### Justification
 
 HLint automates away the detection of many common sources of boilerplate and
 inefficiency. It also describes many useful refactors, which in many cases make
@@ -149,7 +151,7 @@ the code easier to read and understand. As this is fully automatic, it saves
 effort on our part, and ensures consistency across the codebase without us
 having to think about it.
 
-## Code formatting
+### Code formatting
 
 Every source file MUST be formatted according to [Fourmolu][fourmolu], with the
 following settings (as per its settings file):
@@ -166,7 +168,7 @@ following settings (as per its settings file):
 Each source code line MUST be at most 100 characters wide, and SHOULD
 be at most 80 characters wide.
 
-### Justification
+#### Justification
 
 Consistency is the most important goal of readable codebases. Having a single
 standard, automatically enforced, means that we can be sure that everything will
@@ -180,9 +182,9 @@ descriptive identifiers), but a line length of over 100 characters becomes
 difficult to read even without a split screen. We don't _enforce_ a maximum of
 80 characters for this exact reason; some judgment is allowed.
 
-# Code practices
+## Code practices
 
-## Naming
+### Naming
 
 camelCase MUST be used for all non-type, non-data-constructor names; otherwise,
 TitleCase MUST be used. Acronyms used as part of a naming identifier (such as
@@ -190,7 +192,7 @@ TitleCase MUST be used. Acronyms used as part of a naming identifier (such as
 ``fromHttpService`` are correct. Exceptions are allowed for external libraries
 (Aeson's ``parseJSON`` for example).
 
-### Justification
+#### Justification
 
 camelCase for non-type, non-data-constructor names is a long-standing convention
 in Haskell (in fact, HLint checks for it); TitleCase for type names or data
@@ -200,7 +202,7 @@ standard regarding acronym casing: examples of always upcasing exist (Aeson) as
 well as examples of downcasing (``http-api-data``). One choice for consistency
 (or as much as is possible) should be made however.
 
-## Modules
+### Modules
 
 All publicly facing modules (namely, those which are not listed in
 ``other-modules`` in the Cabal file) MUST have explicit export lists.
@@ -278,7 +280,7 @@ import qualified Foo.Bar as Baz
 import qualified Foo.Quux as Baz
 ```
 
-### Justification
+#### Justification
 
 Explicit export lists are an immediate, clear and obvious indication of what
 publicly visible interface a module provides. It gives us stability guarantees
@@ -305,7 +307,7 @@ names: consider the number of types on which a ``size`` function makes sense.
 Thus, importing type names unqualified, even if the rest of the module is
 qualified, is good practice, and saves on a lot of prefixing.
 
-## Plutus module import naming conventions
+### Plutus module import naming conventions
 
 In addition to the general module import rules, we follow some conventions
 on how we import the Plutus API modules, allowing for some flexibility
@@ -350,13 +352,13 @@ In favour of:
 import Plutus.V1.Ledger.Scripts qualified as Scripts (ValidatorHash)
 ```
 
-### Justification
+#### Justification
 
 The Plutus API modules can be confusing, with numerous modules involved, many
 exporting the same items. Consistent qualified names help ease this problem,
 and decrease ambiguity about where imported items come from.
 
-## LANGUAGE pragmata
+### LANGUAGE pragmata
 
 The following pragmata MUST be enabled at project level (that is, in
 ``package.yaml``):
@@ -392,7 +394,7 @@ The following pragmata MUST be enabled at project level (that is, in
 - ``UndecidableInstances``
 
 Any other LANGUAGE pragmata MUST be enabled per-file. All language pragmata MUST
-be at the top of the source file, written as ``{-# LANGUAGE PragmaName #-}``.
+be at the top of the source file, written as ``{-## LANGUAGE PragmaName #-}``.
 
 Furthermore, the following pragmata MUST NOT be used, or enabled, anywhere:
 
@@ -401,7 +403,7 @@ Furthermore, the following pragmata MUST NOT be used, or enabled, anywhere:
 - ``PartialTypeSignatures``
 - ``PostfixOperators``
 
-### Justification
+#### Justification
 
 ``DataKinds``, ``DuplicateRecordFields``, ``GADTs``, ``TypeApplications``,
 ``TypeSynonymInstances`` and ``UndecidableInstances`` are needed globally to use
@@ -659,11 +661,11 @@ typically aren't worth the trouble. Haskell is not Forth, none of our
 dependencies rely on postfix operators, and defining our own creates more
 problems than it solves.
 
-## ``record-dot-preprocessor``
+### ``record-dot-preprocessor``
 
 The GHC plugin from ``record-dot-preprocessor`` SHOULD be enabled globally.
 
-### Justification
+#### Justification
 
 Haskell records are documentedly and justifiably subpar: the [original issue for
 the record dot preprocessor extension][rdp-issue] provides a good summary of the
@@ -687,14 +689,14 @@ require disabling an important warning, it significantly reduces issues with
 record use, making it worthwhile. Additionally, when GHC 9.2 becomes usable, we
 can upgrade to it seamlessly.
 
-## Prelude
+### Prelude
 
 The ``PlutusTx.Prelude`` MUST be used. A 'hiding import' to remove functionality
 we want to replace SHOULD be used when necessary. If functionality from the
 ``Prelude`` in ``base`` is needed, it SHOULD be imported qualified. Other
 preludes MUST NOT be used.
 
-### Justification
+#### Justification
 
 As this is primarily a Plutus project, we are in some ways limited by what
 Plutus requires (and provides). Especially for on-chain code, the Plutus prelude
@@ -725,12 +727,12 @@ it isn't clear if we need all of this in our dependency tree.
 For all of the above reasons, the best choice is 'default to Plutus, with local
 replacements from `base`'.
 
-## Versioning
+### Versioning
 
 A project MUST use the [PVP][pvp]. Two, and only two, version numbers MUST be
 used: a major version and a minor version.
 
-### Justification
+#### Justification
 
 The [Package Versioning Policy][pvp] is the conventional Haskell versioning
 scheme, adopted by most packages on Hackage. It is clearly described, and even
@@ -744,7 +746,7 @@ indicating compilation-breaking and compilation-non-breaking changes
 respectively. As parsimony is best, and more granularity than this isn't
 generally necessary, adopting this model is the right decision.
 
-## Documentation
+### Documentation
 
 Every publicly-exported definition MUST have a Haddock comment, detailing its
 purpose. If a definition is a function, it SHOULD also have examples of use
@@ -759,7 +761,7 @@ signature changed.
 
 For type classes, their laws MUST be documented using a Haddock comment.
 
-### Justification
+#### Justification
 
 Code reading is a difficult task, especially when the 'why' rather than the
 'how' of the code needs to be deduced. A good solution to this is documentation,
@@ -779,7 +781,7 @@ instances are and aren't permissible. These laws need to be clearly stated, as
 this assists both those seeking to understand the purpose of the type class, and
 also the expected behaviour of its instances.
 
-## Other
+### Other
 
 Lists SHOULD NOT be field values of types; this extends to ``String``s. Instead,
 ``Vector``s (``Text``s) SHOULD be used, unless a more appropriate structure exists.
@@ -834,7 +836,7 @@ quux :: forall (m :: Type) . (Monoid m) => [m] -> m -> m
 
 `where`-bindings MUST have type signatures.
 
-### Justification
+#### Justification
 
 Haskell lists are a large example of the legacy of the language: they (in the
 form of singly linked lists) have played an important role in the development of
@@ -930,16 +932,16 @@ increasing readability. While in theory, this standard should extend to
 `let`-bindings as well, these are much rarer, and can be given signatures with
 `::` if `ScopedTypeVariables` is on (which it is for us by default) if needed.
 
-# Design practices
+## Design practices
 
-## Parse, don't validate
+### Parse, don't validate
 
 [Boolean blindness][boolean-blindness] SHOULD NOT be used in the design of any
 function or API. Returning more meaningful data SHOULD be the preferred choice.
 The general principle of ['parse, don't validate'][parse-dont-validate] SHOULD
 guide design and implementation.
 
-### Justification
+#### Justification
 
 The [description of boolean blindness][boolean-blindness] gives specific reasons why it is a poor
 design choice; additionally, it runs counter to the principle of ['parse, don't
@@ -951,13 +953,13 @@ This, in turn, reduces cognitive load, improves our ability to refactor, and
 means fewer bugs from things the compiler _could_ have checked if a function
 _wasn't_ boolean-blind.
 
-## No multi-parameter type-classes without functional dependencies
+### No multi-parameter type-classes without functional dependencies
 
 Any multi-parameter type class MUST have a functional dependency restricting its
 relation to a one-to-many at most. In cases of true many-to-many relationships,
 type classes MUST NOT be used as a solution to the problem.
 
-### Justification
+#### Justification
 
 Multi-parameter type classes allow us to express more complex relationships
 among types; single-parameter type classes effectively permit us to 'subset'
@@ -982,13 +984,13 @@ be provided for a type class, it suggests that the current design relies
 inherently on a many-to-many relation, and should be either rethought to
 eliminate it, or be dealt with using a more appropriate means.
 
-## Type classes must have laws
+### Type classes must have laws
 
 Any type class not imported from an external dependency MUST have laws. These
 laws MUST be documented in a Haddock comment on the type class definition, and
 all instances MUST follow these laws.
 
-### Justification
+#### Justification
 
 Type classes are a powerful feature of Haskell, but can also be its most
 confusing. As they allow arbitrary ad-hoc polymorphism, and are globally

@@ -94,16 +94,8 @@
         haskellModules = perSystem haskellModules;
       };
       systems = defaultSystems;
-      perSystem = { system, config, ... }:
+      perSystem = { system, config, pkgs, ... }:
         let
-          pkgs =
-            import nixpkgs {
-              overlays = [ iohk-nix.overlays.crypto haskell-nix.overlay ];
-              inherit (haskell-nix) config;
-              inherit system;
-            };
-          pkgs' = import nixpkgs { inherit system; };
-
           project =
             pkgs.haskell-nix.cabalProject {
               name = "plutip-core";
@@ -119,13 +111,9 @@
 
                 tools.haskell-language-server = "1.5.0.0"; # Newer versions failed to build
 
-                nativeBuildInputs = with pkgs'; [
+                nativeBuildInputs = with pkgs; [
                   # Haskell Tools
-                  haskellPackages.fourmolu
                   haskellPackages.cabal-install
-                  haskellPackages.cabal-fmt
-                  nixpkgs-fmt
-                  hlint
                   entr
                   ghcid
                   git
@@ -144,6 +132,12 @@
 
         in
         {
+          _module.args.pkgs = import nixpkgs {
+            overlays = [ iohk-nix.overlays.crypto haskell-nix.overlay ];
+            inherit (haskell-nix) config;
+            inherit system;
+          };
+
           packages = flake.packages
             // {
             default = config.packages."plutip-core:lib:plutip-core";

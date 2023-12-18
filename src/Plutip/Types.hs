@@ -8,7 +8,7 @@ module Plutip.Types (
 import Cardano.Api (NetworkId)
 import Cardano.Launcher.Node (CardanoNodeConn)
 import Plutip.Config (PlutipConfig)
-import Plutip.Launch.Cluster (RunningNode (RunningNode), ClusterEra)
+import Plutip.Launch.Cluster (ClusterEra, RunningNode (RunningNode))
 import System.FilePath ((</>))
 
 -- | Environment for actions that use local cluster
@@ -16,9 +16,9 @@ data ClusterEnv = ClusterEnv
   { runningNode :: RunningNode
   , -- , chainIndexUrl :: !(Maybe BaseUrl)
     networkId :: !NetworkId
-  , -- | this directory atm used to store all node related files,
-    -- files created by `cardano-cli`, `chain-index` and `bot-plutus-interface`
-    supportDir :: FilePath
+  , supportDir :: FilePath
+  -- ^ this directory atm used to store all node related files,
+  -- files created by `cardano-cli`, `chain-index` and `bot-plutus-interface`
   , plutipConf :: !PlutipConfig
   , clusterEra :: !ClusterEra
   }

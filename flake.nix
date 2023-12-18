@@ -30,23 +30,17 @@
       url = "github:edolstra/flake-compat";
       flake = false;
     };
-
+    flake-parts.url = "github:hercules-ci/flake-parts";
+    pre-commit-hooks-nix.url = "github:cachix/pre-commit-hooks.nix";
+    hci-effects.url = "github:hercules-ci/hercules-ci-effects";
   };
 
   outputs =
-    { self, nixpkgs, haskell-nix, CHaP, iohk-nix, cardano-node, ... }:
+    inputs@{ nixpkgs, haskell-nix, CHaP, iohk-nix, cardano-node, flake-parts, ... }:
     let
       defaultSystems = [ "x86_64-linux" "x86_64-darwin" ];
 
       perSystem = nixpkgs.lib.genAttrs defaultSystems;
-
-      nixpkgsFor = system:
-        import nixpkgs {
-          overlays = [ iohk-nix.overlays.crypto haskell-nix.overlay ];
-          inherit (haskell-nix) config;
-          inherit system;
-        };
-      nixpkgsFor' = system: import nixpkgs { inherit system; };
 
       haskellModules = system: [
         ({ pkgs, ... }:
@@ -63,7 +57,7 @@
             };
           }
         )
-        ({ config, pkgs, ... }:
+        ({ pkgs, ... }:
           let
             nodeExes = cardano-node.packages.${system};
           in
@@ -90,104 +84,77 @@
             };
           })
       ];
-
-      projectFor = system:
-        let
-          pkgs = nixpkgsFor system;
-          pkgs' = nixpkgsFor' system;
-        in
-        pkgs.haskell-nix.cabalProject {
-          name = "plutip-core";
-          src = ./.;
-          inputMap = {
-            "https://input-output-hk.github.io/cardano-haskell-packages" = CHaP;
-          };
-          compiler-nix-name = "ghc8107";
-
-          shell = {
-            withHoogle = true;
-            exactDeps = true;
-
-            tools.haskell-language-server = "1.5.0.0"; # Newer versions failed to build
-
-            nativeBuildInputs = with pkgs'; [
-              # Haskell Tools
-              haskellPackages.fourmolu
-              haskellPackages.cabal-install
-              haskellPackages.cabal-fmt
-              nixpkgs-fmt
-              hlint
-              entr
-              ghcid
-              git
-              fd
-
-              # Cardano tools
-              cardano-node.packages.${system}.cardano-cli
-              cardano-node.packages.${system}.cardano-node
-            ];
-          };
-
-          modules = haskellModules system;
-        };
     in
-    {
-      project = perSystem projectFor;
-      flake = perSystem (system: (projectFor system).flake { });
+    flake-parts.lib.mkFlake { inherit inputs; } {
+      imports = [
+        ./pre-commit.nix
+        ./hercules-ci.nix
+      ];
+      flake = {
+        haskellModules = perSystem haskellModules;
+      };
+      systems = defaultSystems;
+      perSystem = { system, config, pkgs, ... }:
+        let
+          project =
+            pkgs.haskell-nix.cabalProject {
+              name = "plutip-core";
+              src = ./.;
+              inputMap = {
+                "https://input-output-hk.github.io/cardano-haskell-packages" = CHaP;
+              };
+              compiler-nix-name = "ghc8107";
 
-      defaultPackage = perSystem (system:
-        let lib = "plutip-core:lib:plutip-core";
-        in self.flake.${system}.packages.${lib});
+              shell = {
+                withHoogle = true;
+                exactDeps = true;
 
-      packages = perSystem (system: self.flake.${system}.packages);
+                tools = {
+                  haskell-language-server = "1.5.0.0"; # Newer versions failed to build
+                  cabal = { };
+                  ghcid = { };
+                };
 
-      apps = perSystem (system: self.flake.${system}.apps);
+                nativeBuildInputs = with pkgs; [
+                  entr
+                  git
+                  fd
 
-      devShell = perSystem (system: self.flake.${system}.devShell);
+                  # Cardano tools
+                  cardano-node.packages.${system}.cardano-cli
+                  cardano-node.packages.${system}.cardano-node
+                ];
+              };
 
-      # This will build all of the project's executables and the tests
-      check = perSystem
-        (system:
-          (nixpkgsFor system).runCommand "combined-check"
-            {
-              nativeBuildInputs = builtins.attrValues self.checks.${system}
-                ++ builtins.attrValues self.flake.${system}.packages;
-            } ''mkdir $out''
-        );
+              modules = haskellModules system;
+            };
 
-      checks = perSystem (system:
-        self.flake.${system}.checks // {
-          formatting = (nixpkgsFor system).runCommand "formatting-check"
-            {
-              nativeBuildInputs = [
-                self.devShell.${system}.inputDerivation
-                self.devShell.${system}.nativeBuildInputs
-              ];
-            }
-            ''
-              cd ${self}
-              export LC_CTYPE=C.UTF-8
-              export LC_ALL=C.UTF-8
-              export LANG=C.UTF-8
-              export IN_NIX_SHELL='pure'
-              # this check is temporarily skipped in CI due to a bug in
-              # fourmolu:
-              #
-              # ```
-              # Formatting is not idempotent:
-              #   src/Plutip/Launch/Cluster.hs<rendered>:753:19
-              #   before: "       sgs\n         "
-              #   after:  "       sgs{ Ledger.s"
-              # Please, consider reporting the bug.
-              # ```
-              # make format_check cabalfmt_check nixpkgsfmt_check lint
-              mkdir $out
-            '';
-        });
+          flake = project.flake { };
 
-      haskellModules = perSystem haskellModules;
+        in
+        {
+          _module.args.pkgs = import nixpkgs {
+            overlays = [ iohk-nix.overlays.crypto haskell-nix.overlay ];
+            inherit (haskell-nix) config;
+            inherit system;
+          };
 
-      # Instruction for the Hercules CI to build on x86_64-linux only, to avoid errors about systems without agents.
-      herculesCI.ciSystems = [ "x86_64-linux" ];
+          packages = flake.packages
+            // {
+            default = config.packages."plutip-core:lib:plutip-core";
+          };
+
+          inherit (flake) apps checks;
+
+          devShells = {
+            # Adds pre-commit packages and shell hook to the haskell shell
+            default = pkgs.mkShell {
+
+              inputsFrom = [ config.devShells.haskell config.devShells.dev-pre-commit ];
+              shellHook = config.devShells.haskell.shellHook + config.devShells.dev-pre-commit.shellHook;
+            };
+            haskell = flake.devShell;
+          };
+        };
     };
 }

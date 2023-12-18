@@ -12,7 +12,7 @@ module Plutip.Keys (
   signKeyCBORHex,
 ) where
 
-import Cardano.Api (AddressAny, AsType (AsPaymentKey), Key (VerificationKey, getVerificationKey, verificationKeyHash), PaymentKey, SigningKey, TextEnvelopeDescr, generateSigningKey, writeFileTextEnvelope, File(File))
+import Cardano.Api (AddressAny, AsType (AsPaymentKey), File (File), Key (VerificationKey, getVerificationKey, verificationKeyHash), PaymentKey, SigningKey, TextEnvelopeDescr, generateSigningKey, writeFileTextEnvelope)
 import Cardano.Api qualified as CAPI
 import Control.Monad.Except (ExceptT (ExceptT), runExceptT)
 import Data.Text (Text)

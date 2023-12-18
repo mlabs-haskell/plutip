@@ -6,9 +6,9 @@ module Plutip.Config (
   EpochSize (..),
 ) where
 
+import Cardano.Ledger.Shelley.Genesis (NominalDiffTimeMicro)
 import Cardano.Slotting.Slot (EpochSize (EpochSize, unEpochSize))
 import Data.Default (Default, def)
-import Cardano.Ledger.Shelley.Genesis (NominalDiffTimeMicro)
 import GHC.Generics (Generic)
 import Plutip.Launch.Extra.Types (ExtraConfig (ExtraConfig, ecEpochSize, ecMaxTxSize, ecRaiseExUnitsToMax, ecSlotLength))
 
@@ -22,11 +22,11 @@ data WorkingDirectory
     Temporary
   | -- | Stored in a set directory
     Fixed
-      { -- | Path to store cluster data, can be relative or absolute
-        path :: FilePath
-      , -- | Should the working data be kept on disk after cluster shutdown.
-        --   Full directory will be deleted on shutdown if False
-        shouldKeep :: Bool
+      { path :: FilePath
+      -- ^ Path to store cluster data, can be relative or absolute
+      , shouldKeep :: Bool
+      -- ^ Should the working data be kept on disk after cluster shutdown.
+      --   Full directory will be deleted on shutdown if False
       }
   deriving stock (Generic, Show)
 
@@ -34,13 +34,13 @@ data WorkingDirectory
 --
 -- @since 0.2
 data PlutipConfig = PlutipConfig
-  { -- | in case of `Nothing` cluster data from project `data-files` is used
-    clusterDataDir :: Maybe FilePath
-  , -- | cluster file location override, when provided, includes a `shouldKeep`
-    clusterWorkingDir :: WorkingDirectory
-  , -- | Extra config to set (at the moment) slot lenght and epoch size
-    --   for local network
-    extraConfig :: ExtraConfig
+  { clusterDataDir :: Maybe FilePath
+  -- ^ in case of `Nothing` cluster data from project `data-files` is used
+  , clusterWorkingDir :: WorkingDirectory
+  -- ^ cluster file location override, when provided, includes a `shouldKeep`
+  , extraConfig :: ExtraConfig
+  -- ^ Extra config to set (at the moment) slot length and epoch size
+  --   for local network
   }
   deriving stock (Generic, Show)
 

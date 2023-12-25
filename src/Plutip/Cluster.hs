@@ -166,7 +166,7 @@ withCluster conf action = do
             [logRetries shouldRetry (\b y _ -> when b $ B.hPutStr stderr $ msg y)]
             . const
 
-dieOnError :: Show e => Either e a -> IO a
+dieOnError :: (Show e) => Either e a -> IO a
 dieOnError = either (die . show) pure
 
 -- Semaphore mechanism to change withCluster-style function to a one that keeps running after the action succeeds.
@@ -207,7 +207,7 @@ withRedirectedStdoutHdl hdl action = do
 
 withDirectory ::
   forall (m :: Type -> Type) (a :: Type).
-  MonadUnliftIO m =>
+  (MonadUnliftIO m) =>
   PlutipConfig ->
   Tracer m TempDirLog ->
   String ->

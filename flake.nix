@@ -7,29 +7,22 @@
   };
 
   inputs = {
-    nixpkgs.follows = "haskell-nix/nixpkgs-unstable";
-    hackage-nix = {
-      url = "github:input-output-hk/hackage.nix";
-      flake = false;
-    };
+    nixpkgs.url = "github:NixOS/nixpkgs";
+
     haskell-nix = {
       url = "github:input-output-hk/haskell.nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-      inputs.hackage.follows = "hackage-nix";
     };
+
     CHaP = {
       url = "github:input-output-hk/cardano-haskell-packages?ref=repo";
       flake = false;
     };
-    iohk-nix = {
-      url = "github:input-output-hk/iohk-nix";
-      inputs.nixpkgs.follows = "nixpkgs";
-    };
+
+    iohk-nix.url = "github:input-output-hk/iohk-nix";
+    iohk-nix.inputs.nixpkgs.follows = "haskell-nix/nixpkgs";
+
     cardano-node.url = "github:input-output-hk/cardano-node/8.1.1";
-    flake-compat = {
-      url = "github:edolstra/flake-compat";
-      flake = false;
-    };
+
     flake-parts.url = "github:hercules-ci/flake-parts";
     pre-commit-hooks-nix.url = "github:cachix/pre-commit-hooks.nix";
     hci-effects.url = "github:hercules-ci/hercules-ci-effects";
@@ -94,10 +87,10 @@
         haskellModules = perSystem haskellModules;
       };
       systems = defaultSystems;
-      perSystem = { system, config, pkgs, ... }:
+      perSystem = { system, config, pkgs, pkgsForHaskellNix, ... }:
         let
           project =
-            pkgs.haskell-nix.cabalProject {
+            pkgsForHaskellNix.haskell-nix.cabalProject {
               name = "plutip-core";
               src = ./.;
               inputMap = {
@@ -110,12 +103,12 @@
                 exactDeps = true;
 
                 tools = {
-                  haskell-language-server = "1.5.0.0"; # Newer versions failed to build
+                  # haskell-language-server = { }; # FIXME(bladyjoker): Can't use this really until we upgrade GHC
                   cabal = { };
                   ghcid = { };
                 };
 
-                nativeBuildInputs = with pkgs; [
+                nativeBuildInputs = with pkgsForHaskellNix; [
                   entr
                   git
                   fd
@@ -133,10 +126,16 @@
 
         in
         {
-          _module.args.pkgs = import nixpkgs {
-            overlays = [ iohk-nix.overlays.crypto haskell-nix.overlay ];
-            inherit (haskell-nix) config;
-            inherit system;
+          _module.args = {
+            pkgs = import nixpkgs {
+              inherit system;
+            };
+
+            pkgsForHaskellNix = import inputs.haskell-nix.inputs.nixpkgs {
+              overlays = [ iohk-nix.overlays.crypto haskell-nix.overlay ];
+              inherit (haskell-nix) config;
+              inherit system;
+            };
           };
 
           packages = flake.packages

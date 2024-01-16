@@ -16,6 +16,7 @@
           hooks = {
             nixpkgs-fmt.enable = true;
             deadnix.enable = true;
+            statix.enable = true;
             cabal-fmt.enable = true;
             fourmolu.enable = true;
             typos.enable = true;

@@ -21,7 +21,7 @@
     iohk-nix.url = "github:input-output-hk/iohk-nix";
     iohk-nix.inputs.nixpkgs.follows = "haskell-nix/nixpkgs";
 
-    cardano-node.url = "github:input-output-hk/cardano-node/8.1.1";
+    cardano-node.url = "github:input-output-hk/cardano-node/8.7.2";
 
     flake-parts.url = "github:hercules-ci/flake-parts";
     pre-commit-hooks-nix.url = "github:cachix/pre-commit-hooks.nix";

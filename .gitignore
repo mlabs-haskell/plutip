@@ -5,7 +5,6 @@ dist-newstyle/
 result*
 
 .direnv/
-.envrc
 
 #vscode
 .vscode/

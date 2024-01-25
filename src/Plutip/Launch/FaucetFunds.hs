@@ -9,7 +9,7 @@ import Data.Text qualified as T
 
 -- Funds needed by 'withCluster' itself.
 --
--- FIXME: We should generate these programatically. Currently they need to match
+-- FIXME: We should generate these programmatically. Currently they need to match
 -- the files on disk read by 'takeFaucet'.
 faucetFunds :: [(Address, Coin)]
 faucetFunds =

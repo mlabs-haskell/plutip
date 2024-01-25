@@ -1265,7 +1265,7 @@ withCluster tr dir LocalClusterConfig{..} faucetFunds onClusterStart = bracketTr
         :: NonEmpty ConfiguredPool
         -> GenesisFiles
         -> [(Int, [Int])]
-        -- @(port, peers)@ pairs availible for the nodes. Can be used to e.g.
+        -- @(port, peers)@ pairs available for the nodes. Can be used to e.g.
         -- add a BFT node as extra peer for all pools.
         -> RunningNode
         -- \^ Backup node to run the action with in case passed no pools.
@@ -2421,7 +2421,7 @@ faucetIndex = unsafePerformIO $ newMVar 1
 
 -- Funds needed by 'withCluster' itself.
 --
--- FIXME: We should generate these programatically. Currently they need to match
+-- FIXME: We should generate these programmatically. Currently they need to match
 -- the files on disk read by 'takeFaucet'.
 internalFaucetFunds :: [(Address, Coin)]
 internalFaucetFunds =

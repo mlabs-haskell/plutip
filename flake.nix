@@ -143,7 +143,15 @@
             default = config.packages."plutip-core:lib:plutip-core";
           };
 
-          inherit (flake) apps checks;
+          inherit (flake) apps;
+
+          checks = flake.checks // {
+            "plutip-core:test:plutip-tests" = flake.checks."plutip-core:test:plutip-tests".overrideAttrs {
+              # Override the derivation name otherwise the socket paths for cardano nodes (which contain the derivation name)
+              # in the nix sandbox will be too long for `x86_64-darwin`
+              name = "plutip-tests";
+            };
+          };
 
           devShells = {
             # Adds pre-commit packages and shell hook to the haskell shell

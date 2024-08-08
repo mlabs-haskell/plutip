@@ -26,6 +26,11 @@
     flake-parts.url = "github:hercules-ci/flake-parts";
     pre-commit-hooks-nix.url = "github:cachix/pre-commit-hooks.nix";
     hci-effects.url = "github:hercules-ci/hercules-ci-effects";
+
+    # Flake monorepo toolkit
+    flake-lang.url = "github:mlabs-haskell/flake-lang.nix";
+
+    tx-village.url = "github:mlabs-haskell/tx-village/connor/separate-plutip";
   };
 
   outputs =
@@ -82,6 +87,7 @@
       imports = [
         ./pre-commit.nix
         ./hercules-ci.nix
+        ./plutip-rust/build.nix
       ];
       flake = {
         haskellModules = perSystem haskellModules;

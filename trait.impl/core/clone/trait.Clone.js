@@ -1,0 +1,3 @@
+(function() {var implementors = {
+"plutip_rust":[["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.78.0/core/clone/trait.Clone.html\" title=\"trait core::clone::Clone\">Clone</a> for <a class=\"struct\" href=\"plutip_rust/struct.PlutipConfig.html\" title=\"struct plutip_rust::PlutipConfig\">PlutipConfig</a>"],["impl <a class=\"trait\" href=\"https://doc.rust-lang.org/1.78.0/core/clone/trait.Clone.html\" title=\"trait core::clone::Clone\">Clone</a> for <a class=\"struct\" href=\"plutip_rust/struct.PlutipConfigBuilder.html\" title=\"struct plutip_rust::PlutipConfigBuilder\">PlutipConfigBuilder</a>"]]
+};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

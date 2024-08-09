@@ -1,8 +1,0 @@
-cradle:
-  cabal:
-    - path: "./src"
-      component: "lib:plutip-core"
-    - path: "./test"
-      component: "test-suite:plutip-tests"
-    - path: "./local-cluster/"
-      component: "exe:local-cluster"

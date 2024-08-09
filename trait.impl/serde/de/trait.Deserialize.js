@@ -1,0 +1,3 @@
+(function() {var implementors = {
+"plutip_rust":[["impl&lt;'de&gt; <a class=\"trait\" href=\"https://docs.rs/serde/1.0.205/serde/de/trait.Deserialize.html\" title=\"trait serde::de::Deserialize\">Deserialize</a>&lt;'de&gt; for <a class=\"struct\" href=\"plutip_rust/struct.PlutipConfig.html\" title=\"struct plutip_rust::PlutipConfig\">PlutipConfig</a>"]]
+};if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
